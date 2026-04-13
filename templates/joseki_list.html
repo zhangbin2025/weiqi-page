@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定式研究 | 围棋智能助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { font-size: 1.5em; }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .icon-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        /* 日期选择栏 */
+        .date-bar {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .date-bar label {
+            font-weight: 500;
+            color: #555;
+        }
+        .date-bar select {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+            min-width: 120px;
+        }
+        
+        /* 分类切换标签 */
+        .category-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 15px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .category-tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            background: #f8f9fa;
+            border: none;
+            font-size: 1em;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .category-tab:hover {
+            background: #f0f0f0;
+        }
+        .category-tab.active {
+            background: #667eea;
+            color: white;
+        }
+        .category-tab .count {
+            font-size: 0.85em;
+            padding: 2px 8px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+        .category-tab.active .count {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* 日期内容区域 */
+        .date-content {
+            display: none;
+        }
+        .date-content.active {
+            display: block;
+        }
+        
+        /* 定式列表 */
+        .joseki-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            display: none;
+        }
+        .joseki-section.active {
+            display: block;
+        }
+        .joseki-list {
+            padding: 0;
+        }
+        .joseki-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f5f5f5;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.2s;
+        }
+        .joseki-item:last-child { border-bottom: none; }
+        .joseki-item:hover { background: #fafafa; }
+        .joseki-item:visited { opacity: 0.6; }
+        .joseki-number {
+            width: 32px;
+            height: 32px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+            font-size: 0.9em;
+        }
+        .joseki-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .joseki-title {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .joseki-players {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+        .stone-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .stone-black {
+            background: radial-gradient(circle at 30% 30%, #666, #000);
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        .stone-white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border: 1px solid #ccc;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+        .joseki-vs {
+            color: #999;
+            font-weight: normal;
+        }
+        .joseki-meta {
+            font-size: 0.85em;
+            color: #666;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .joseki-tag {
+            padding: 2px 8px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 10px;
+            font-size: 0.8em;
+        }
+        .joseki-tag.new {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .joseki-id {
+            font-family: monospace;
+            font-size: 0.85em;
+            color: #888;
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .joseki-event {
+            color: #888;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 0.85em;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 定式研究</h1>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="clearVisited()" title="清除记录">🗑️</button>
+            </div>
+        </header>
+        
+        <!-- 日期选择栏 -->
+        <div class="date-bar">
+            <label>📅 日期</label>
+            <select id="dateFilter" onchange="filterByDate()">
+                {% for d in dates %}
+                <option value="{{ d }}" {% if d == current_date %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- 所有日期的数据 -->
+        {% for date, categories in date_data.items() %}
+        <div class="date-content {% if date == current_date %}active{% endif %}" data-date="{{ date }}">
+            <!-- 分类切换标签 -->
+            <div class="category-tabs">
+                <div class="category-tab {% if categories.new %}active{% endif %}" onclick="switchTab('{{ date }}', 'new')" id="tab-{{ date }}-new">
+                    ✨ 新定式
+                    <span class="count">{{ categories.new|length }}</span>
+                </div>
+                <div class="category-tab {% if not categories.new %}active{% endif %}" onclick="switchTab('{{ date }}', 'ai')" id="tab-{{ date }}-ai">
+                    🤖 AI定式
+                    <span class="count">{{ categories.ai|length }}</span>
+                </div>
+            </div>
+            
+            <!-- 新定式列表 -->
+            <div class="joseki-section {% if categories.new %}active{% endif %}" id="section-{{ date }}-new">
+                {% if categories.new %}
+                <div class="joseki-list">
+                    {% for joseki in categories.new %}
+                    <a href="{{ joseki.path }}" class="joseki-item" data-joseki-id="{{ joseki.id }}">
+                        <div class="joseki-number">{{ loop.index }}</div>
+                        <div class="joseki-info">
+                            <div class="joseki-title">
+                                <span class="joseki-players">
+                                    <span class="stone-icon stone-black"></span>
+                                    {{ joseki.black }}
+                                    <span class="joseki-vs">vs</span>
+                                    <span class="stone-icon stone-white"></span>
+                                    {{ joseki.white }}
+                                </span>
+                                <span>({{ joseki.moves }}手)</span>
+                            </div>
+                            <div class="joseki-meta">
+                                <span class="joseki-event">{{ joseki.event }}</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">暂无新定式</div>
+                {% endif %}
+            </div>
+            
+            <!-- AI定式列表 -->
+            <div class="joseki-section {% if not categories.new %}active{% endif %}" id="section-{{ date }}-ai">
+                {% if categories.ai %}
+                <div class="joseki-list">
+                    {% for joseki in categories.ai %}
+                    <a href="{{ joseki.path }}" class="joseki-item" data-joseki-id="{{ joseki.id }}">
+                        <div class="joseki-number">{{ loop.index }}</div>
+                        <div class="joseki-info">
+                            <div class="joseki-title">
+                                <span class="joseki-players">
+                                    <span class="stone-icon stone-black"></span>
+                                    {{ joseki.black }}
+                                    <span class="joseki-vs">vs</span>
+                                    <span class="stone-icon stone-white"></span>
+                                    {{ joseki.white }}
+                                </span>
+                                <span>({{ joseki.moves }}手)</span>
+                            </div>
+                            <div class="joseki-meta">
+                                <span class="joseki-tag new">定式库: {{ joseki.count }}次</span>
+                                <span class="joseki-id">ID: {{ joseki.id }}</span>
+                                <span class="joseki-event">{{ joseki.event }}</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">暂无AI定式</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        
+        <footer>
+            <p>围棋智能助手 &copy; 2026</p>
+        </footer>
+    </div>
+    
+    <script>
+        // 当前状态和默认日期
+        let currentDate = '{{ current_date }}';
+        let currentTabs = {};
+        
+        // 初始化每个日期的默认标签
+        {% for date, categories in date_data.items() %}
+        currentTabs['{{ date }}'] = '{% if categories.new %}new{% else %}ai{% endif %}';
+        {% endfor %}
+        
+        function switchTab(date, tab) {
+            currentTabs[date] = tab;
+            
+            // 更新标签样式
+            document.querySelectorAll('.date-content[data-date="' + date + '"] .category-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + date + '-' + tab).classList.add('active');
+            
+            // 更新内容显示
+            document.querySelectorAll('.date-content[data-date="' + date + '"] .joseki-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('section-' + date + '-' + tab).classList.add('active');
+        }
+        
+        function filterByDate() {
+            const selectedDate = document.getElementById('dateFilter').value;
+            currentDate = selectedDate;
+            
+            // 隐藏所有日期内容
+            document.querySelectorAll('.date-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 显示选中的日期内容
+            const selectedContent = document.querySelector('.date-content[data-date="' + selectedDate + '"]');
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+            }
+        }
+        
+        document.querySelectorAll('.joseki-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const josekiId = this.dataset.josekiId;
+                let visited = JSON.parse(localStorage.getItem('visited_joseki') || '[]');
+                if (!visited.includes(josekiId)) {
+                    visited.push(josekiId);
+                    localStorage.setItem('visited_joseki', JSON.stringify(visited));
+                }
+            });
+        });
+        
+        function restoreVisited() {
+            const visited = JSON.parse(localStorage.getItem('visited_joseki') || '[]');
+            document.querySelectorAll('.joseki-item').forEach(item => {
+                if (visited.includes(item.dataset.josekiId)) {
+                    item.style.opacity = '0.5';
+                }
+            });
+        }
+        
+        function clearVisited() {
+            localStorage.removeItem('visited_joseki');
+            document.querySelectorAll('.joseki-item').forEach(item => {
+                item.style.opacity = '1';
+            });
+        }
+        
+        restoreVisited();
+    </script>
+</body>
+</html>

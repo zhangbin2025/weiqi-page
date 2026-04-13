@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棋谱列表 | 围棋智能助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { font-size: 1.5em; }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .header-actions select {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .icon-btn:hover { background: rgba(255,255,255,0.3); }
+        .source-group {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .source-header {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            font-weight: bold;
+            color: #555;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .source-header:hover { background: #f0f0f0; }
+        .source-toggle {
+            font-size: 0.8em;
+            color: #999;
+        }
+        .game-list {
+            padding: 0;
+        }
+        .game-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f5f5f5;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.2s;
+        }
+        .game-item:last-child { border-bottom: none; }
+        .game-item:hover { background: #fafafa; }
+        .game-item:visited { opacity: 0.6; }
+        .stone-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        .stone-black {
+            background: radial-gradient(circle at 30% 30%, #666, #000);
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        .stone-white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border: 1px solid #ccc;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+        .game-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .game-players {
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+        }
+        .game-event {
+            font-size: 0.85em;
+            color: #888;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .game-result {
+            padding: 4px 10px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        .game-result.white-win {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        .page-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .page-btn:hover { background: #f0f0f0; }
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 0.85em;
+        }
+        @media (max-width: 600px) {
+            .game-event { display: none; }
+            header { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📥 棋谱列表</h1>
+            <div class="header-actions">
+                <select id="dateFilter" onchange="filterByDate()">
+                    {% for date in dates %}
+                    <option value="{{ date }}" {% if date == current_date %}selected{% endif %}>{{ date }}</option>
+                    {% endfor %}
+                </select>
+                <button class="icon-btn" onclick="clearVisited()" title="清除访问记录">🗑️</button>
+            </div>
+        </header>
+        
+        <div id="content">
+            {% for date, sources in date_data.items() %}
+            <div class="date-section" data-date="{{ date }}">
+                {% for source, games in sources.items() %}
+                <div class="source-group">
+                    <div class="source-header" onclick="toggleSource(this)">
+                        <span>🏷️ {{ source }} ({{ games|length }}局)</span>
+                        <span class="source-toggle">▼</span>
+                    </div>
+                    <div class="game-list">
+                        {% for game in games %}
+                        <a href="{{ game.path }}" class="game-item" data-game-id="{{ game.id }}">
+                            <div class="game-info">
+                                <div class="stone-icon stone-black"></div>
+                                <span class="game-players">{{ game.black }}</span>
+                                <span>vs</span>
+                                <div class="stone-icon stone-white"></div>
+                                <span class="game-players">{{ game.white }}</span>
+                                <span class="game-event">{{ game.event }}</span>
+                            </div>
+                            <div class="game-result {% if game.result.startswith('W') %}white-win{% endif %}">{{ game.result_cn }}</div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        <footer>
+            <p>围棋智能助手 &copy; 2026</p>
+        </footer>
+    </div>
+    
+    <script>
+        function filterByDate() {
+            const selectedDate = document.getElementById('dateFilter').value;
+            document.querySelectorAll('.date-section').forEach(section => {
+                if (!selectedDate || section.dataset.date === selectedDate) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+        
+        function toggleSource(header) {
+            const list = header.nextElementSibling;
+            const toggle = header.querySelector('.source-toggle');
+            if (list.style.display === 'none') {
+                list.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                list.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        }
+        
+        document.querySelectorAll('.game-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const gameId = this.dataset.gameId;
+                let visited = JSON.parse(localStorage.getItem('visited_games') || '[]');
+                if (!visited.includes(gameId)) {
+                    visited.push(gameId);
+                    localStorage.setItem('visited_games', JSON.stringify(visited));
+                }
+            });
+        });
+        
+        function restoreVisited() {
+            const visited = JSON.parse(localStorage.getItem('visited_games') || '[]');
+            document.querySelectorAll('.game-item').forEach(item => {
+                if (visited.includes(item.dataset.gameId)) {
+                    item.style.opacity = '0.5';
+                }
+            });
+        }
+        
+        function clearVisited() {
+            localStorage.removeItem('visited_games');
+            document.querySelectorAll('.game-item').forEach(item => {
+                item.style.opacity = '1';
+            });
+        }
+        
+        filterByDate();
+        restoreVisited();
+    </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>围棋智能助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 50px 20px 40px;
+            color: white;
+        }
+        h1 { 
+            font-size: 2.8em; 
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .subtitle { 
+            font-size: 1.1em; 
+            opacity: 0.9;
+        }
+        .date-display {
+            font-size: 1.2em;
+            margin-top: 15px;
+            padding: 8px 25px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 25px;
+            display: inline-block;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+        }
+        .card-icon {
+            font-size: 2.5em;
+            margin-bottom: 12px;
+        }
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 1.3em;
+        }
+        .card-stats {
+            display: flex;
+            gap: 10px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+        .stat-tag {
+            background: #f5f5f5;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            color: #666;
+        }
+        .card-actions {
+            margin-top: 15px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            transition: opacity 0.3s;
+            font-size: 0.95em;
+        }
+        .btn:hover { opacity: 0.9; }
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>围棋智能助手</h1>
+            <p class="subtitle">你的专属围棋AI伙伴</p>
+            <div class="date-display" id="currentDate"></div>
+        </header>
+        
+        <div class="cards">
+            <!-- 棋谱卡片 -->
+            <div class="card">
+                <div class="card-icon">📥</div>
+                <h2>今日新增棋谱</h2>
+                <div class="card-stats">
+                    <span class="stat-tag">{{ games_count }}局</span>
+                </div>
+                <div class="card-actions">
+                    <a href="./games/" class="btn">查看棋谱</a>
+                </div>
+            </div>
+            
+            <!-- 选点题卡片 -->
+            <div class="card">
+                <div class="card-icon">🎯</div>
+                <h2>今日实战选点题</h2>
+                <div class="card-stats">
+                    <span class="stat-tag">{{ quiz_count }}题</span>
+                </div>
+                <div class="card-actions">
+                    <a href="./quiz/" class="btn">开始做题</a>
+                </div>
+            </div>
+            
+            <!-- 定式卡片 -->
+            <div class="card">
+                <div class="card-icon">📚</div>
+                <h2>今日定式发现</h2>
+                <div class="card-stats">
+                    <span class="stat-tag">{{ joseki_count }}个</span>
+                </div>
+                <div class="card-actions">
+                    <a href="./joseki/" class="btn">查看定式</a>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>围棋智能助手 &copy; 2026 | AI驱动 · 每日更新 · 精进棋艺</p>
+        </footer>
+    </div>
+    
+    <script>
+        const today = new Date();
+        document.getElementById('currentDate').textContent = 
+            today.toLocaleDateString('zh-CN', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            });
+    </script>
+</body>
+</html>
