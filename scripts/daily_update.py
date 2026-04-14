@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-每日更新主控脚本
-串行执行所有更新任务
+每日更新主控脚本（统一SGF导出版）
+串行执行所有更新任务，SGF只导出一次共享使用
 """
 import os
 import sys
 import subprocess
+import tempfile
+import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import ensure_dirs, SITE_DIR, TEST_SITE_DIR
+from config import ensure_dirs, WEIQI_DB_SCRIPT
+from common import get_games_by_date, batch_export_sgfs
 
 
 def run_script(script_name, *args):
@@ -28,7 +31,7 @@ def run_script(script_name, *args):
 
 def download_foxwq_games(date_str, test_mode=False):
     """下载野狐棋谱并导入weiqi-db"""
-    from config import WEIQI_FOXWQ_SCRIPT, WEIQI_DB_SCRIPT
+    from config import WEIQI_FOXWQ_SCRIPT
     
     print(f"\n{'='*60}")
     print(f"🦊 野狐棋谱下载")
@@ -97,6 +100,46 @@ def download_foxwq_games(date_str, test_mode=False):
         return False
 
 
+def export_sgfs_once(date_str):
+    """统一导出SGF，返回临时目录路径"""
+    print(f"\n{'='*60}")
+    print(f"📦 统一导出SGF")
+    print(f"{'='*60}")
+    
+    # 获取棋谱列表
+    games = get_games_by_date(date_str)
+    if not games:
+        print(f"⚠️  未找到 {date_str} 的棋谱")
+        return None
+    
+    print(f"📊 找到 {len(games)} 局棋谱")
+    
+    game_ids = [g.get("id") for g in games if g.get("id")]
+    if not game_ids:
+        print("⚠️  没有有效的棋谱ID")
+        return None
+    
+    # 创建临时目录
+    temp_dir = Path(tempfile.mkdtemp(prefix=f"daily_{date_str}_"))
+    print(f"⏳ 批量导出SGF到: {temp_dir}")
+    
+    if not batch_export_sgfs(game_ids, temp_dir):
+        print("❌ 批量导出失败")
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        return None
+    
+    # 检查导出结果
+    sgf_files = list(temp_dir.glob("*.sgf"))
+    print(f"✅ 成功导出 {len(sgf_files)} 个SGF文件")
+    
+    if not sgf_files:
+        print("⚠️  没有SGF文件")
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        return None
+    
+    return temp_dir
+
+
 def daily_update(date_str=None, test_mode=False):
     """执行每日更新"""
     if date_str is None:
@@ -111,30 +154,55 @@ def daily_update(date_str=None, test_mode=False):
     # 确保目录存在
     ensure_dirs(test_mode)
     
+    # 1. 下载野狐棋谱并导入
+    foxwq_success = download_foxwq_games(date_str, test_mode)
+    if not foxwq_success:
+        print(f"⚠️  野狐下载失败，继续执行...")
+    
+    # 2. KataGo定式日更（独立任务，不依赖SGF导出）
+    print(f"\n{'='*60}")
+    print(f"🤖 KataGo定式日更")
+    print(f"{'='*60}")
+    katago_success = run_script("katago_updater.py")
+    
+    # 3. 统一导出SGF（供后续三个任务共享）
+    sgf_dir = export_sgfs_once(date_str)
+    if not sgf_dir:
+        print("❌ SGF导出失败，无法继续生成页面")
+        return 1
+    
+    test_flag = "--test" if test_mode else ""
+    sgf_dir_flag = f"--sgf-dir={sgf_dir}"
+    
+    # 4. 生成页面（共享SGF目录）
     steps = [
-        ("野狐棋谱下载", "foxwq_downloader", date_str, test_mode),
-        ("KataGo定式日更", "katago_updater.py"),
-        ("棋谱页生成", "generate_games.py", date_str, "--test" if test_mode else ""),
-        ("选点题生成", "generate_quiz.py", date_str, "--test" if test_mode else ""),
-        ("定式研究页生成", "generate_joseki.py", date_str, "--test" if test_mode else ""),
-        ("索引页生成", "generate_index.py", "--test" if test_mode else ""),
-        ("公众号文章生成", "generate_article.py", date_str, "--test" if test_mode else ""),
+        ("棋谱页生成", "generate_games.py", date_str, test_flag, sgf_dir_flag),
+        ("选点题生成", "generate_quiz.py", date_str, test_flag, sgf_dir_flag),
+        ("定式研究页生成", "generate_joseki.py", date_str, test_flag, sgf_dir_flag),
+        ("索引页生成", "generate_index.py", test_flag),
+        ("公众号文章生成", "generate_article.py", date_str, test_flag),
     ]
     
-    results = []
+    results = [
+        ("野狐棋谱下载", foxwq_success),
+        ("KataGo定式日更", katago_success),
+    ]
+    
     for step_name, script, *args in steps:
-        if script == "foxwq_downloader":
-            # 特殊处理野狐下载
-            date_arg, test_arg = args
-            success = download_foxwq_games(date_arg, test_arg)
-        else:
-            # 过滤空参数
-            args = [a for a in args if a]
-            success = run_script(script, *args)
+        # 过滤空参数
+        args = [a for a in args if a]
+        success = run_script(script, *args)
         results.append((step_name, success))
         
         if not success:
             print(f"⚠️  {step_name} 失败，继续执行后续步骤...")
+    
+    # 5. 清理临时SGF目录
+    print(f"\n{'='*60}")
+    print(f"🧹 清理临时文件")
+    print(f"{'='*60}")
+    shutil.rmtree(sgf_dir, ignore_errors=True)
+    print(f"✅ 已清理: {sgf_dir}")
     
     # 汇总报告
     print("\n" + "=" * 60)

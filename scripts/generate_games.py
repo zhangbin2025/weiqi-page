@@ -1,125 +1,49 @@
 #!/usr/bin/env python3
 """
 棋谱页生成脚本
-从weiqi-db读取棋谱，生成打谱网页
+从weiqi-db读取棋谱，批量导出SGF，生成打谱网页
 """
 import os
 import sys
 import json
 import subprocess
+import tempfile
+import shutil
 from datetime import datetime
 from pathlib import Path
 from jinja2 import Template
 
 sys.path.insert(0, str(Path(__file__).parent))
+from common import (
+    get_games_by_date, get_game_source,
+    batch_export_sgfs, find_sgf_file_by_id, translate_result
+)
 from config import (
-    WEIQI_DB_SCRIPT, WEIQI_SGF_SCRIPT,
+    WEIQI_SGF_SCRIPT,
     SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
 )
 
 
-def translate_result(result):
-    """翻译比赛结果为中文"""
-    if not result:
-        return "未知"
-    
-    result = result.strip()
-    
-    # 中盘胜
-    if result in ["B+R", "B+Resign"]:
-        return "黑中盘胜"
-    if result in ["W+R", "W+Resign"]:
-        return "白中盘胜"
-    
-    # 时间胜
-    if "B+Time" in result:
-        return "黑时间胜"
-    if "W+Time" in result:
-        return "白时间胜"
-    
-    # 数目胜
-    if result.startswith("B+"):
-        try:
-            score = result[2:].strip()
-            if score.replace(".", "").isdigit():
-                return f"黑胜{score}目"
-        except:
-            pass
-        return "黑胜"
-    
-    if result.startswith("W+"):
-        try:
-            score = result[2:].strip()
-            if score.replace(".", "").isdigit():
-                return f"白胜{score}目"
-        except:
-            pass
-        return "白胜"
-    
-    # 和棋
-    if result == "Draw" or result == "Jigo":
-        return "和棋"
-    
-    return result
-
-
-def get_games_by_date(date_str):
-    """从weiqi-db获取指定日期的棋谱"""
-    cmd = [
-        "python3", str(WEIQI_DB_SCRIPT),
-        "query", "--date", date_str
-    ]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    
-    if result.returncode != 0:
-        print(f"❌ 查询失败: {result.stderr}")
-        return []
-    
-    try:
-        data = json.loads(result.stdout)
-        if isinstance(data, list):
-            return data
-        elif isinstance(data, dict) and "games" in data:
-            return data["games"]
-        return []
-    except json.JSONDecodeError:
-        return []
-
-
-def get_game_source(game):
-    """从标签中解析棋谱来源"""
-    tags = game.get("tags", [])
-    for tag in tags:
-        if tag.startswith("来源:"):
-            return tag.replace("来源:", "")
-    return "其他"
-
-
-def export_game_sgf(game_id, output_path):
-    """导出棋谱SGF文件"""
-    cmd = [
-        "python3", str(WEIQI_DB_SCRIPT),
-        "get", "--id", game_id, "-o", str(output_path)
-    ]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    return result.returncode == 0
-
-
 def generate_game_page(sgf_path, output_path):
     """生成打谱网页"""
+    # weiqi-sgf 支持: replay.py input.sgf output.html
     cmd = [
         "python3", str(WEIQI_SGF_SCRIPT),
-        str(sgf_path), "-o", str(output_path.parent)
+        str(sgf_path), str(output_path)
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.returncode == 0
 
 
-def generate_games_for_date(date_str, test_mode=False):
-    """生成指定日期的所有棋谱页"""
+def generate_games_for_date(date_str, test_mode=False, sgf_dir=None):
+    """生成指定日期的所有棋谱页
+    
+    Args:
+        date_str: 日期
+        test_mode: 是否测试模式
+        sgf_dir: 外部提供的SGF目录，为None则自动导出
+    """
     base_dir = ensure_dirs(test_mode)
     games_dir = base_dir / "games"
     
@@ -133,6 +57,40 @@ def generate_games_for_date(date_str, test_mode=False):
     
     print(f"📊 找到 {len(games)} 局棋谱")
     
+    # 处理SGF目录
+    temp_dir = None
+    if sgf_dir:
+        # 使用外部提供的SGF目录
+        temp_dir = Path(sgf_dir)
+        print(f"📂 使用外部SGF目录: {temp_dir}")
+    else:
+        # 批量导出SGF到临时目录
+        game_ids = [g.get("id") for g in games if g.get("id")]
+        if not game_ids:
+            print("⚠️  没有有效的棋谱ID")
+            return []
+        
+        temp_dir = Path(tempfile.mkdtemp(prefix=f"games_{date_str}_"))
+        print(f"⏳ 批量导出SGF到: {temp_dir}")
+        
+        if not batch_export_sgfs(game_ids, temp_dir):
+            print("❌ 批量导出失败")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return []
+        
+        print(f"✅ 成功导出SGF文件")
+    
+    # 检查导出结果
+    sgf_files = list(temp_dir.glob("*.sgf"))
+    print(f"📂 找到 {len(sgf_files)} 个SGF文件")
+    
+    if not sgf_files:
+        print("⚠️  没有SGF文件可供处理")
+        if not sgf_dir and temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        return []
+    
+    # 处理每局棋谱
     generated = []
     
     for i, game in enumerate(games, 1):
@@ -143,10 +101,10 @@ def generate_games_for_date(date_str, test_mode=False):
         date_source_dir = games_dir / date_str / source
         date_source_dir.mkdir(parents=True, exist_ok=True)
         
-        # 导出SGF
-        sgf_path = Path(f"/tmp/game_{game_id}.sgf")
-        if not export_game_sgf(game_id, sgf_path):
-            print(f"  ❌ 导出失败: {game_id}")
+        # 查找对应的SGF文件
+        sgf_path = find_sgf_file_by_id(temp_dir, game_id)
+        if not sgf_path:
+            print(f"  ❌ 找不到SGF: {game_id}")
             continue
         
         # 生成打谱页
@@ -169,9 +127,11 @@ def generate_games_for_date(date_str, test_mode=False):
             })
         else:
             print(f"  ❌ 生成失败: {game_id}")
-        
-        # 清理临时文件
-        sgf_path.unlink(missing_ok=True)
+    
+    # 清理临时目录（仅自动导出时才清理）
+    if not sgf_dir and temp_dir:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        print(f"🧹 清理临时文件")
     
     return generated
 
@@ -231,6 +191,7 @@ def main():
     parser.add_argument("date", help="日期 (YYYY-MM-DD)")
     parser.add_argument("--test", action="store_true", help="测试模式")
     parser.add_argument("--index-only", action="store_true", help="仅生成索引")
+    parser.add_argument("--sgf-dir", help="使用外部SGF目录（避免重复导出）")
     
     args = parser.parse_args()
     
@@ -241,7 +202,7 @@ def main():
     if args.index_only:
         generate_games_index(args.test)
     else:
-        generated = generate_games_for_date(args.date, args.test)
+        generated = generate_games_for_date(args.date, args.test, args.sgf_dir)
         
         print(f"\n📈 生成完成: {len(generated)} 局棋谱")
         

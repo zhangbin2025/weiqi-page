@@ -1,27 +1,28 @@
 #!/usr/bin/env python3
 """
-定式研究页生成脚本
-使用 weiqi-joseki 技能包接口：
-1. identify识别四角定式
-2. 识别出的用8way获取ruld方向
-3. 未识别的用extract提取
-4. 通过list获取所有定式信息
-5. 反查手数和出现次数，<10手废弃
-6. 未识别定式<10手废弃，否则优先显示（出现次数0，罕见标注）
-7. 识别出的定式按出现次数排序（少的在前）
+定式研究页生成脚本（精简版）
+使用 weiqi-db + weiqi-joseki discover 接口：
+1. query获取指定日期的棋谱列表
+2. get批量导出SGF到临时目录
+3. discover发现定式（新定式优先+罕见定式）
+4. 生成研究网页
 """
 import os
-import re
 import sys
 import json
 import subprocess
+import tempfile
+import shutil
 from datetime import datetime
 from pathlib import Path
 from jinja2 import Template
 
 sys.path.insert(0, str(Path(__file__).parent))
+from common import (
+    get_games_by_date, batch_export_sgfs
+)
 from config import (
-    WEIQI_DB_SCRIPT, WEIQI_JOSEKI_DIR, WEIQI_SGF_SCRIPT,
+    WEIQI_JOSEKI_DIR, WEIQI_SGF_SCRIPT,
     SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
 )
 
@@ -33,160 +34,81 @@ def run_joseki_cli(args, cwd=WEIQI_JOSEKI_DIR):
     return result
 
 
-def get_games_by_date(date_str):
-    """从weiqi-db获取指定日期的棋谱"""
-    cmd = [
-        "python3", str(WEIQI_DB_SCRIPT),
-        "query", "--date", date_str
-    ]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    
-    if result.returncode != 0:
-        print(f"❌ 查询失败: {result.stderr}")
-        return []
-    
-    try:
-        data = json.loads(result.stdout)
-        if isinstance(data, list):
-            return data
-        elif isinstance(data, dict) and "games" in data:
-            return data["games"]
-        return []
-    except json.JSONDecodeError:
-        return []
-
-
-def get_game_source(game):
-    """从标签中解析棋谱来源"""
-    tags = game.get("tags", [])
-    for tag in tags:
-        if tag.startswith("来源:"):
-            return tag.replace("来源:", "")
-    return "其他"
-
-
-def export_game_sgf(game_id, output_path):
-    """导出棋谱SGF文件"""
-    cmd = [
-        "python3", str(WEIQI_DB_SCRIPT),
-        "get", "--id", game_id, "-o", str(output_path)
-    ]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    return result.returncode == 0
-
-
-def get_all_joseki_info():
-    """获取所有定式的信息（ID、手数、出现次数）
-    返回: {joseki_id: {"moves": int, "count": int, "category": str}, ...}
+def discover_joseki(sgf_dir, limit=50):
     """
-    result = run_joseki_cli(["list", "--limit", "999999"])
-    if result.returncode != 0:
-        print(f"⚠️ list命令失败: {result.stderr[:100]}")
-        return {}
-    
-    info_map = {}
-    # 解析输出: ID 分类 手数 次数 概率 名称
-    lines = result.stdout.strip().split('\n')
-    for line in lines[2:]:  # 跳过表头和分隔线
-        parts = line.split()
-        if len(parts) >= 4:
-            joseki_id = parts[0]
-            try:
-                moves = int(parts[2])
-                count = int(parts[3])
-                category = parts[1] if len(parts) > 1 else ""
-                info_map[joseki_id] = {
-                    "moves": moves,
-                    "count": count,
-                    "category": category
-                }
-            except ValueError:
-                continue
-    
-    return info_map
-
-
-def identify_corners(sgf_path):
-    """识别四角定式
-    返回: {"tl": {...}, "tr": {...}, "bl": {...}, "br": {...}}
-    每个角的值: {"joseki_id": str, "name": str, "similarity": float} 或 None
+    发现值得研究的定式
+    返回: (stats, joseki_list) 元组
     """
     result = run_joseki_cli([
-        "identify", "--sgf-file", str(sgf_path),
-        "--top-k", "1", "--output", "json"
+        "discover", str(sgf_dir),
+        "--first-n", "80",
+        "--min-moves", "10",
+        "--limit", str(limit),
+        "--output", "json",
+        "--quiet"
     ])
     
     if result.returncode != 0:
-        print(f"     ⚠️ identify失败: {result.stderr[:100]}")
-        return {}
+        print(f"❌ discover失败: {result.stderr}")
+        return None, []
     
     try:
         data = json.loads(result.stdout.strip())
-        identified = {}
-        for corner in ["tl", "tr", "bl", "br"]:
-            matches = data.get(corner, [])
-            if matches and len(matches) > 0:
-                best = matches[0]
-                identified[corner] = {
-                    "joseki_id": best.get("id"),
-                    "name": best.get("name"),
-                    "similarity": best.get("similarity", 0)
-                }
-            else:
-                identified[corner] = None
-        return identified
-    except json.JSONDecodeError:
-        return {}
+        stats = data.get("stats", {})
+        joseki_list = data.get("joseki_list", [])
+        return stats, joseki_list
+    except json.JSONDecodeError as e:
+        print(f"❌ 解析discover结果失败: {e}")
+        return None, []
 
 
-def extract_corner(sgf_path, corner, first_n=80):
-    """从SGF提取指定角的定式序列
-    返回: (着法数, 输出SGF内容) 或 (0, "")
+def generate_sgf_from_moves(moves, output_path, corner="tr"):
     """
-    result = run_joseki_cli([
-        "extract", "--sgf-file", str(sgf_path),
-        "--corner", corner,
-        "--first-n", str(first_n)
-    ])
+    根据着法序列生成SGF（用于新定式）
+    moves: list of coord strings like ['pd', 'qf', 'nc', 'rd']
+    """
+    if not moves:
+        return False
     
-    if result.returncode != 0:
-        return 0, ""
+    # 构建SGF
+    sgf_body = ""
+    color = "B"  # 黑先
+    for coord in moves:
+        if coord == "tt":
+            sgf_body += f";{color}[tt]"
+        else:
+            sgf_body += f";{color}[{coord}]"
+        color = "W" if color == "B" else "B"
     
-    output = result.stdout.strip()
-    if not output or output.startswith("(;") is False:
-        return 0, ""
+    sgf = f"(;CA[utf-8]FF[4]AP[WeiqiPage]SZ[19]GM[1]C[新定式 ({corner.upper()}角)]{sgf_body})"
     
-    # 解析着法数
-    moves = re.findall(r';[BW]\[[a-z]{2}\]', output)
-    return len(moves), output
-
-
-def generate_ruld_sgf(joseki_id, output_path):
-    """生成ruld方向的SGF"""
-    result = run_joseki_cli([
-        "8way", joseki_id,
-        "--direction", "ruld",
-        "--output", str(output_path)
-    ])
-    return result.returncode == 0
+    try:
+        output_path.write_text(sgf, encoding="utf-8")
+        return True
+    except Exception as e:
+        print(f"❌ 写入SGF失败: {e}")
+        return False
 
 
 def generate_joseki_page(sgf_path, output_path):
     """生成定式研究网页"""
-    # 使用绝对路径指定输出文件，确保文件名正确
     cmd = [
         "python3", str(WEIQI_SGF_SCRIPT),
-        str(sgf_path), str(output_path)  # 直接指定输出文件路径
+        str(sgf_path), str(output_path)
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.returncode == 0
 
 
-def generate_joseki_for_date(date_str, test_mode=False):
-    """生成指定日期的定式研究页"""
+def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
+    """生成指定日期的定式研究页
+    
+    Args:
+        date_str: 日期
+        test_mode: 是否测试模式
+        sgf_dir: 外部提供的SGF目录，为None则自动导出
+    """
     base_dir = ensure_dirs(test_mode)
     joseki_dir = base_dir / "joseki" / date_str
     joseki_dir.mkdir(parents=True, exist_ok=True)
@@ -201,172 +123,117 @@ def generate_joseki_for_date(date_str, test_mode=False):
     
     print(f"📊 找到 {len(games)} 局棋谱")
     
-    # 获取所有定式库信息
-    print(f"⏳ 获取定式库信息...")
-    joseki_info_map = get_all_joseki_info()
-    print(f"✅ 定式库共 {len(joseki_info_map)} 个定式")
+    # 处理SGF目录
+    temp_dir = None
+    if sgf_dir:
+        # 使用外部提供的SGF目录
+        temp_dir = Path(sgf_dir)
+        print(f"📂 使用外部SGF目录: {temp_dir}")
+    else:
+        # 批量导出SGF到临时目录
+        game_ids = [g.get("id") for g in games if g.get("id")]
+        if not game_ids:
+            print("⚠️  没有有效的棋谱ID")
+            return []
+        
+        temp_dir = Path(tempfile.mkdtemp(prefix=f"sgf_{date_str}_"))
+        print(f"⏳ 批量导出SGF到: {temp_dir}")
+        
+        if not batch_export_sgfs(game_ids, temp_dir):
+            print("❌ 批量导出失败")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return []
+        
+        print(f"✅ 成功导出SGF文件")
     
-    # 收集所有定式（四角分别处理），使用字典去重
-    all_items = {}  # {joseki_id: {"type": "db"/"extract", "corner": str, "joseki_id": str/None, ...}}
+    # 检查导出结果
+    sgf_files = list(temp_dir.glob("*.sgf"))
+    print(f"📂 找到 {len(sgf_files)} 个SGF文件")
     
-    for i, game in enumerate(games, 1):
-        game_id = game.get("id")
-        print(f"  🔍 [{i}/{len(games)}] 分析棋谱: {game.get('black')} vs {game.get('white')}")
-        
-        # 导出SGF
-        sgf_path = Path(f"/tmp/joseki_game_{game_id}.sgf")
-        if not export_game_sgf(game_id, sgf_path):
-            print(f"     ❌ 导出SGF失败")
-            continue
-        
-        # 1. identify识别四角定式
-        identified = identify_corners(sgf_path)
-        
-        for corner in ["tl", "tr", "bl", "br"]:
-            corner_info = identified.get(corner)
-            
-            if corner_info:
-                # 2. 识别出的定式
-                joseki_id = corner_info["joseki_id"]
-                info = joseki_info_map.get(joseki_id)
-                
-                if info:
-                    # 5. 反查手数和出现次数，<10手废弃
-                    if info["moves"] < 10:
-                        print(f"     ⏭️  {corner.upper()}: {joseki_id} 仅{info['moves']}手，废弃")
-                        continue
-                    
-                    # 使用joseki_id去重，保留出现次数更少的
-                    if joseki_id in all_items:
-                        if info["count"] < all_items[joseki_id]["count"]:
-                            all_items[joseki_id] = {
-                                "type": "db",
-                                "corner": corner,
-                                "joseki_id": joseki_id,
-                                "name": corner_info["name"],
-                                "similarity": corner_info["similarity"],
-                                "moves": info["moves"],
-                                "count": info["count"],
-                                "game": game,
-                                "source": get_game_source(game)
-                            }
-                    else:
-                        all_items[joseki_id] = {
-                            "type": "db",
-                            "corner": corner,
-                            "joseki_id": joseki_id,
-                            "name": corner_info["name"],
-                            "similarity": corner_info["similarity"],
-                            "moves": info["moves"],
-                            "count": info["count"],
-                            "game": game,
-                            "source": get_game_source(game)
-                        }
-                    print(f"     ✅ {corner.upper()}: {joseki_id} ({info['moves']}手, 次数{info['count']})")
-                else:
-                    print(f"     ⚠️  {corner.upper()}: {joseki_id} 未在库中找到信息")
-            else:
-                # 3. 未识别的用extract提取
-                move_count, sgf_content = extract_corner(sgf_path, corner, first_n=80)
-                
-                if move_count == 0:
-                    continue
-                
-                # 6. 未识别定式<10手废弃，否则优先显示（出现次数0，罕见标注）
-                if move_count < 10:
-                    print(f"     ⏭️  {corner.upper()}: 提取到{move_count}手，废弃")
-                    continue
-                
-                # 保存临时SGF文件
-                tmp_sgf_path = Path(f"/tmp/extracted_{game_id}_{corner}.sgf")
-                tmp_sgf_path.write_text(sgf_content, encoding="utf-8")
-                
-                # 使用组合key去重：游戏ID + 角
-                extract_key = f"extract_{game_id}_{corner}"
-                all_items[extract_key] = {
-                    "type": "extract",
-                    "corner": corner,
-                    "joseki_id": None,
-                    "name": f"{corner.upper()}角新定式",
-                    "similarity": 0,
-                    "moves": move_count,
-                    "count": 0,
-                    "game": game,
-                    "source": get_game_source(game),
-                    "tmp_sgf_path": str(tmp_sgf_path)
-                }
-                print(f"     🆕 {corner.upper()}: 新定式 ({move_count}手, 罕见)")
-        
-        # 清理临时文件
-        sgf_path.unlink(missing_ok=True)
-    
-    if not all_items:
-        print(f"⚠️  未收集到有效定式")
+    if not sgf_files:
+        print("⚠️  没有SGF文件可供分析")
+        if not sgf_dir and temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
         return []
     
-    print(f"\n📚 共收集 {len(all_items)} 个唯一定式")
+    # 发现定式
+    print(f"⏳ 发现定式（分析前80手，最少10手，最多50个）...")
+    stats, joseki_list = discover_joseki(temp_dir, limit=50)
     
-    # 转为列表
-    items_list = list(all_items.values())
+    if not joseki_list:
+        print("⚠️  未发现有效定式")
+        if not sgf_dir and temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        return []
     
-    # 7. 排序：未识别定式优先（罕见），然后识别出的按出现次数排序（少的在前）
-    items_list.sort(key=lambda x: (
-        0 if x["type"] == "extract" else 1,  # extract优先
-        x["count"] if x["type"] == "db" else 0,  # db按次数排序
-        -x["moves"]  # 手数多的优先
-    ))
-    
-    # 取前50个
-    selected_items = items_list[:50]
-    print(f"🎯 筛选出 {len(selected_items)} 个定式进行研究")
+    if stats:
+        print(f"✅ 发现 {stats.get('unique_joseki', 0)} 个唯一定式，显示前 {len(joseki_list)} 个")
+    else:
+        print(f"✅ 发现 {len(joseki_list)} 个值得研究的定式")
     
     # 生成研究页面
     generated = []
     
-    for idx, item in enumerate(selected_items, 1):
-        joseki_id = item["joseki_id"]
-        joseki_name = item["name"]
-        print(f"\n  📖 [{idx}/{len(selected_items)}] 处理定式: {joseki_name or '新定式'}")
+    for idx, joseki in enumerate(joseki_list, 1):
+        joseki_id = joseki.get("joseki_id")  # 新定式为null
+        is_new = joseki.get("is_new", False)
+        moves = joseki.get("moves", [])
+        move_count = joseki.get("move_count", len(moves))
+        frequency = joseki.get("frequency", 0)
+        similarity = joseki.get("similarity", 0)
+        sources = joseki.get("sources", [])
         
-        # 生成输出路径
+        # 获取主要来源信息
+        source = sources[0] if sources else {}
+        corner = source.get("corner", "tr")
+        # discover返回的字段名是 black_player/white_player
+        black_name = source.get("black_player") or source.get("black", "未知")
+        white_name = source.get("white_player") or source.get("white", "未知")
+        event_name = source.get("event", "")
+        
+        if is_new:
+            name = f"{corner.upper()}角新定式"
+            print(f"\n  🆕 [{idx}/{len(joseki_list)}] 新定式 ({move_count}手) - {black_name} vs {white_name}")
+        else:
+            name = joseki.get("name") or f"定式{joseki_id}"
+            print(f"\n  📖 [{idx}/{len(joseki_list)}] {name} ({move_count}手, 次数{frequency}) - {black_name} vs {white_name}")
+        
+        # 生成SGF
+        sgf_path = joseki_dir / f"joseki_{idx:03d}.sgf"
+        
+        if not generate_sgf_from_moves(moves, sgf_path, corner):
+            print(f"     ❌ 生成SGF失败")
+            continue
+        
+        # 生成网页
         output_name = f"joseki_{idx:03d}.html"
         output_path = joseki_dir / output_name
         
-        if item["type"] == "db" and joseki_id:
-            # 2. 识别出的用8way获取ruld方向
-            sgf_path = joseki_dir / f"joseki_{idx:03d}.sgf"
-            if not generate_ruld_sgf(joseki_id, sgf_path):
-                print(f"     ❌ 生成SGF失败")
-                continue
-        else:
-            # 使用extract提取的SGF
-            sgf_path = Path(item["tmp_sgf_path"])
-        
-        # 生成网页
         if generate_joseki_page(sgf_path, output_path):
             print(f"     ✅ 生成页面: {output_name}")
             
-            game = item["game"]
             generated.append({
                 "id": joseki_id or f"new_{idx}",
-                "name": joseki_name,
+                "name": name,
                 "path": f"/joseki/{date_str}/{output_name}",
-                "moves": item["moves"],
-                "count": item["count"],
-                "corner": item["corner"],
-                "is_rare": item["type"] == "extract" or item["count"] < 100,
-                "is_new": item["type"] == "extract",
-                "black": game.get('black', '未知'),
-                "white": game.get('white', '未知'),
-                "event": game.get('event', ''),
+                "moves": move_count,
+                "count": frequency,
+                "corner": corner,
+                "is_rare": is_new or frequency < 100,
+                "is_new": is_new,
+                "similarity": similarity,
+                "black": black_name,
+                "white": white_name,
+                "event": event_name,
+                "date": source.get("date", date_str),
             })
         else:
             print(f"     ❌ 生成页面失败")
     
-    # 清理extract的临时文件
-    for item in selected_items:
-        if item.get("tmp_sgf_path"):
-            Path(item["tmp_sgf_path"]).unlink(missing_ok=True)
+    # 清理临时目录（仅自动导出时才清理）
+    if not sgf_dir and temp_dir:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        print(f"\n🧹 清理临时文件")
     
     return generated
 
@@ -425,9 +292,10 @@ def main():
     parser = argparse.ArgumentParser(description="定式研究页生成")
     parser.add_argument("date", help="日期 (YYYY-MM-DD)")
     parser.add_argument("--test", action="store_true", help="生成到测试站点")
+    parser.add_argument("--sgf-dir", help="使用外部SGF目录（避免重复导出）")
     args = parser.parse_args()
     
-    generated = generate_joseki_for_date(args.date, args.test)
+    generated = generate_joseki_for_date(args.date, args.test, args.sgf_dir)
     
     if generated:
         # 保存数据

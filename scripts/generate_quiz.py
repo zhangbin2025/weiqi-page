@@ -7,60 +7,22 @@ import os
 import sys
 import json
 import subprocess
+import tempfile
+import shutil
 import re
 from datetime import datetime
 from pathlib import Path
 from jinja2 import Template
 
 sys.path.insert(0, str(Path(__file__).parent))
+from common import (
+    get_games_by_date, get_game_source,
+    batch_export_sgfs, find_sgf_file_by_id, find_original_sgf
+)
 from config import (
-    WEIQI_DB_SCRIPT, WEIQI_MOVE_SCRIPT,
+    WEIQI_MOVE_SCRIPT,
     SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
 )
-
-
-def get_games_by_date(date_str):
-    """从weiqi-db获取指定日期的棋谱"""
-    cmd = [
-        "python3", str(WEIQI_DB_SCRIPT),
-        "query", "--date", date_str
-    ]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    
-    if result.returncode != 0:
-        print(f"❌ 查询失败: {result.stderr}")
-        return []
-    
-    try:
-        data = json.loads(result.stdout)
-        if isinstance(data, list):
-            return data
-        elif isinstance(data, dict) and "games" in data:
-            return data["games"]
-        return []
-    except json.JSONDecodeError:
-        return []
-
-
-def get_game_source(game):
-    """从标签中解析棋谱来源"""
-    tags = game.get("tags", [])
-    for tag in tags:
-        if tag.startswith("来源:"):
-            return tag.replace("来源:", "")
-    return "其他"
-
-
-def export_game_sgf(game_id, output_path):
-    """导出棋谱SGF文件"""
-    cmd = [
-        "python3", str(WEIQI_DB_SCRIPT),
-        "get", "--id", game_id, "-o", str(output_path)
-    ]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    return result.returncode == 0
 
 
 def generate_quiz(sgf_path, output_path, quiz_type="blunder"):
@@ -87,7 +49,6 @@ def count_quiz_questions(quiz_path):
     try:
         content = quiz_path.read_text()
         # 统计题目数量（根据quiz.html的结构，查找problems数组）
-        # 格式: const problems = [{"index": 0, ...}, {"index": 1, ...}];
         match = re.search(r'const problems = (\[.*?\]);', content, re.DOTALL)
         if match:
             try:
@@ -102,27 +63,14 @@ def count_quiz_questions(quiz_path):
         return 0
 
 
-def find_original_sgf(game_id, date_str, source, black_name, white_name):
-    """查找原始SGF文件（优先使用野狐下载的，包含AI数据）"""
-    # 野狐下载目录
-    foxwq_dir = Path(f"/tmp/foxwq_downloads/{date_str}")
-    if foxwq_dir.exists():
-        # 使用棋手名字匹配（因为game_id是导入时生成的，和文件名不同）
-        for f in foxwq_dir.glob("*.sgf"):
-            # 文件名格式: 时间戳_赛事_结果.sgf
-            # 需要匹配黑棋和白棋名字
-            filename = f.name
-            # 简化的匹配：检查文件名是否包含两个棋手的名字
-            if black_name in filename and white_name in filename:
-                return f
-            # 备选：只匹配一个名字
-            if black_name in filename or white_name in filename:
-                return f
-    return None
-
-
-def generate_quiz_for_date(date_str, test_mode=False):
-    """生成指定日期的选点题"""
+def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
+    """生成指定日期的选点题
+    
+    Args:
+        date_str: 日期
+        test_mode: 是否测试模式
+        sgf_dir: 外部提供的SGF目录，为None则自动导出
+    """
     base_dir = ensure_dirs(test_mode)
     quiz_dir = base_dir / "quiz"
     
@@ -136,6 +84,40 @@ def generate_quiz_for_date(date_str, test_mode=False):
     
     print(f"📊 找到 {len(games)} 局棋谱，开始生成选点题...")
     
+    # 处理SGF目录
+    temp_dir = None
+    if sgf_dir:
+        # 使用外部提供的SGF目录
+        temp_dir = Path(sgf_dir)
+        print(f"📂 使用外部SGF目录: {temp_dir}")
+    else:
+        # 批量导出SGF到临时目录
+        game_ids = [g.get("id") for g in games if g.get("id")]
+        if not game_ids:
+            print("⚠️  没有有效的棋谱ID")
+            return []
+        
+        temp_dir = Path(tempfile.mkdtemp(prefix=f"quiz_{date_str}_"))
+        print(f"⏳ 批量导出SGF到: {temp_dir}")
+        
+        if not batch_export_sgfs(game_ids, temp_dir):
+            print("❌ 批量导出失败")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return []
+        
+        print(f"✅ 成功导出SGF文件")
+    
+    # 检查导出结果
+    sgf_files = list(temp_dir.glob("*.sgf"))
+    print(f"📂 找到 {len(sgf_files)} 个SGF文件")
+    
+    if not sgf_files:
+        print("⚠️  没有SGF文件可供处理")
+        if not sgf_dir and temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        return []
+    
+    # 处理每局棋谱
     generated = []
     
     for i, game in enumerate(games, 1):
@@ -146,13 +128,15 @@ def generate_quiz_for_date(date_str, test_mode=False):
         white_name = game.get("white", "")
         
         # 优先使用原始SGF文件（包含AI数据）
-        sgf_path = find_original_sgf(game_id, date_str, source, black_name, white_name)
+        sgf_path = find_original_sgf(game_id, date_str, black_name, white_name)
+        
         if not sgf_path:
-            # 如果没有原始文件，从weiqi-db导出（可能不包含AI数据）
-            sgf_path = Path(f"/tmp/quiz_game_{game_id}.sgf")
-            if not export_game_sgf(game_id, sgf_path):
-                print(f"  ❌ 导出失败: {game_id}")
-                continue
+            # 如果没有原始文件，从批量导出的文件中查找
+            sgf_path = find_sgf_file_by_id(temp_dir, game_id)
+        
+        if not sgf_path:
+            print(f"  ❌ 找不到SGF: {game_id}")
+            continue
         
         # 创建来源子目录
         date_source_dir = quiz_dir / date_str / source
@@ -187,9 +171,11 @@ def generate_quiz_for_date(date_str, test_mode=False):
                 print(f"  ⏭️  [{i}/{len(games)}] {source}: 无恶手，跳过")
         else:
             print(f"  ❌ 生成失败: {game_id}")
-        
-        # 清理临时文件
-        sgf_path.unlink(missing_ok=True)
+    
+    # 清理临时目录（仅自动导出时才清理）
+    if not sgf_dir and temp_dir:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        print(f"🧹 清理临时文件")
     
     return generated
 
@@ -248,6 +234,7 @@ def main():
     parser.add_argument("date", help="日期 (YYYY-MM-DD)")
     parser.add_argument("--test", action="store_true", help="测试模式")
     parser.add_argument("--index-only", action="store_true", help="仅生成索引")
+    parser.add_argument("--sgf-dir", help="使用外部SGF目录（避免重复导出）")
     
     args = parser.parse_args()
     
@@ -258,7 +245,7 @@ def main():
     if args.index_only:
         generate_quiz_index(args.test)
     else:
-        generated = generate_quiz_for_date(args.date, args.test)
+        generated = generate_quiz_for_date(args.date, args.test, args.sgf_dir)
         
         total_questions = sum(q.get("count", 0) for q in generated)
         print(f"\n📈 生成完成: {len(generated)} 份棋谱, {total_questions} 道题目")
