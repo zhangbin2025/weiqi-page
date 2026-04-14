@@ -42,7 +42,7 @@ def discover_joseki(sgf_dir, limit=50):
     result = run_joseki_cli([
         "discover", str(sgf_dir),
         "--first-n", "80",
-        "--min-moves", "10",
+        "--min-moves", "6",
         "--limit", str(limit),
         "--output", "json",
         "--quiet"
@@ -64,7 +64,7 @@ def discover_joseki(sgf_dir, limit=50):
 
 def generate_sgf_from_moves(moves, output_path, corner="tr"):
     """
-    根据着法序列生成SGF（用于新定式）
+    根据着法序列生成SGF
     moves: list of coord strings like ['pd', 'qf', 'nc', 'rd']
     """
     if not moves:
@@ -80,7 +80,7 @@ def generate_sgf_from_moves(moves, output_path, corner="tr"):
             sgf_body += f";{color}[{coord}]"
         color = "W" if color == "B" else "B"
     
-    sgf = f"(;CA[utf-8]FF[4]AP[WeiqiPage]SZ[19]GM[1]C[新定式 ({corner.upper()}角)]{sgf_body})"
+    sgf = f"(;CA[utf-8]FF[4]AP[WeiqiPage]SZ[19]GM[1]C[定式 ({corner.upper()}角)]{sgf_body})"
     
     try:
         output_path.write_text(sgf, encoding="utf-8")
@@ -157,7 +157,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         return []
     
     # 发现定式
-    print(f"⏳ 发现定式（分析前80手，最少10手，最多50个）...")
+    print(f"⏳ 发现定式（分析前80手，最少6手，最多50个）...")
     stats, joseki_list = discover_joseki(temp_dir, limit=50)
     
     if not joseki_list:
@@ -175,10 +175,9 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
     generated = []
     
     for idx, joseki in enumerate(joseki_list, 1):
-        joseki_id = joseki.get("joseki_id")  # 新定式为null
+        joseki_id = joseki.get("joseki_id", "")
         is_rare = joseki.get("is_rare", True)
         matched_prefix_len = joseki.get("matched_prefix_len", 0)
-        matched_prefix = joseki.get("matched_prefix", [])
         moves = joseki.get("moves", [])
         move_count = joseki.get("move_count", len(moves))
         frequency = joseki.get("frequency", 0)
@@ -214,7 +213,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
             print(f"     ✅ 生成页面: {output_name}")
             
             generated.append({
-                "id": joseki_id or f"new_{idx}",
+                "id": joseki_id,
                 "name": name,
                 "path": f"/joseki/{date_str}/{output_name}",
                 "moves": move_count,
@@ -222,7 +221,6 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
                 "corner": corner,
                 "is_rare": is_rare,
                 "matched_prefix_len": matched_prefix_len,
-                "matched_prefix": matched_prefix,
                 "black": black_name,
                 "white": white_name,
                 "event": event_name,

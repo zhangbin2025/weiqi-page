@@ -301,8 +301,11 @@
                                 <span>({{ joseki.moves }}手)</span>
                             </div>
                             <div class="joseki-meta">
-                                <span class="joseki-tag rare">匹配{{ joseki.matched_prefix_len }}手</span>
-                                <span class="joseki-id">{{ joseki.matched_prefix|join(',') }}</span>
+                                <span class="joseki-tag rare">罕见定式</span>
+                                <span class="joseki-id">匹配{{ joseki.matched_prefix_len }}手</span>
+                                {% if joseki.id %}
+                                <span class="joseki-id">ID: {{ joseki.id }}</span>
+                                {% endif %}
                                 <span class="joseki-event">{{ joseki.event }}</span>
                             </div>
                         </div>
