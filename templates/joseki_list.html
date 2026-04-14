@@ -216,6 +216,14 @@
             background: #e3f2fd;
             color: #1976d2;
         }
+        .joseki-tag.rare {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .joseki-tag.common {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
         .joseki-id {
             font-family: monospace;
             font-size: 0.85em;
@@ -264,21 +272,21 @@
         <div class="date-content {% if date == current_date %}active{% endif %}" data-date="{{ date }}">
             <!-- 分类切换标签 -->
             <div class="category-tabs">
-                <div class="category-tab {% if categories.new %}active{% endif %}" onclick="switchTab('{{ date }}', 'new')" id="tab-{{ date }}-new">
-                    ✨ 新定式
-                    <span class="count">{{ categories.new|length }}</span>
+                <div class="category-tab {% if categories.rare %}active{% endif %}" onclick="switchTab('{{ date }}', 'rare')" id="tab-{{ date }}-rare">
+                    🔍 罕见定式
+                    <span class="count">{{ categories.rare|length }}</span>
                 </div>
-                <div class="category-tab {% if not categories.new %}active{% endif %}" onclick="switchTab('{{ date }}', 'ai')" id="tab-{{ date }}-ai">
-                    🤖 AI定式
-                    <span class="count">{{ categories.ai|length }}</span>
+                <div class="category-tab {% if not categories.rare %}active{% endif %}" onclick="switchTab('{{ date }}', 'common')" id="tab-{{ date }}-common">
+                    📚 常见定式
+                    <span class="count">{{ categories.common|length }}</span>
                 </div>
             </div>
             
-            <!-- 新定式列表 -->
-            <div class="joseki-section {% if categories.new %}active{% endif %}" id="section-{{ date }}-new">
-                {% if categories.new %}
+            <!-- 罕见定式列表 -->
+            <div class="joseki-section {% if categories.rare %}active{% endif %}" id="section-{{ date }}-rare">
+                {% if categories.rare %}
                 <div class="joseki-list">
-                    {% for joseki in categories.new %}
+                    {% for joseki in categories.rare %}
                     <a href="{{ joseki.path }}" class="joseki-item" data-joseki-id="{{ joseki.id }}">
                         <div class="joseki-number">{{ loop.index }}</div>
                         <div class="joseki-info">
@@ -293,6 +301,8 @@
                                 <span>({{ joseki.moves }}手)</span>
                             </div>
                             <div class="joseki-meta">
+                                <span class="joseki-tag rare">匹配{{ joseki.matched_prefix_len }}手</span>
+                                <span class="joseki-id">{{ joseki.matched_prefix|join(',') }}</span>
                                 <span class="joseki-event">{{ joseki.event }}</span>
                             </div>
                         </div>
@@ -300,15 +310,15 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="empty-state">暂无新定式</div>
+                <div class="empty-state">暂无罕见定式</div>
                 {% endif %}
             </div>
             
-            <!-- AI定式列表 -->
-            <div class="joseki-section {% if not categories.new %}active{% endif %}" id="section-{{ date }}-ai">
-                {% if categories.ai %}
+            <!-- 常见定式列表 -->
+            <div class="joseki-section {% if not categories.rare %}active{% endif %}" id="section-{{ date }}-common">
+                {% if categories.common %}
                 <div class="joseki-list">
-                    {% for joseki in categories.ai %}
+                    {% for joseki in categories.common %}
                     <a href="{{ joseki.path }}" class="joseki-item" data-joseki-id="{{ joseki.id }}">
                         <div class="joseki-number">{{ loop.index }}</div>
                         <div class="joseki-info">
@@ -323,7 +333,8 @@
                                 <span>({{ joseki.moves }}手)</span>
                             </div>
                             <div class="joseki-meta">
-                                <span class="joseki-tag new">定式库: {{ joseki.count }}次</span>
+                                <span class="joseki-tag common">定式库: {{ joseki.count }}次</span>
+                                <span class="joseki-tag">匹配{{ joseki.matched_prefix_len }}手</span>
                                 <span class="joseki-id">ID: {{ joseki.id }}</span>
                                 <span class="joseki-event">{{ joseki.event }}</span>
                             </div>
@@ -332,7 +343,7 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="empty-state">暂无AI定式</div>
+                <div class="empty-state">暂无常规定式</div>
                 {% endif %}
             </div>
         </div>
@@ -350,7 +361,7 @@
         
         // 初始化每个日期的默认标签
         {% for date, categories in date_data.items() %}
-        currentTabs['{{ date }}'] = '{% if categories.new %}new{% else %}ai{% endif %}';
+        currentTabs['{{ date }}'] = '{% if categories.rare %}rare{% else %}common{% endif %}';
         {% endfor %}
         
         function switchTab(date, tab) {

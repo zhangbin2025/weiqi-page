@@ -176,11 +176,12 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
     
     for idx, joseki in enumerate(joseki_list, 1):
         joseki_id = joseki.get("joseki_id")  # 新定式为null
-        is_new = joseki.get("is_new", False)
+        is_rare = joseki.get("is_rare", True)
+        matched_prefix_len = joseki.get("matched_prefix_len", 0)
+        matched_prefix = joseki.get("matched_prefix", [])
         moves = joseki.get("moves", [])
         move_count = joseki.get("move_count", len(moves))
         frequency = joseki.get("frequency", 0)
-        similarity = joseki.get("similarity", 0)
         sources = joseki.get("sources", [])
         
         # 获取主要来源信息
@@ -191,9 +192,9 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         white_name = source.get("white_player") or source.get("white", "未知")
         event_name = source.get("event", "")
         
-        if is_new:
-            name = f"{corner.upper()}角新定式"
-            print(f"\n  🆕 [{idx}/{len(joseki_list)}] 新定式 ({move_count}手) - {black_name} vs {white_name}")
+        if is_rare:
+            name = f"{corner.upper()}角罕见定式"
+            print(f"\n  🔍 [{idx}/{len(joseki_list)}] 罕见定式 ({move_count}手, 匹配{matched_prefix_len}手) - {black_name} vs {white_name}")
         else:
             name = joseki.get("name") or f"定式{joseki_id}"
             print(f"\n  📖 [{idx}/{len(joseki_list)}] {name} ({move_count}手, 次数{frequency}) - {black_name} vs {white_name}")
@@ -219,9 +220,9 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
                 "moves": move_count,
                 "count": frequency,
                 "corner": corner,
-                "is_rare": is_new or frequency < 100,
-                "is_new": is_new,
-                "similarity": similarity,
+                "is_rare": is_rare,
+                "matched_prefix_len": matched_prefix_len,
+                "matched_prefix": matched_prefix,
                 "black": black_name,
                 "white": white_name,
                 "event": event_name,
@@ -252,13 +253,13 @@ def generate_joseki_index(test_mode=False):
         
         try:
             josekis = json.loads(f.read_text())
-            # 按新定式和AI定式分组
-            categories = {"new": [], "ai": []}
+            # 按罕见定式和常见定式分组
+            categories = {"rare": [], "common": []}
             for joseki in josekis:
-                if joseki.get("is_new"):
-                    categories["new"].append(joseki)
+                if joseki.get("is_rare"):
+                    categories["rare"].append(joseki)
                 else:
-                    categories["ai"].append(joseki)
+                    categories["common"].append(joseki)
             date_data[date_str] = categories
         except:
             pass
