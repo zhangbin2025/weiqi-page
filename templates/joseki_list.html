@@ -13,21 +13,21 @@
             line-height: 1.6;
         }
         .container {
-            max-width: 1200px;
+            max-width: 480px;
             margin: 0 auto;
-            padding: 15px;
+            padding: 12px;
         }
         header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
-            margin-bottom: 15px;
+            padding: 15px;
+            margin-bottom: 12px;
             border-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        h1 { font-size: 1.5em; }
+        h1 { font-size: 1.3em; }
         .header-actions {
             display: flex;
             gap: 10px;
@@ -45,34 +45,19 @@
         }
         .icon-btn:hover { background: rgba(255,255,255,0.3); }
         
-        /* 日期选择栏 */
-        .date-bar {
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            padding: 12px 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .date-bar label {
-            font-weight: 500;
-            color: #555;
-        }
-        .date-bar select {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
+        .header-actions select {
+            padding: 6px 10px;
+            border: none;
             border-radius: 5px;
-            font-size: 0.9em;
-            min-width: 120px;
+            font-size: 0.85em;
         }
         
         /* 分类切换标签 */
         .category-tabs {
             display: flex;
             gap: 0;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            margin-top: 12px;
             background: white;
             border-radius: 8px;
             overflow: hidden;
@@ -80,19 +65,19 @@
         }
         .category-tab {
             flex: 1;
-            padding: 15px 20px;
+            padding: 12px 15px;
             text-align: center;
             cursor: pointer;
             font-weight: 500;
             color: #666;
             background: #f8f9fa;
             border: none;
-            font-size: 1em;
+            font-size: 0.9em;
             transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
         }
         .category-tab:hover {
             background: #f0f0f0;
@@ -169,10 +154,16 @@
             font-weight: 500;
             color: #333;
             margin-bottom: 4px;
+        }
+        .joseki-title-row {
             display: flex;
             align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .joseki-moves {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 2px;
         }
         .joseki-players {
             display: flex;
@@ -245,11 +236,28 @@
         .joseki-event {
             color: #888;
         }
+        .joseki-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .game-btn {
+            padding: 4px 10px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 0.8em;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .game-btn:hover {
+            background: #c8e6c9;
+        }
         footer {
             text-align: center;
-            padding: 20px;
+            padding: 15px;
             color: #999;
-            font-size: 0.85em;
+            font-size: 0.8em;
         }
         .empty-state {
             text-align: center;
@@ -263,19 +271,14 @@
         <header>
             <h1>📚 定式研究</h1>
             <div class="header-actions">
+                <select id="dateFilter" onchange="filterByDate()">
+                    {% for d in dates %}
+                    <option value="{{ d }}" {% if d == current_date %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
                 <button class="icon-btn" onclick="clearVisited()" title="清除记录">🗑️</button>
             </div>
         </header>
-        
-        <!-- 日期选择栏 -->
-        <div class="date-bar">
-            <label>📅 日期</label>
-            <select id="dateFilter" onchange="filterByDate()">
-                {% for d in dates %}
-                <option value="{{ d }}" {% if d == current_date %}selected{% endif %}>{{ d }}</option>
-                {% endfor %}
-            </select>
-        </div>
         
         <!-- 所有日期的数据 -->
         {% for date, categories in date_data.items() %}
@@ -297,25 +300,32 @@
                 {% if categories.rare %}
                 <div class="joseki-list">
                     {% for joseki in categories.rare %}
-                    <a href="{{ joseki.path }}" class="joseki-item" data-joseki-id="{{ joseki.id }}">
-                        <div class="joseki-number">{{ loop.index }}</div>
-                        <div class="joseki-info">
-                            <div class="joseki-title">
-                                <span class="joseki-players">
-                                    <span class="stone-icon stone-black"></span>
-                                    {{ joseki.black }}
-                                    <span class="joseki-vs">vs</span>
-                                    <span class="stone-icon stone-white"></span>
-                                    {{ joseki.white }}
-                                </span>
-                                <span>({{ joseki.moves }}手)</span>
+                    <div class="joseki-item" data-joseki-id="{{ joseki.id }}">
+                        <a href="{{ joseki.path }}" style="display: flex; align-items: center; flex: 1; text-decoration: none; color: inherit;">
+                            <div class="joseki-number">{{ loop.index }}</div>
+                            <div class="joseki-info">
+                                <div class="joseki-title">
+                                    <div class="joseki-title-row">
+                                        <span class="stone-icon stone-black"></span>
+                                        {{ joseki.black }}
+                                        <span class="joseki-vs">vs</span>
+                                        <span class="stone-icon stone-white"></span>
+                                        {{ joseki.white }}
+                                    </div>
+                                    <div class="joseki-moves">{{ joseki.moves }}手</div>
+                                </div>
+                                <div class="joseki-meta">
+                                    <span class="joseki-event">{{ joseki.event }}</span>
+                                </div>
                             </div>
-                            <div class="joseki-meta">
-                                <span class="joseki-event">{{ joseki.event }}</span>
-                                <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
-                            </div>
+                        </a>
+                        <div class="joseki-actions">
+                            <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
+                            {% if joseki.game_path %}
+                            <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                            {% endif %}
                         </div>
-                    </a>
+                    </div>
                     {% endfor %}
                 </div>
                 {% else %}
@@ -328,26 +338,32 @@
                 {% if categories.common %}
                 <div class="joseki-list">
                     {% for joseki in categories.common %}
-                    <a href="{{ joseki.path }}" class="joseki-item" data-joseki-id="{{ joseki.id }}">
-                        <div class="joseki-number">{{ loop.index }}</div>
-                        <div class="joseki-info">
-                            <div class="joseki-title">
-                                <span class="joseki-players">
-                                    <span class="stone-icon stone-black"></span>
-                                    {{ joseki.black }}
-                                    <span class="joseki-vs">vs</span>
-                                    <span class="stone-icon stone-white"></span>
-                                    {{ joseki.white }}
-                                </span>
-                                <span>({{ joseki.moves }}手)</span>
+                    <div class="joseki-item" data-joseki-id="{{ joseki.id }}">
+                        <a href="{{ joseki.path }}" style="display: flex; align-items: center; flex: 1; text-decoration: none; color: inherit;">
+                            <div class="joseki-number">{{ loop.index }}</div>
+                            <div class="joseki-info">
+                                <div class="joseki-title">
+                                    <div class="joseki-title-row">
+                                        <span class="stone-icon stone-black"></span>
+                                        {{ joseki.black }}
+                                        <span class="joseki-vs">vs</span>
+                                        <span class="stone-icon stone-white"></span>
+                                        {{ joseki.white }}
+                                    </div>
+                                    <div class="joseki-moves">{{ joseki.moves }}手</div>
+                                </div>
+                                <div class="joseki-meta">
+                                    <span class="joseki-event">{{ joseki.event }}</span>
+                                </div>
                             </div>
-                            <div class="joseki-meta">
-                                <span class="joseki-event">{{ joseki.event }}</span>
-                                <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
-                                <span class="joseki-tag common">定式库出现{{ joseki.count }}次</span>
-                            </div>
+                        </a>
+                        <div class="joseki-actions">
+                            <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
+                            {% if joseki.game_path %}
+                            <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                            {% endif %}
                         </div>
-                    </a>
+                    </div>
                     {% endfor %}
                 </div>
                 {% else %}

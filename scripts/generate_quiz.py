@@ -158,6 +158,7 @@ def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
                         "id": game_id,
                         "source": source,
                         "path": f"/quiz/{date_str}/{source}/{output_name}",
+                        "game_path": f"/games/{date_str}/{source}/game_{game_id}.html",
                         "black": game.get("black", "未知"),
                         "white": game.get("white", "未知"),
                         "event": game.get("event", ""),

@@ -19,7 +19,7 @@ from jinja2 import Template
 
 sys.path.insert(0, str(Path(__file__).parent))
 from common import (
-    get_games_by_date, batch_export_sgfs
+    get_games_by_date, batch_export_sgfs, get_game_source
 )
 from config import (
     WEIQI_JOSEKI_DIR, WEIQI_SGF_SCRIPT,
@@ -62,15 +62,42 @@ def discover_joseki(sgf_dir, limit=50):
         return None, []
 
 
-def generate_sgf_from_moves(moves, output_path, corner="tr"):
+def generate_sgf_from_moves(moves, output_path, corner="tr", black="", white="", event="", date=""):
     """
-    根据着法序列生成SGF
+    根据着法序列生成SGF，包含棋谱元数据
     moves: list of coord strings like ['pd', 'qf', 'nc', 'rd']
     """
     if not moves:
         return False
     
-    # 构建SGF
+    # 构建SGF头部元数据
+    header_props = [
+        "CA[utf-8]",
+        "FF[4]",
+        "AP[WeiqiPage]",
+        "SZ[19]",
+        "GM[1]",
+    ]
+    
+    # 添加棋手信息
+    if black:
+        header_props.append(f"PB[{black}]")
+    if white:
+        header_props.append(f"PW[{white}]")
+    if event:
+        header_props.append(f"GN[{event}]")
+    if date:
+        header_props.append(f"DT[{date}]")
+    
+    # 构建注释
+    comment = f"定式 ({corner.upper()}角)"
+    if black and white:
+        comment = f"{black} vs {white} - {comment}"
+    if event:
+        comment = f"{event} - {comment}"
+    header_props.append(f"C[{comment}]")
+    
+    # 构建着法
     sgf_body = ""
     color = "B"  # 黑先
     for coord in moves:
@@ -80,7 +107,7 @@ def generate_sgf_from_moves(moves, output_path, corner="tr"):
             sgf_body += f";{color}[{coord}]"
         color = "W" if color == "B" else "B"
     
-    sgf = f"(;CA[utf-8]FF[4]AP[WeiqiPage]SZ[19]GM[1]C[定式 ({corner.upper()}角)]{sgf_body})"
+    sgf = f"(;{' '.join(header_props)}{sgf_body})"
     
     try:
         output_path.write_text(sgf, encoding="utf-8")
@@ -201,7 +228,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         # 生成SGF
         sgf_path = joseki_dir / f"joseki_{idx:03d}.sgf"
         
-        if not generate_sgf_from_moves(moves, sgf_path, corner):
+        if not generate_sgf_from_moves(moves, sgf_path, corner, black_name, white_name, event_name, date_str):
             print(f"     ❌ 生成SGF失败")
             continue
         
@@ -212,10 +239,25 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         if generate_joseki_page(sgf_path, output_path):
             print(f"     ✅ 生成页面: {output_name}")
             
+            # 查找对应棋谱路径（根据黑白棋手的名字匹配）
+            game_path = ""
+            for game in games:
+                game_black = game.get("black", "")
+                game_white = game.get("white", "")
+                # 匹配棋手名字
+                if (game_black == black_name and game_white == white_name) or \
+                   (game_black in black_name and game_white in white_name) or \
+                   (black_name in game_black and white_name in game_white):
+                    game_id = game.get("id")
+                    game_source = get_game_source(game)
+                    game_path = f"/games/{date_str}/{game_source}/game_{game_id}.html"
+                    break
+            
             generated.append({
                 "id": joseki_id,
                 "name": name,
                 "path": f"/joseki/{date_str}/{output_name}",
+                "game_path": game_path,
                 "moves": move_count,
                 "count": frequency,
                 "corner": corner,

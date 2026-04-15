@@ -13,21 +13,21 @@
             line-height: 1.6;
         }
         .container {
-            max-width: 1200px;
+            max-width: 480px;
             margin: 0 auto;
-            padding: 15px;
+            padding: 12px;
         }
         header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
-            margin-bottom: 15px;
+            padding: 15px;
+            margin-bottom: 12px;
             border-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        h1 { font-size: 1.5em; }
+        h1 { font-size: 1.3em; }
         .header-actions {
             display: flex;
             gap: 10px;
@@ -53,7 +53,7 @@
         .source-group {
             background: white;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
         }
@@ -133,11 +133,28 @@
             font-size: 0.85em;
             font-weight: 500;
         }
+        .quiz-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .game-btn {
+            padding: 4px 10px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 0.8em;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .game-btn:hover {
+            background: #c8e6c9;
+        }
         footer {
             text-align: center;
-            padding: 20px;
+            padding: 15px;
             color: #999;
-            font-size: 0.85em;
+            font-size: 0.8em;
         }
     </style>
 </head>
@@ -166,17 +183,21 @@
                     </div>
                     <div class="quiz-list">
                         {% for quiz in quizzes %}
-                        <a href="{{ quiz.path }}" class="quiz-item" data-quiz-id="{{ quiz.id }}">
-                            <div class="quiz-number">{{ loop.index }}</div>
-                            <div class="quiz-info">
-                                <div class="quiz-title">{{ quiz.black }} vs {{ quiz.white }}</div>
-                                <div class="quiz-meta">
-                                    <span>{{ quiz.event }}</span>
-                                    <span class="quiz-tag">{{ quiz.type }}</span>
+                        <div class="quiz-item" data-quiz-id="{{ quiz.id }}">
+                            <a href="{{ quiz.path }}" style="display: flex; align-items: center; flex: 1; text-decoration: none; color: inherit;">
+                                <div class="quiz-number">{{ loop.index }}</div>
+                                <div class="quiz-info">
+                                    <div class="quiz-title">{{ quiz.black }} vs {{ quiz.white }}</div>
+                                    <div class="quiz-meta">
+                                        <span>{{ quiz.event }}</span>
+                                    </div>
                                 </div>
+                            </a>
+                            <div class="quiz-actions">
+                                <div class="quiz-count">{{ quiz.count }}题</div>
+                                <a href="{{ quiz.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
                             </div>
-                            <div class="quiz-count">{{ quiz.count }}题</div>
-                        </a>
+                        </div>
                         {% endfor %}
                     </div>
                 </div>

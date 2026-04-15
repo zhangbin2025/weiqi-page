@@ -79,7 +79,8 @@ def generate_index(test_mode=False):
     html = template.render(
         games_count=games_count,
         quiz_count=quiz_count,
-        joseki_count=joseki_count
+        joseki_count=joseki_count,
+        last_update=latest_date or "暂无数据"
     )
     
     # 保存
