@@ -26,18 +26,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: nowrap;
         }
-        h1 { font-size: 1.3em; }
+        h1 { font-size: 1.3em; margin: 0; flex-shrink: 0; }
+        .header-left { flex-shrink: 0; }
         .header-actions {
             display: flex;
             gap: 10px;
             align-items: center;
+            justify-content: flex-end;
         }
         .header-actions select {
-            padding: 6px 12px;
+            padding: 6px 10px;
             border: none;
             border-radius: 5px;
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
         .icon-btn {
             background: rgba(255,255,255,0.2);
@@ -50,6 +53,11 @@
             font-size: 1em;
         }
         .icon-btn:hover { background: rgba(255,255,255,0.3); }
+        @media (max-width: 600px) {
+            header { padding: 12px; }
+            .header-actions select { font-size: 0.8em; padding: 4px 6px; }
+            .icon-btn { width: 28px; height: 28px; font-size: 0.9em; }
+        }
         .source-group {
             background: white;
             border-radius: 8px;
@@ -78,12 +86,12 @@
         }
         .quiz-item {
             display: flex;
-            align-items: center;
             padding: 12px 15px;
             border-bottom: 1px solid #f5f5f5;
             text-decoration: none;
             color: inherit;
             transition: background 0.2s;
+            align-items: flex-start;
         }
         .quiz-item:last-child { border-bottom: none; }
         .quiz-item:hover { background: #fafafa; }
@@ -101,29 +109,30 @@
             margin-right: 12px;
             flex-shrink: 0;
             font-size: 0.9em;
+            align-self: flex-start;
+            margin-top: 2px;
         }
-        .quiz-info {
+        .quiz-content {
             flex: 1;
             min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .quiz-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
         }
         .quiz-title {
             font-weight: 500;
             color: #333;
-            margin-bottom: 4px;
+            font-size: 1em;
         }
         .quiz-meta {
             font-size: 0.85em;
             color: #888;
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .quiz-tag {
-            padding: 2px 8px;
-            background: #fff3e0;
-            color: #e65100;
-            border-radius: 10px;
-            font-size: 0.8em;
         }
         .quiz-count {
             padding: 4px 10px;
@@ -132,20 +141,17 @@
             border-radius: 12px;
             font-size: 0.85em;
             font-weight: 500;
-        }
-        .quiz-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
+            flex-shrink: 0;
         }
         .game-btn {
-            padding: 4px 10px;
+            padding: 5px 12px;
             background: #e8f5e9;
             color: #2e7d32;
             border-radius: 12px;
-            font-size: 0.8em;
+            font-size: 0.85em;
             text-decoration: none;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         .game-btn:hover {
             background: #c8e6c9;
@@ -161,7 +167,9 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎯 实战选点题</h1>
+            <div class="header-left">
+                <h1>🎯 实战选点题</h1>
+            </div>
             <div class="header-actions">
                 <select id="dateFilter" onchange="filterByDate()">
                     {% for date in dates %}
@@ -184,18 +192,16 @@
                     <div class="quiz-list">
                         {% for quiz in quizzes %}
                         <div class="quiz-item" data-quiz-id="{{ quiz.id }}">
-                            <a href="{{ quiz.path }}" style="display: flex; align-items: center; flex: 1; text-decoration: none; color: inherit;">
-                                <div class="quiz-number">{{ loop.index }}</div>
-                                <div class="quiz-info">
-                                    <div class="quiz-title">{{ quiz.black }} vs {{ quiz.white }}</div>
-                                    <div class="quiz-meta">
-                                        <span>{{ quiz.event }}</span>
+                            <div class="quiz-number">{{ loop.index }}</div>
+                            <div class="quiz-content">
+                                <div class="quiz-row">
+                                    <a href="{{ quiz.path }}" class="quiz-title" style="text-decoration: none; color: inherit;">{{ quiz.black }} vs {{ quiz.white }}</a>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <span class="quiz-count">{{ quiz.count }}题</span>
+                                        <a href="{{ quiz.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
                                     </div>
                                 </div>
-                            </a>
-                            <div class="quiz-actions">
-                                <div class="quiz-count">{{ quiz.count }}题</div>
-                                <a href="{{ quiz.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                                <div class="quiz-meta">{{ quiz.event }}</div>
                             </div>
                         </div>
                         {% endfor %}

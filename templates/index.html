@@ -26,7 +26,7 @@
             color: white;
         }
         h1 { 
-            font-size: 1.6em; 
+            font-size: 2em; 
             margin-bottom: 4px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
@@ -53,12 +53,12 @@
         .card {
             background: white;
             border-radius: 12px;
-            padding: 30px 20px 20px;
+            padding: 20px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             transition: transform 0.3s, box-shadow 0.3s;
             display: flex;
-            align-items: flex-start;
-            gap: 15px;
+            flex-direction: column;
+            gap: 12px;
             flex: 1;
             min-height: 0;
         }
@@ -66,44 +66,46 @@
             transform: translateY(-3px);
             box-shadow: 0 8px 30px rgba(0,0,0,0.15);
         }
-        .card-icon {
-            font-size: 2em;
-            flex-shrink: 0;
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        .card-content {
-            flex: 1;
+        .card-icon {
+            font-size: 2.5em;
+            flex-shrink: 0;
         }
         .card h2 {
             color: #667eea;
-            margin-bottom: 4px;
-            font-size: 1.1em;
+            font-size: 1.3em;
+            margin: 0;
         }
         .card-stats {
             display: flex;
-            gap: 8px;
-            margin: 8px 0;
+            gap: 10px;
             flex-wrap: wrap;
         }
         .stat-tag {
             background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 0.85em;
+            padding: 6px 14px;
+            border-radius: 14px;
+            font-size: 1em;
             color: #667eea;
             font-weight: 500;
         }
         .card-actions {
-            margin-top: 15px;
+            margin-top: 5px;
         }
         .btn {
             display: inline-block;
-            padding: 8px 18px;
+            padding: 10px 24px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-decoration: none;
-            border-radius: 15px;
+            border-radius: 18px;
             transition: opacity 0.3s;
-            font-size: 0.85em;
+            font-size: 1em;
+            font-weight: 500;
             white-space: nowrap;
         }
         .btn:hover { opacity: 0.9; }
@@ -127,43 +129,43 @@
         <div class="cards">
             <!-- 棋谱卡片 -->
             <div class="card">
-                <div class="card-icon">📥</div>
-                <div class="card-content">
+                <div class="card-header">
+                    <div class="card-icon">📥</div>
                     <h2>最新棋谱</h2>
-                    <div class="card-stats">
-                        <span class="stat-tag">{{ games_count }}局</span>
-                    </div>
-                    <div class="card-actions">
-                        <a href="./games/" class="btn">查看</a>
-                    </div>
+                </div>
+                <div class="card-stats">
+                    <span class="stat-tag">{{ games_count }}局</span>
+                </div>
+                <div class="card-actions">
+                    <a href="./games/" class="btn">查看</a>
                 </div>
             </div>
             
             <!-- 选点题卡片 -->
             <div class="card">
-                <div class="card-icon">🎯</div>
-                <div class="card-content">
+                <div class="card-header">
+                    <div class="card-icon">🎯</div>
                     <h2>实战选点题</h2>
-                    <div class="card-stats">
-                        <span class="stat-tag">{{ quiz_count }}题</span>
-                    </div>
-                    <div class="card-actions">
-                        <a href="./quiz/" class="btn">做题</a>
-                    </div>
+                </div>
+                <div class="card-stats">
+                    <span class="stat-tag">{{ quiz_count }}题</span>
+                </div>
+                <div class="card-actions">
+                    <a href="./quiz/" class="btn">做题</a>
                 </div>
             </div>
             
             <!-- 定式卡片 -->
             <div class="card">
-                <div class="card-icon">📚</div>
-                <div class="card-content">
+                <div class="card-header">
+                    <div class="card-icon">📚</div>
                     <h2>定式发现</h2>
-                    <div class="card-stats">
-                        <span class="stat-tag">{{ joseki_count }}个</span>
-                    </div>
-                    <div class="card-actions">
-                        <a href="./joseki/" class="btn">查看</a>
-                    </div>
+                </div>
+                <div class="card-stats">
+                    <span class="stat-tag">{{ joseki_count }}个</span>
+                </div>
+                <div class="card-actions">
+                    <a href="./joseki/" class="btn">查看</a>
                 </div>
             </div>
         </div>

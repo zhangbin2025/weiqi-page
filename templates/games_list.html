@@ -26,8 +26,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: nowrap;
         }
-        h1 { font-size: 1.3em; }
+        h1 { font-size: 1.3em; margin: 0; flex-shrink: 0; }
+        .header-left { flex-shrink: 0; }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
+        }
         .header-actions {
             display: flex;
             gap: 10px;
@@ -173,14 +181,18 @@
             font-size: 0.8em;
         }
         @media (max-width: 600px) {
-            header { flex-direction: column; gap: 10px; }
+            header { padding: 12px; }
+            .header-actions select { font-size: 0.85em; padding: 5px 8px; }
+            .icon-btn { width: 28px; height: 28px; font-size: 0.9em; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📥 棋谱列表</h1>
+            <div class="header-left">
+                <h1>📥 棋谱列表</h1>
+            </div>
             <div class="header-actions">
                 <select id="dateFilter" onchange="filterByDate()">
                     {% for date in dates %}
