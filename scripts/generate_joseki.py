@@ -254,7 +254,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
                     break
             
             generated.append({
-                "id": joseki_id,
+                "id": f"joseki_{idx:03d}",
                 "name": name,
                 "path": f"/joseki/{date_str}/{output_name}",
                 "game_path": game_path,
