@@ -316,6 +316,9 @@
                                 </div>
                                 <div class="joseki-row">
                                     <div class="joseki-meta">{{ joseki.event }}</div>
+                                    {% if joseki.game_path %}
+                                    <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -350,6 +353,9 @@
                                 </div>
                                 <div class="joseki-row">
                                     <div class="joseki-meta">{{ joseki.event }}</div>
+                                    {% if joseki.game_path %}
+                                    <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
