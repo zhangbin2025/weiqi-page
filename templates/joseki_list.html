@@ -298,7 +298,7 @@
                 {% if categories.rare %}
                 <div class="joseki-list">
                     {% for joseki in categories.rare %}
-                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id }}">
+                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id or joseki.path }}">
                         <div class="joseki-item">
                             <div class="joseki-content">
                                 <div class="joseki-row">
@@ -335,7 +335,7 @@
                 {% if categories.common %}
                 <div class="joseki-list">
                     {% for joseki in categories.common %}
-                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id }}">
+                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id or joseki.path }}">
                         <div class="joseki-item">
                             <div class="joseki-content">
                                 <div class="joseki-row">
