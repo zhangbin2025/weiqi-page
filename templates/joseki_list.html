@@ -242,9 +242,9 @@
             color: #2e7d32;
             border-radius: 12px;
             font-size: 0.85em;
-            text-decoration: none;
             white-space: nowrap;
             flex-shrink: 0;
+            cursor: pointer;
         }
         .game-btn:hover {
             background: #c8e6c9;
@@ -298,7 +298,7 @@
                 {% if categories.rare %}
                 <div class="joseki-list">
                     {% for joseki in categories.rare %}
-                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id }}">
+                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id or joseki.path }}">
                         <div class="joseki-item">
                             <div class="joseki-content">
                                 <div class="joseki-row">
@@ -317,7 +317,7 @@
                                 <div class="joseki-row">
                                     <div class="joseki-meta">{{ joseki.event }}</div>
                                     {% if joseki.game_path %}
-                                    <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                                    <span class="game-btn" data-game-path="{{ joseki.game_path }}" onclick="openGame(event, this);">📖 棋谱</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -335,7 +335,7 @@
                 {% if categories.common %}
                 <div class="joseki-list">
                     {% for joseki in categories.common %}
-                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id }}">
+                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id or joseki.path }}">
                         <div class="joseki-item">
                             <div class="joseki-content">
                                 <div class="joseki-row">
@@ -354,7 +354,7 @@
                                 <div class="joseki-row">
                                     <div class="joseki-meta">{{ joseki.event }}</div>
                                     {% if joseki.game_path %}
-                                    <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                                    <span class="game-btn" data-game-path="{{ joseki.game_path }}" onclick="openGame(event, this);">📖 棋谱</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -412,10 +412,27 @@
             }
         }
         
+        function openGame(event, element) {
+            event.preventDefault();
+            event.stopPropagation();
+            window.location.href = element.dataset.gamePath;
+        }
+        
+        function getVisited() {
+            try {
+                const data = localStorage.getItem('visited_joseki');
+                if (!data) return [];
+                const parsed = JSON.parse(data);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+        
         document.querySelectorAll('.joseki-item-link').forEach(item => {
             item.addEventListener('click', function() {
                 const josekiId = this.dataset.josekiId;
-                let visited = JSON.parse(localStorage.getItem('visited_joseki') || '[]');
+                let visited = getVisited();
                 if (!visited.includes(josekiId)) {
                     visited.push(josekiId);
                     localStorage.setItem('visited_joseki', JSON.stringify(visited));
@@ -426,7 +443,7 @@
         });
         
         function restoreVisited() {
-            const visited = JSON.parse(localStorage.getItem('visited_joseki') || '[]');
+            const visited = getVisited();
             document.querySelectorAll('.joseki-item-link').forEach(item => {
                 if (visited.includes(item.dataset.josekiId)) {
                     item.style.opacity = '0.5';
@@ -439,6 +456,19 @@
             document.querySelectorAll('.joseki-item-link').forEach(item => {
                 item.style.opacity = '1';
             });
+        }
+        
+        // 清理可能损坏的数据
+        try {
+            const data = localStorage.getItem('visited_joseki');
+            if (data) {
+                const parsed = JSON.parse(data);
+                if (!Array.isArray(parsed)) {
+                    localStorage.removeItem('visited_joseki');
+                }
+            }
+        } catch (e) {
+            localStorage.removeItem('visited_joseki');
         }
         
         // 页面加载时恢复已访问状态
