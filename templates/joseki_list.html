@@ -311,11 +311,8 @@
                                 <span>({{ joseki.moves }}手)</span>
                             </div>
                             <div class="joseki-meta">
-                                <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
-                                {% if joseki.id %}
-                                <span class="joseki-id">{{ joseki.id.replace('joseki_', '') }}</span>
-                                {% endif %}
                                 <span class="joseki-event">{{ joseki.event }}</span>
+                                <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
                             </div>
                         </div>
                     </a>
@@ -345,10 +342,9 @@
                                 <span>({{ joseki.moves }}手)</span>
                             </div>
                             <div class="joseki-meta">
-                                <span class="joseki-tag common">定式库出现{{ joseki.count }}次</span>
-                                <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
-                                <span class="joseki-id">{{ joseki.id.replace('joseki_', '') }}</span>
                                 <span class="joseki-event">{{ joseki.event }}</span>
+                                <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
+                                <span class="joseki-tag common">定式库出现{{ joseki.count }}次</span>
                             </div>
                         </div>
                     </a>
