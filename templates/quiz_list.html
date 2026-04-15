@@ -82,65 +82,68 @@
             color: #999;
         }
         .quiz-list {
-            padding: 0;
-        }
-        .quiz-item-link {
-            display: flex;
-            padding: 12px 15px;
-            border-bottom: 1px solid #f5f5f5;
-            text-decoration: none;
-            color: inherit;
-            transition: background 0.2s;
-            align-items: center;
-            gap: 10px;
-        }
-        .quiz-item-link:last-child { border-bottom: none; }
-        .quiz-item-link:hover { background: #fafafa; }
-        .quiz-item-link:visited { opacity: 0.6; }
-        .quiz-content {
-            flex: 1;
-            min-width: 0;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 10px;
         }
-        .quiz-row {
+        .quiz-card {
+            display: block;
+            padding: 14px;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .quiz-card:hover {
+            background: #fafafa;
+            border-color: #ddd;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        }
+        .quiz-card:visited { opacity: 0.7; }
+        .quiz-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            margin-bottom: 6px;
         }
-        .quiz-title {
-            font-weight: 500;
+        .players {
+            font-weight: 600;
+            font-size: 1.05em;
             color: #333;
-            font-size: 1em;
-            flex: 1;
         }
-        .quiz-meta {
+        .result {
+            font-size: 0.9em;
+            color: #666;
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .event {
             font-size: 0.85em;
             color: #888;
-        }
-        .quiz-count {
-            padding: 4px 10px;
-            background: #e3f2fd;
-            color: #1976d2;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 500;
-            flex-shrink: 0;
-        }
-        .game-btn {
-            padding: 5px 12px;
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-radius: 12px;
-            font-size: 0.85em;
-            text-decoration: none;
+            margin-bottom: 10px;
             white-space: nowrap;
-            flex-shrink: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .game-btn:hover {
-            background: #c8e6c9;
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            font-size: 0.85em;
+            color: #666;
+        }
+        .stats .count {
+            font-weight: 600;
+            color: #1976d2;
+        }
+        .stats .phase, .stats .difficulty {
+            color: #888;
         }
         footer {
             text-align: center;
@@ -177,13 +180,26 @@
                     </div>
                     <div class="quiz-list">
                         {% for quiz in quizzes %}
-                        <a href="{{ quiz.path }}" class="quiz-item-link" data-quiz-id="{{ quiz.id }}">
-                            <div class="quiz-content">
-                                <div class="quiz-row">
-                                    <span class="quiz-title">{{ quiz.black }} vs {{ quiz.white }}</span>
-                                    <span class="quiz-count">{{ quiz.count }}题</span>
-                                </div>
-                                <div class="quiz-meta">{{ quiz.event }}</div>
+                        <a href="{{ quiz.path }}" class="quiz-card" data-quiz-id="{{ quiz.id }}">
+                            <div class="quiz-header">
+                                <span class="players">{{ quiz.black }} vs {{ quiz.white }}</span>
+                                {% if quiz.result %}
+                                <span class="result">{{ quiz.result }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="event">{{ quiz.event }}</div>
+                            <div class="stats">
+                                <span class="count">{{ quiz.count }}题</span>
+                                {% if quiz.stats %}
+                                <span class="phase">
+                                    {% if quiz.stats.phase.layout %}布局{{ quiz.stats.phase.layout }}{% endif %}
+                                    {% if quiz.stats.phase.middle %}中盘{{ quiz.stats.phase.middle }}{% endif %}
+                                    {% if quiz.stats.phase.endgame %}官子{{ quiz.stats.phase.endgame }}{% endif %}
+                                </span>
+                                <span class="difficulty">
+                                    简单{{ quiz.stats.difficulty.easy }} 中等{{ quiz.stats.difficulty.medium }} 困难{{ quiz.stats.difficulty.hard }}
+                                </span>
+                                {% endif %}
                             </div>
                         </a>
                         {% endfor %}
@@ -215,7 +231,7 @@
             const list = header.nextElementSibling;
             const toggle = header.querySelector('.source-toggle');
             if (list.style.display === 'none') {
-                list.style.display = 'block';
+                list.style.display = 'flex';
                 toggle.textContent = '▼';
             } else {
                 list.style.display = 'none';
@@ -223,8 +239,8 @@
             }
         }
         
-        document.querySelectorAll('.quiz-item-link').forEach(item => {
-            item.addEventListener('click', function() {
+        document.querySelectorAll('.quiz-card').forEach(card => {
+            card.addEventListener('click', function() {
                 const quizId = this.dataset.quizId;
                 let visited = JSON.parse(localStorage.getItem('visited_quiz') || '[]');
                 if (!visited.includes(quizId)) {
@@ -236,17 +252,17 @@
         
         function restoreVisited() {
             const visited = JSON.parse(localStorage.getItem('visited_quiz') || '[]');
-            document.querySelectorAll('.quiz-item-link').forEach(item => {
-                if (visited.includes(item.dataset.quizId)) {
-                    item.style.opacity = '0.5';
+            document.querySelectorAll('.quiz-card').forEach(card => {
+                if (visited.includes(card.dataset.quizId)) {
+                    card.style.opacity = '0.6';
                 }
             });
         }
         
         function clearVisited() {
             localStorage.removeItem('visited_quiz');
-            document.querySelectorAll('.quiz-item-link').forEach(item => {
-                item.style.opacity = '1';
+            document.querySelectorAll('.quiz-card').forEach(card => {
+                card.style.opacity = '1';
             });
         }
         

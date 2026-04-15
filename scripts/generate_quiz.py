@@ -25,8 +25,90 @@ from config import (
 )
 
 
+def translate_result(result):
+    """翻译胜负结果为中文"""
+    if not result:
+        return ""
+    
+    result = result.strip()
+    
+    # 中盘胜 / 认输
+    if result == 'B+R' or result == 'B+Resign':
+        return "黑中盘胜"
+    if result == 'W+R' or result == 'W+Resign':
+        return "白中盘胜"
+    
+    # 超时胜
+    if result == 'B+T' or result == 'B+Time':
+        return "黑超时胜"
+    if result == 'W+T' or result == 'W+Time':
+        return "白超时胜"
+    
+    # 数目胜（如 B+2.5, W+10）
+    import re
+    match = re.match(r'B\+(\d+\.?\d*)', result)
+    if match:
+        return f"黑胜{match.group(1)}目"
+    match = re.match(r'W\+(\d+\.?\d*)', result)
+    if match:
+        return f"白胜{match.group(1)}目"
+    
+    # 其他格式原样返回
+    return result
+
+
+def parse_quiz_output(stdout):
+    """解析 quiz.py 的输出，提取统计信息"""
+    stats = {
+        "total": 0,
+        "result": "",
+        "phase": {"layout": 0, "middle": 0, "endgame": 0},
+        "difficulty": {"easy": 0, "medium": 0, "hard": 0}
+    }
+    
+    for line in stdout.split('\n'):
+        line = line.strip()
+        
+        # 解析胜负结果
+        if line.startswith('结果:'):
+            raw_result = line.replace('结果:', '').strip()
+            stats["result"] = translate_result(raw_result)
+        
+        # 解析总题数
+        if '提取到' in line and '道题目' in line:
+            match = re.search(r'提取到\s*(\d+)\s*道题目', line)
+            if match:
+                stats["total"] = int(match.group(1))
+        
+        # 解析阶段分布
+        if '布局:' in line or '中盘:' in line or '官子:' in line:
+            phase_match = re.search(r'布局:\s*(\d+)', line)
+            if phase_match:
+                stats["phase"]["layout"] = int(phase_match.group(1))
+            phase_match = re.search(r'中盘:\s*(\d+)', line)
+            if phase_match:
+                stats["phase"]["middle"] = int(phase_match.group(1))
+            phase_match = re.search(r'官子:\s*(\d+)', line)
+            if phase_match:
+                stats["phase"]["endgame"] = int(phase_match.group(1))
+        
+        # 解析难度分布
+        if '简单:' in line or '中等:' in line or '困难:' in line:
+            diff_match = re.search(r'简单:\s*(\d+)', line)
+            if diff_match:
+                stats["difficulty"]["easy"] = int(diff_match.group(1))
+            diff_match = re.search(r'中等:\s*(\d+)', line)
+            if diff_match:
+                stats["difficulty"]["medium"] = int(diff_match.group(1))
+            diff_match = re.search(r'困难:\s*(\d+)', line)
+            if diff_match:
+                stats["difficulty"]["hard"] = int(diff_match.group(1))
+    
+    return stats
+
+
 def generate_quiz(sgf_path, output_path, quiz_type="blunder"):
-    """生成选点题"""
+    """生成选点题，返回统计信息"""
     # 确保输出目录存在
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -41,26 +123,18 @@ def generate_quiz(sgf_path, output_path, quiz_type="blunder"):
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"     ⚠️  quiz.py错误: {result.stderr[:200]}")
-    return result.returncode == 0
+        return {"success": False, "stats": None}
+    
+    # 解析统计信息
+    stats = parse_quiz_output(result.stdout)
+    return {"success": True, "stats": stats}
 
 
-def count_quiz_questions(quiz_path):
-    """统计选点题数量"""
-    try:
-        content = quiz_path.read_text()
-        # 统计题目数量（根据quiz.html的结构，查找problems数组）
-        match = re.search(r'const problems = (\[.*?\]);', content, re.DOTALL)
-        if match:
-            try:
-                problems = json.loads(match.group(1))
-                return len(problems)
-            except:
-                pass
-        # 备选：查找index字段
-        questions = re.findall(r'"index":\s*(\d+)', content)
-        return len(set(questions))
-    except:
-        return 0
+def count_quiz_questions(stats):
+    """从统计信息获取题目数量"""
+    if stats and "total" in stats:
+        return stats["total"]
+    return 0
 
 
 def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
@@ -146,14 +220,15 @@ def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
         output_name = f"quiz_{game_id}.html"
         output_path = date_source_dir / output_name
         
-        if generate_quiz(sgf_path, output_path, "blunder"):
+        quiz_result = generate_quiz(sgf_path, output_path, "blunder")
+        if quiz_result["success"]:
             # 检查文件是否存在
             if output_path.exists():
-                # 统计题目数量
-                question_count = count_quiz_questions(output_path)
+                stats = quiz_result.get("stats", {})
+                question_count = count_quiz_questions(stats)
                 
                 if question_count > 0:
-                    print(f"  ✅ [{i}/{len(games)}] {source}: {output_name} ({question_count}题, 恶手题)")
+                    print(f"  ✅ [{i}/{len(games)}] {source}: {output_name} ({question_count}题)")
                     generated.append({
                         "id": game_id,
                         "source": source,
@@ -162,8 +237,9 @@ def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
                         "black": game.get("black", "未知"),
                         "white": game.get("white", "未知"),
                         "event": game.get("event", ""),
-                        "type": "恶手题",
-                        "count": question_count
+                        "result": stats.get("result", ""),
+                        "count": question_count,
+                        "stats": stats
                     })
                 else:
                     print(f"  ⏭️  [{i}/{len(games)}] {source}: 无恶手，跳过")
