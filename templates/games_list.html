@@ -272,6 +272,8 @@
                     visited.push(gameId);
                     localStorage.setItem('visited_games', JSON.stringify(visited));
                 }
+                // 立即应用已访问样式
+                this.style.opacity = '0.5';
             });
         });
         
@@ -291,8 +293,16 @@
             });
         }
         
+        // 页面加载时恢复已访问状态
         filterByDate();
         restoreVisited();
+        
+        // 页面从缓存恢复时（返回按钮）重新应用状态
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                restoreVisited();
+            }
+        });
     </script>
 </body>
 </html>
