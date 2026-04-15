@@ -158,6 +158,8 @@
             margin-right: 12px;
             flex-shrink: 0;
             font-size: 0.9em;
+            align-self: flex-start;
+            margin-top: 2px;
         }
         .joseki-info {
             flex: 1;
@@ -232,6 +234,14 @@
             padding: 2px 6px;
             border-radius: 4px;
         }
+        .match-count {
+            padding: 2px 8px;
+            background: #fff3e0;
+            color: #e65100;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
         .joseki-event {
             color: #888;
         }
@@ -301,10 +311,9 @@
                                 <span>({{ joseki.moves }}手)</span>
                             </div>
                             <div class="joseki-meta">
-                                <span class="joseki-tag rare">罕见定式</span>
-                                <span class="joseki-id">匹配{{ joseki.matched_prefix_len }}手</span>
+                                <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
                                 {% if joseki.id %}
-                                <span class="joseki-id">ID: {{ joseki.id }}</span>
+                                <span class="joseki-id">{{ joseki.id.replace('joseki_', '') }}</span>
                                 {% endif %}
                                 <span class="joseki-event">{{ joseki.event }}</span>
                             </div>
@@ -336,9 +345,9 @@
                                 <span>({{ joseki.moves }}手)</span>
                             </div>
                             <div class="joseki-meta">
-                                <span class="joseki-tag common">定式库: {{ joseki.count }}次</span>
-                                <span class="joseki-tag">匹配{{ joseki.matched_prefix_len }}手</span>
-                                <span class="joseki-id">ID: {{ joseki.id }}</span>
+                                <span class="joseki-tag common">定式库出现{{ joseki.count }}次</span>
+                                <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
+                                <span class="joseki-id">{{ joseki.id.replace('joseki_', '') }}</span>
                                 <span class="joseki-event">{{ joseki.event }}</span>
                             </div>
                         </div>
