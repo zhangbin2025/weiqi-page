@@ -92,6 +92,7 @@
             color: inherit;
             transition: background 0.2s;
             align-items: flex-start;
+            padding-left: 15px;
         }
         .quiz-item:last-child { border-bottom: none; }
         .quiz-item:hover { background: #fafafa; }
@@ -192,7 +193,6 @@
                     <div class="quiz-list">
                         {% for quiz in quizzes %}
                         <div class="quiz-item" data-quiz-id="{{ quiz.id }}">
-                            <div class="quiz-number">{{ loop.index }}</div>
                             <div class="quiz-content">
                                 <div class="quiz-row">
                                     <a href="{{ quiz.path }}" class="quiz-title" style="text-decoration: none; color: inherit;">{{ quiz.black }} vs {{ quiz.white }}</a>

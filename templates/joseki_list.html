@@ -133,6 +133,7 @@
             color: inherit;
             transition: background 0.2s;
             align-items: flex-start;
+            padding-left: 15px;
         }
         .joseki-item:last-child { border-bottom: none; }
         .joseki-item:hover { background: #fafafa; }
@@ -177,12 +178,12 @@
             gap: 6px;
         }
         .joseki-moves {
-            font-size: 1em;
+            font-size: 0.85em;
             color: #667eea;
-            font-weight: 600;
-            padding: 2px 8px;
+            font-weight: 500;
+            padding: 2px 6px;
             background: #f0f0ff;
-            border-radius: 10px;
+            border-radius: 8px;
         }
         .joseki-players {
             display: flex;
@@ -312,7 +313,6 @@
                 <div class="joseki-list">
                     {% for joseki in categories.rare %}
                     <div class="joseki-item" data-joseki-id="{{ joseki.id }}">
-                        <div class="joseki-number">{{ loop.index }}</div>
                         <div class="joseki-content">
                             <div class="joseki-row">
                                 <a href="{{ joseki.path }}" class="joseki-title" style="text-decoration: none; color: inherit;">
@@ -350,7 +350,6 @@
                 <div class="joseki-list">
                     {% for joseki in categories.common %}
                     <div class="joseki-item" data-joseki-id="{{ joseki.id }}">
-                        <div class="joseki-number">{{ loop.index }}</div>
                         <div class="joseki-content">
                             <div class="joseki-row">
                                 <a href="{{ joseki.path }}" class="joseki-title" style="text-decoration: none; color: inherit;">
