@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>实战选点题 | 围棋智能助手</title>
+    <title>实战选点 | 围棋智能助手</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -84,35 +84,19 @@
         .quiz-list {
             padding: 0;
         }
-        .quiz-item {
+        .quiz-item-link {
             display: flex;
             padding: 12px 15px;
             border-bottom: 1px solid #f5f5f5;
             text-decoration: none;
             color: inherit;
             transition: background 0.2s;
-            align-items: flex-start;
-            padding-left: 15px;
-        }
-        .quiz-item:last-child { border-bottom: none; }
-        .quiz-item:hover { background: #fafafa; }
-        .quiz-item:visited { opacity: 0.6; }
-        .quiz-number {
-            width: 28px;
-            height: 28px;
-            background: #ff6b6b;
-            color: white;
-            border-radius: 50%;
-            display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 12px;
-            flex-shrink: 0;
-            font-size: 0.9em;
-            align-self: flex-start;
-            margin-top: 2px;
+            gap: 10px;
         }
+        .quiz-item-link:last-child { border-bottom: none; }
+        .quiz-item-link:hover { background: #fafafa; }
+        .quiz-item-link:visited { opacity: 0.6; }
         .quiz-content {
             flex: 1;
             min-width: 0;
@@ -130,6 +114,7 @@
             font-weight: 500;
             color: #333;
             font-size: 1em;
+            flex: 1;
         }
         .quiz-meta {
             font-size: 0.85em;
@@ -169,7 +154,7 @@
     <div class="container">
         <header>
             <div class="header-left">
-                <h1>🎯 实战选点题</h1>
+                <h1>🎯 实战选点</h1>
             </div>
             <div class="header-actions">
                 <select id="dateFilter" onchange="filterByDate()">
@@ -192,18 +177,16 @@
                     </div>
                     <div class="quiz-list">
                         {% for quiz in quizzes %}
-                        <div class="quiz-item" data-quiz-id="{{ quiz.id }}">
+                        <a href="{{ quiz.path }}" class="quiz-item-link" data-quiz-id="{{ quiz.id }}">
                             <div class="quiz-content">
                                 <div class="quiz-row">
-                                    <a href="{{ quiz.path }}" class="quiz-title" style="text-decoration: none; color: inherit;">{{ quiz.black }} vs {{ quiz.white }}</a>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <span class="quiz-count">{{ quiz.count }}题</span>
-                                        <a href="{{ quiz.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
-                                    </div>
+                                    <span class="quiz-title">{{ quiz.black }} vs {{ quiz.white }}</span>
+                                    <span class="quiz-count">{{ quiz.count }}题</span>
                                 </div>
                                 <div class="quiz-meta">{{ quiz.event }}</div>
                             </div>
-                        </div>
+                            <a href="{{ quiz.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                        </a>
                         {% endfor %}
                     </div>
                 </div>
@@ -241,7 +224,7 @@
             }
         }
         
-        document.querySelectorAll('.quiz-item').forEach(item => {
+        document.querySelectorAll('.quiz-item-link').forEach(item => {
             item.addEventListener('click', function() {
                 const quizId = this.dataset.quizId;
                 let visited = JSON.parse(localStorage.getItem('visited_quiz') || '[]');
@@ -254,7 +237,7 @@
         
         function restoreVisited() {
             const visited = JSON.parse(localStorage.getItem('visited_quiz') || '[]');
-            document.querySelectorAll('.quiz-item').forEach(item => {
+            document.querySelectorAll('.quiz-item-link').forEach(item => {
                 if (visited.includes(item.dataset.quizId)) {
                     item.style.opacity = '0.5';
                 }
@@ -263,7 +246,7 @@
         
         function clearVisited() {
             localStorage.removeItem('visited_quiz');
-            document.querySelectorAll('.quiz-item').forEach(item => {
+            document.querySelectorAll('.quiz-item-link').forEach(item => {
                 item.style.opacity = '1';
             });
         }

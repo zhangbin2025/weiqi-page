@@ -77,8 +77,13 @@
         }
         .card h2 {
             color: #667eea;
-            font-size: 1.3em;
+            font-size: 2em;
             margin: 0;
+        }
+        .card-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
         }
         .card-stats {
             display: flex;
@@ -128,46 +133,52 @@
         
         <div class="cards">
             <!-- 棋谱卡片 -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon">📥</div>
-                    <h2>最新棋谱</h2>
+            <a href="./games/" class="card-link">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">📥</div>
+                        <h2>最新棋谱</h2>
+                    </div>
+                    <div class="card-stats">
+                        <span class="stat-tag">{{ games_count }}局</span>
+                    </div>
+                    <div class="card-actions">
+                        <span class="btn">查看棋谱</span>
+                    </div>
                 </div>
-                <div class="card-stats">
-                    <span class="stat-tag">{{ games_count }}局</span>
-                </div>
-                <div class="card-actions">
-                    <a href="./games/" class="btn">查看</a>
-                </div>
-            </div>
+            </a>
             
             <!-- 选点题卡片 -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon">🎯</div>
-                    <h2>实战选点题</h2>
+            <a href="./quiz/" class="card-link">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">🎯</div>
+                        <h2>实战选点</h2>
+                    </div>
+                    <div class="card-stats">
+                        <span class="stat-tag">{{ quiz_count }}题</span>
+                    </div>
+                    <div class="card-actions">
+                        <span class="btn">开始做题</span>
+                    </div>
                 </div>
-                <div class="card-stats">
-                    <span class="stat-tag">{{ quiz_count }}题</span>
-                </div>
-                <div class="card-actions">
-                    <a href="./quiz/" class="btn">做题</a>
-                </div>
-            </div>
+            </a>
             
             <!-- 定式卡片 -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon">📚</div>
-                    <h2>定式发现</h2>
+            <a href="./joseki/" class="card-link">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">📚</div>
+                        <h2>定式发现</h2>
+                    </div>
+                    <div class="card-stats">
+                        <span class="stat-tag">{{ joseki_count }}个</span>
+                    </div>
+                    <div class="card-actions">
+                        <span class="btn">查看定式</span>
+                    </div>
                 </div>
-                <div class="card-stats">
-                    <span class="stat-tag">{{ joseki_count }}个</span>
-                </div>
-                <div class="card-actions">
-                    <a href="./joseki/" class="btn">查看</a>
-                </div>
-            </div>
+            </a>
         </div>
         
         <footer>

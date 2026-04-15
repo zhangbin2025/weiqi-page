@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>定式研究 | 围棋智能助手</title>
+    <title>定式发现 | 围棋智能助手</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -125,38 +125,20 @@
         .joseki-list {
             padding: 0;
         }
-        .joseki-item {
-            display: flex;
-            padding: 12px 15px;
+        .joseki-item-link {
+            display: block;
             border-bottom: 1px solid #f5f5f5;
             text-decoration: none;
             color: inherit;
             transition: background 0.2s;
-            align-items: flex-start;
-            padding-left: 15px;
         }
-        .joseki-item:last-child { border-bottom: none; }
-        .joseki-item:hover { background: #fafafa; }
-        .joseki-item:visited { opacity: 0.6; }
-        .joseki-number {
-            width: 32px;
-            height: 32px;
-            background: #667eea;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 12px;
-            flex-shrink: 0;
-            font-size: 0.9em;
-            align-self: flex-start;
-            margin-top: 2px;
+        .joseki-item-link:last-child { border-bottom: none; }
+        .joseki-item-link:hover { background: #fafafa; }
+        .joseki-item-link:visited { opacity: 0.6; }
+        .joseki-item {
+            padding: 12px 15px;
         }
         .joseki-content {
-            flex: 1;
-            min-width: 0;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -175,7 +157,9 @@
         .joseki-title-row {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+            font-size: 0.95em;
+            white-space: nowrap;
         }
         .joseki-moves {
             font-size: 0.85em;
@@ -184,6 +168,7 @@
             padding: 2px 6px;
             background: #f0f0ff;
             border-radius: 8px;
+            flex-shrink: 0;
         }
         .joseki-players {
             display: flex;
@@ -192,8 +177,8 @@
             font-weight: 500;
         }
         .stone-icon {
-            width: 18px;
-            height: 18px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
             flex-shrink: 0;
         }
@@ -209,6 +194,7 @@
         .joseki-vs {
             color: #999;
             font-weight: normal;
+            font-size: 0.9em;
         }
         .joseki-meta {
             font-size: 0.85em;
@@ -280,7 +266,7 @@
     <div class="container">
         <header>
             <div class="header-left">
-                <h1>📚 定式研究</h1>
+                <h1>📚 定式发现</h1>
             </div>
             <div class="header-actions">
                 <select id="dateFilter" onchange="filterByDate()">
@@ -297,25 +283,25 @@
         <div class="date-content {% if date == current_date %}active{% endif %}" data-date="{{ date }}">
             <!-- 分类切换标签 -->
             <div class="category-tabs">
-                <div class="category-tab {% if categories.rare %}active{% endif %}" onclick="switchTab('{{ date }}', 'rare')" id="tab-{{ date }}-rare">
-                    🔍 罕见定式
-                    <span class="count">{{ categories.rare|length }}</span>
-                </div>
-                <div class="category-tab {% if not categories.rare %}active{% endif %}" onclick="switchTab('{{ date }}', 'common')" id="tab-{{ date }}-common">
+                <div class="category-tab active" onclick="switchTab('{{ date }}', 'common')" id="tab-{{ date }}-common">
                     📚 常见定式
                     <span class="count">{{ categories.common|length }}</span>
+                </div>
+                <div class="category-tab" onclick="switchTab('{{ date }}', 'rare')" id="tab-{{ date }}-rare">
+                    🔍 罕见定式
+                    <span class="count">{{ categories.rare|length }}</span>
                 </div>
             </div>
             
             <!-- 罕见定式列表 -->
-            <div class="joseki-section {% if categories.rare %}active{% endif %}" id="section-{{ date }}-rare">
+            <div class="joseki-section" id="section-{{ date }}-rare">
                 {% if categories.rare %}
                 <div class="joseki-list">
                     {% for joseki in categories.rare %}
-                    <div class="joseki-item" data-joseki-id="{{ joseki.id }}">
-                        <div class="joseki-content">
-                            <div class="joseki-row">
-                                <a href="{{ joseki.path }}" class="joseki-title" style="text-decoration: none; color: inherit;">
+                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id }}">
+                        <div class="joseki-item">
+                            <div class="joseki-content">
+                                <div class="joseki-row">
                                     <div class="joseki-title-row">
                                         <span class="stone-icon stone-black"></span>
                                         {{ joseki.black }}
@@ -323,20 +309,20 @@
                                         <span class="stone-icon stone-white"></span>
                                         {{ joseki.white }}
                                     </div>
-                                </a>
-                                <div style="display: flex; gap: 8px; align-items: center;">
-                                    <span class="joseki-moves">{{ joseki.moves }}手</span>
-                                    <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <span class="joseki-moves">{{ joseki.moves }}手</span>
+                                        <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
+                                    </div>
+                                </div>
+                                <div class="joseki-row">
+                                    <div class="joseki-meta">{{ joseki.event }}</div>
+                                    {% if joseki.game_path %}
+                                    <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                                    {% endif %}
                                 </div>
                             </div>
-                            <div class="joseki-row">
-                                <div class="joseki-meta">{{ joseki.event }}</div>
-                                {% if joseki.game_path %}
-                                <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
-                                {% endif %}
-                            </div>
                         </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 </div>
                 {% else %}
@@ -345,14 +331,14 @@
             </div>
             
             <!-- 常见定式列表 -->
-            <div class="joseki-section {% if not categories.rare %}active{% endif %}" id="section-{{ date }}-common">
+            <div class="joseki-section active" id="section-{{ date }}-common">
                 {% if categories.common %}
                 <div class="joseki-list">
                     {% for joseki in categories.common %}
-                    <div class="joseki-item" data-joseki-id="{{ joseki.id }}">
-                        <div class="joseki-content">
-                            <div class="joseki-row">
-                                <a href="{{ joseki.path }}" class="joseki-title" style="text-decoration: none; color: inherit;">
+                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id }}">
+                        <div class="joseki-item">
+                            <div class="joseki-content">
+                                <div class="joseki-row">
                                     <div class="joseki-title-row">
                                         <span class="stone-icon stone-black"></span>
                                         {{ joseki.black }}
@@ -360,20 +346,20 @@
                                         <span class="stone-icon stone-white"></span>
                                         {{ joseki.white }}
                                     </div>
-                                </a>
-                                <div style="display: flex; gap: 8px; align-items: center;">
-                                    <span class="joseki-moves">{{ joseki.moves }}手</span>
-                                    <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <span class="joseki-moves">{{ joseki.moves }}手</span>
+                                        <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
+                                    </div>
+                                </div>
+                                <div class="joseki-row">
+                                    <div class="joseki-meta">{{ joseki.event }}</div>
+                                    {% if joseki.game_path %}
+                                    <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
+                                    {% endif %}
                                 </div>
                             </div>
-                            <div class="joseki-row">
-                                <div class="joseki-meta">{{ joseki.event }}</div>
-                                {% if joseki.game_path %}
-                                <a href="{{ joseki.game_path }}" class="game-btn" onclick="event.stopPropagation();">📖 棋谱</a>
-                                {% endif %}
-                            </div>
                         </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 </div>
                 {% else %}
@@ -393,9 +379,9 @@
         let currentDate = '{{ current_date }}';
         let currentTabs = {};
         
-        // 初始化每个日期的默认标签
+        // 初始化每个日期的默认标签（默认显示常见定式）
         {% for date, categories in date_data.items() %}
-        currentTabs['{{ date }}'] = '{% if categories.rare %}rare{% else %}common{% endif %}';
+        currentTabs['{{ date }}'] = 'common';
         {% endfor %}
         
         function switchTab(date, tab) {
@@ -426,7 +412,7 @@
             }
         }
         
-        document.querySelectorAll('.joseki-item').forEach(item => {
+        document.querySelectorAll('.joseki-item-link').forEach(item => {
             item.addEventListener('click', function() {
                 const josekiId = this.dataset.josekiId;
                 let visited = JSON.parse(localStorage.getItem('visited_joseki') || '[]');
@@ -439,7 +425,7 @@
         
         function restoreVisited() {
             const visited = JSON.parse(localStorage.getItem('visited_joseki') || '[]');
-            document.querySelectorAll('.joseki-item').forEach(item => {
+            document.querySelectorAll('.joseki-item-link').forEach(item => {
                 if (visited.includes(item.dataset.josekiId)) {
                     item.style.opacity = '0.5';
                 }
@@ -448,7 +434,7 @@
         
         function clearVisited() {
             localStorage.removeItem('visited_joseki');
-            document.querySelectorAll('.joseki-item').forEach(item => {
+            document.querySelectorAll('.joseki-item-link').forEach(item => {
                 item.style.opacity = '1';
             });
         }
