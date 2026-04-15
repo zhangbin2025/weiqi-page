@@ -417,6 +417,7 @@
                 if (e.target.classList.contains('game-btn')) {
                     return;
                 }
+                e.preventDefault();
                 const josekiId = this.dataset.josekiId;
                 let visited = JSON.parse(localStorage.getItem('visited_joseki') || '[]');
                 if (!visited.includes(josekiId)) {
@@ -425,6 +426,8 @@
                 }
                 // 立即应用已访问样式
                 this.style.opacity = '0.5';
+                // 跳转到详情页
+                window.location.href = this.getAttribute('href');
             });
         });
         
