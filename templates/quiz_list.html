@@ -131,6 +131,12 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        .quiz-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
         .stats {
             display: flex;
             flex-wrap: wrap;
@@ -144,6 +150,20 @@
         }
         .stats .phase, .stats .difficulty {
             color: #888;
+        }
+        .game-btn {
+            padding: 5px 12px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 0.85em;
+            white-space: nowrap;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .game-btn:hover {
+            background: #c8e6c9;
         }
         footer {
             text-align: center;
@@ -188,17 +208,22 @@
                                 {% endif %}
                             </div>
                             <div class="event">{{ quiz.event }}</div>
-                            <div class="stats">
-                                <span class="count">{{ quiz.count }}题</span>
-                                {% if quiz.stats %}
-                                <span class="phase">
-                                    {% if quiz.stats.phase.layout %}布局{{ quiz.stats.phase.layout }}{% endif %}
-                                    {% if quiz.stats.phase.middle %}中盘{{ quiz.stats.phase.middle }}{% endif %}
-                                    {% if quiz.stats.phase.endgame %}官子{{ quiz.stats.phase.endgame }}{% endif %}
-                                </span>
-                                <span class="difficulty">
-                                    简单{{ quiz.stats.difficulty.easy }} 中等{{ quiz.stats.difficulty.medium }} 困难{{ quiz.stats.difficulty.hard }}
-                                </span>
+                            <div class="quiz-footer">
+                                <div class="stats">
+                                    <span class="count">{{ quiz.count }}题</span>
+                                    {% if quiz.stats %}
+                                    <span class="phase">
+                                        {% if quiz.stats.phase.layout %}布局{{ quiz.stats.phase.layout }}{% endif %}
+                                        {% if quiz.stats.phase.middle %}中盘{{ quiz.stats.phase.middle }}{% endif %}
+                                        {% if quiz.stats.phase.endgame %}官子{{ quiz.stats.phase.endgame }}{% endif %}
+                                    </span>
+                                    <span class="difficulty">
+                                        简单{{ quiz.stats.difficulty.easy }} 中等{{ quiz.stats.difficulty.medium }} 困难{{ quiz.stats.difficulty.hard }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if quiz.game_path %}
+                                <span class="game-btn" data-game-path="{{ quiz.game_path }}" onclick="openGame(event, this);">📖 棋谱</span>
                                 {% endif %}
                             </div>
                         </a>
@@ -278,6 +303,13 @@
                 restoreVisited();
             }
         });
+        
+        // 查看棋谱按钮点击
+        function openGame(event, element) {
+            event.preventDefault();
+            event.stopPropagation();
+            window.location.href = element.dataset.gamePath;
+        }
     </script>
 </body>
 </html>

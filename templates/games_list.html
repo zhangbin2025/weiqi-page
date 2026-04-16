@@ -82,25 +82,44 @@
             color: #999;
         }
         .game-list {
-            padding: 0;
-        }
-        .game-item {
+            padding: 12px;
             display: flex;
-            align-items: center;
-            padding: 12px 15px;
-            border-bottom: 1px solid #f5f5f5;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .game-card {
+            display: block;
+            padding: 14px;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 10px;
             text-decoration: none;
             color: inherit;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
-        .game-item:last-child { border-bottom: none; }
-        .game-item:hover { background: #fafafa; }
-        .game-item:visited { opacity: 0.6; }
+        .game-card:hover {
+            background: #fafafa;
+            border-color: #ddd;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        }
+        .game-card:visited { opacity: 0.7; }
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .game-players-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
         .stone-icon {
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
-            margin-right: 8px;
             flex-shrink: 0;
         }
         .stone-black {
@@ -112,42 +131,32 @@
             border: 1px solid #ccc;
             box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
         }
-        .game-info {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .game-players-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
         .game-players {
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 1.05em;
             color: #333;
-            white-space: nowrap;
-        }
-        .game-event {
-            font-size: 0.85em;
-            color: #888;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
         .game-result {
-            padding: 4px 10px;
+            font-size: 0.9em;
+            color: #666;
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .game-result.black-win {
             background: #e8f5e9;
             color: #2e7d32;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 500;
-            flex-shrink: 0;
         }
         .game-result.white-win {
             background: #fff3e0;
             color: #e65100;
+        }
+        .game-event {
+            font-size: 0.85em;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .pagination {
             display: flex;
@@ -214,18 +223,18 @@
                     </div>
                     <div class="game-list">
                         {% for game in games %}
-                        <a href="{{ game.path }}" class="game-item" data-game-id="{{ game.id }}">
-                            <div class="game-info">
+                        <a href="{{ game.path }}" class="game-card" data-game-id="{{ game.id }}">
+                            <div class="game-header">
                                 <div class="game-players-row">
                                     <div class="stone-icon stone-black"></div>
                                     <span class="game-players">{{ game.black }}</span>
-                                    <span>vs</span>
+                                    <span style="color:#999;">vs</span>
                                     <div class="stone-icon stone-white"></div>
                                     <span class="game-players">{{ game.white }}</span>
                                 </div>
-                                <span class="game-event">{{ game.event }}</span>
+                                <span class="game-result {% if game.result.startswith('B+') %}black-win{% endif %}{% if game.result.startswith('W+') %}white-win{% endif %}">{{ game.result_cn }}</span>
                             </div>
-                            <div class="game-result {% if game.result.startswith('W') %}white-win{% endif %}">{{ game.result_cn }}</div>
+                            <div class="game-event">{{ game.event }}</div>
                         </a>
                         {% endfor %}
                     </div>
@@ -264,7 +273,7 @@
             }
         }
         
-        document.querySelectorAll('.game-item').forEach(item => {
+        document.querySelectorAll('.game-card').forEach(item => {
             item.addEventListener('click', function() {
                 const gameId = this.dataset.gameId;
                 let visited = JSON.parse(localStorage.getItem('visited_games') || '[]');
@@ -273,22 +282,22 @@
                     localStorage.setItem('visited_games', JSON.stringify(visited));
                 }
                 // 立即应用已访问样式
-                this.style.opacity = '0.5';
+                this.style.opacity = '0.6';
             });
         });
         
         function restoreVisited() {
             const visited = JSON.parse(localStorage.getItem('visited_games') || '[]');
-            document.querySelectorAll('.game-item').forEach(item => {
+            document.querySelectorAll('.game-card').forEach(item => {
                 if (visited.includes(item.dataset.gameId)) {
-                    item.style.opacity = '0.5';
+                    item.style.opacity = '0.6';
                 }
             });
         }
         
         function clearVisited() {
             localStorage.removeItem('visited_games');
-            document.querySelectorAll('.game-item').forEach(item => {
+            document.querySelectorAll('.game-card').forEach(item => {
                 item.style.opacity = '1';
             });
         }

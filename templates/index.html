@@ -48,67 +48,105 @@
         .card {
             background: white;
             border-radius: 12px;
-            padding: 20px;
+            padding: 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             transition: transform 0.3s, box-shadow 0.3s;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            flex: 1;
-            min-height: 0;
         }
         .card:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-        }
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .card-icon {
-            font-size: 2.5em;
-            flex-shrink: 0;
-        }
-        .card h2 {
-            color: #667eea;
-            font-size: 2em;
-            margin: 0;
         }
         .card-link {
             text-decoration: none;
             color: inherit;
             display: block;
         }
-        .card-stats {
+        .card-header {
             display: flex;
+            align-items: center;
             gap: 10px;
-            flex-wrap: wrap;
+            margin-bottom: 12px;
         }
-        .stat-tag {
-            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
-            padding: 6px 14px;
-            border-radius: 14px;
-            font-size: 1em;
+        .card-icon {
+            font-size: 1.8em;
+            flex-shrink: 0;
+        }
+        .card h2 {
+            color: #333;
+            font-size: 1.3em;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        /* 主统计区 */
+        .main-stats {
+            background: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .main-number {
+            font-size: 2.4em;
+            font-weight: 700;
             color: #667eea;
+            line-height: 1;
+        }
+        .main-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        /* 分隔线 */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
+            margin: 12px 0;
+        }
+        
+        /* 分类标签区 */
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.8em;
             font-weight: 500;
         }
+        .tag-blue { background: #e3f2fd; color: #1565c0; }
+        .tag-green { background: #e8f5e9; color: #2e7d32; }
+        .tag-orange { background: #fff3e0; color: #e65100; }
+        .tag-purple { background: #f3e5f5; color: #7b1fa2; }
+        .tag-red { background: #ffebee; color: #c62828; }
+        
+        /* 按钮 */
         .card-actions {
-            margin-top: 5px;
+            margin-top: 12px;
+            text-align: center;
         }
         .btn {
             display: inline-block;
-            padding: 10px 24px;
+            padding: 10px 28px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-decoration: none;
-            border-radius: 18px;
+            border-radius: 20px;
             transition: opacity 0.3s;
-            font-size: 1em;
+            font-size: 0.95em;
             font-weight: 500;
-            white-space: nowrap;
         }
         .btn:hover { opacity: 0.9; }
+        
         footer {
             text-align: center;
             padding: 12px;
@@ -133,8 +171,12 @@
                         <div class="card-icon">📥</div>
                         <h2>最新棋谱</h2>
                     </div>
-                    <div class="card-stats">
-                        <span class="stat-tag">{{ games_count }}局</span>
+                    <div class="main-stats">
+                        <div class="main-number">{{ games_count }}局</div>
+                        <div class="main-label">今日新谱</div>
+                    </div>
+                    <div class="categories">
+                        <span class="tag tag-purple">{{ games_events }}个赛事</span>
                     </div>
                     <div class="card-actions">
                         <span class="btn">查看棋谱</span>
@@ -149,8 +191,20 @@
                         <div class="card-icon">🎯</div>
                         <h2>实战选点</h2>
                     </div>
-                    <div class="card-stats">
-                        <span class="stat-tag">{{ quiz_count }}题</span>
+                    <div class="main-stats">
+                        <div class="main-number">{{ quiz_count }}题</div>
+                        <div class="main-label">恶手练习题</div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="categories">
+                        <span class="tag tag-blue">布局{{ quiz_phase.layout }}</span>
+                        <span class="tag tag-green">中盘{{ quiz_phase.middle }}</span>
+                        <span class="tag tag-orange">官子{{ quiz_phase.endgame }}</span>
+                    </div>
+                    <div class="categories" style="margin-top:8px;">
+                        <span class="tag tag-blue">简{{ quiz_difficulty.easy }}</span>
+                        <span class="tag tag-green">中{{ quiz_difficulty.medium }}</span>
+                        <span class="tag tag-orange">难{{ quiz_difficulty.hard }}</span>
                     </div>
                     <div class="card-actions">
                         <span class="btn">开始做题</span>
@@ -165,8 +219,15 @@
                         <div class="card-icon">📚</div>
                         <h2>定式发现</h2>
                     </div>
-                    <div class="card-stats">
-                        <span class="stat-tag">{{ joseki_count }}个</span>
+                    <div class="main-stats">
+                        <div class="main-number">{{ joseki_count }}个</div>
+                        <div class="main-label">值得研究的定式</div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="categories">
+                        {% if joseki_hot > 0 %}<span class="tag tag-red">🔥 热门 {{ joseki_hot }}</span>{% endif %}
+                        {% if joseki_hit > 0 %}<span class="tag tag-green">🎯 命中 {{ joseki_hit }}</span>{% endif %}
+                        {% if joseki_rare > 0 %}<span class="tag tag-blue">💎 罕见 {{ joseki_rare }}</span>{% endif %}
                     </div>
                     <div class="card-actions">
                         <span class="btn">查看定式</span>
