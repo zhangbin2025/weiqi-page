@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>围棋智能助手</title>
+    <title>围棋智能助手 - 效果图</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -173,113 +173,107 @@
     <div class="container">
         <header>
             <h1>围棋智能助手</h1>
-            <div class="date-display">{{ last_update }}</div>
+            <div class="date-display">2026-04-15</div>
         </header>
         
         <div class="cards">
             <!-- 棋谱卡片 -->
-            <a href="./games/" class="card-link">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon">📥</div>
-                        <h2>实战棋谱</h2>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📥</div>
+                    <h2>实战棋谱</h2>
+                </div>
+                <div class="triple-stats">
+                    <div class="stat-item games">
+                        <span class="emoji">📋</span>
+                        <span class="count">18</span>
+                        <span class="name">最近新增</span>
                     </div>
-                    <div class="triple-stats">
-                        <div class="stat-item games">
-                            <span class="emoji">📋</span>
-                            <span class="count">{{ games_count }}</span>
-                            <span class="name">最近新增</span>
-                        </div>
-                        <div class="stat-item events">
-                            <span class="emoji">🏆</span>
-                            <span class="count">{{ games_events }}</span>
-                            <span class="name">个赛事</span>
-                        </div>
-                        <div class="stat-item sources">
-                            <span class="emoji">🌐</span>
-                            <span class="count">{{ games_sources }}</span>
-                            <span class="name">个来源</span>
-                        </div>
+                    <div class="stat-item events">
+                        <span class="emoji">🏆</span>
+                        <span class="count">3</span>
+                        <span class="name">个赛事</span>
                     </div>
-                    <div class="card-actions">
-                        <span class="btn">查看棋谱</span>
+                    <div class="stat-item sources">
+                        <span class="emoji">🌐</span>
+                        <span class="count">5</span>
+                        <span class="name">个来源</span>
                     </div>
                 </div>
-            </a>
+                <div class="card-actions">
+                    <span class="btn">查看棋谱</span>
+                </div>
+            </div>
             
             <!-- 选点题卡片 -->
-            <a href="./quiz/" class="card-link">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon">🎯</div>
-                        <h2>实战选点</h2>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🎯</div>
+                    <h2>实战选点</h2>
+                </div>
+                <div class="triple-stats">
+                    <div class="stat-item layout">
+                        <span class="emoji">🌅</span>
+                        <span class="count">5</span>
+                        <span class="name">布局</span>
                     </div>
-                    <div class="triple-stats">
-                        <div class="stat-item layout">
-                            <span class="emoji">🌅</span>
-                            <span class="count">{{ quiz_phase.layout }}</span>
-                            <span class="name">布局</span>
-                        </div>
-                        <div class="stat-item middle">
-                            <span class="emoji">⚔️</span>
-                            <span class="count">{{ quiz_phase.middle }}</span>
-                            <span class="name">中盘</span>
-                        </div>
-                        <div class="stat-item endgame">
-                            <span class="emoji">🔚</span>
-                            <span class="count">{{ quiz_phase.endgame }}</span>
-                            <span class="name">官子</span>
-                        </div>
+                    <div class="stat-item middle">
+                        <span class="emoji">⚔️</span>
+                        <span class="count">16</span>
+                        <span class="name">中盘</span>
                     </div>
-                    <div class="difficulty-row">
-                        <span class="diff-tag">
-                            <span class="diff-dot dot-easy"></span>
-                            简单{{ quiz_difficulty.easy }}
-                        </span>
-                        <span class="diff-tag">
-                            <span class="diff-dot dot-medium"></span>
-                            中等{{ quiz_difficulty.medium }}
-                        </span>
-                        <span class="diff-tag">
-                            <span class="diff-dot dot-hard"></span>
-                            困难{{ quiz_difficulty.hard }}
-                        </span>
-                    </div>
-                    <div class="card-actions">
-                        <span class="btn">开始做题</span>
+                    <div class="stat-item endgame">
+                        <span class="emoji">🔚</span>
+                        <span class="count">10</span>
+                        <span class="name">官子</span>
                     </div>
                 </div>
-            </a>
+                <div class="difficulty-row">
+                    <span class="diff-tag">
+                        <span class="diff-dot dot-easy"></span>
+                        简单17
+                    </span>
+                    <span class="diff-tag">
+                        <span class="diff-dot dot-medium"></span>
+                        中等12
+                    </span>
+                    <span class="diff-tag">
+                        <span class="diff-dot dot-hard"></span>
+                        困难2
+                    </span>
+                </div>
+                <div class="card-actions">
+                    <span class="btn">开始做题</span>
+                </div>
+            </div>
             
             <!-- 定式卡片 -->
-            <a href="./joseki/" class="card-link">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon">📚</div>
-                        <h2>定式发现</h2>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📚</div>
+                    <h2>定式发现</h2>
+                </div>
+                <div class="triple-stats">
+                    <div class="stat-item hot">
+                        <span class="emoji">🔥</span>
+                        <span class="count">1</span>
+                        <span class="name">热门</span>
                     </div>
-                    <div class="triple-stats">
-                        <div class="stat-item hot">
-                            <span class="emoji">🔥</span>
-                            <span class="count">{{ joseki_hot }}</span>
-                            <span class="name">热门</span>
-                        </div>
-                        <div class="stat-item hit">
-                            <span class="emoji">🎯</span>
-                            <span class="count">{{ joseki_hit }}</span>
-                            <span class="name">命中</span>
-                        </div>
-                        <div class="stat-item rare">
-                            <span class="emoji">💎</span>
-                            <span class="count">{{ joseki_rare }}</span>
-                            <span class="name">罕见</span>
-                        </div>
+                    <div class="stat-item hit">
+                        <span class="emoji">🎯</span>
+                        <span class="count">5</span>
+                        <span class="name">命中</span>
                     </div>
-                    <div class="card-actions">
-                        <span class="btn">查看定式</span>
+                    <div class="stat-item rare">
+                        <span class="emoji">💎</span>
+                        <span class="count">4</span>
+                        <span class="name">罕见</span>
                     </div>
                 </div>
-            </a>
+                <div class="card-actions">
+                    <span class="btn">查看定式</span>
+                </div>
+            </div>
         </div>
         
         <footer>

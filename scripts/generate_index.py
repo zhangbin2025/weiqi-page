@@ -97,6 +97,7 @@ def generate_index(test_mode=False):
     # 统计数据初始化
     games_count = 0
     games_events = 0
+    games_sources = 0
     games_data = []
     
     quiz_count = 0
@@ -117,6 +118,12 @@ def generate_index(test_mode=False):
                 games_data = json.loads(games_file.read_text())
                 games_count = len(games_data)
                 games_events = count_unique_events(games_data)
+                # 统计来源数量
+                sources = set()
+                for game in games_data:
+                    source = game.get("source", "其他")
+                    sources.add(source)
+                games_sources = len(sources)
             except:
                 pass
         
@@ -189,6 +196,7 @@ def generate_index(test_mode=False):
     html = template.render(
         games_count=games_count,
         games_events=games_events,
+        games_sources=games_sources,
         quiz_count=quiz_count,
         quiz_phase=quiz_phase,
         quiz_difficulty=quiz_difficulty,
