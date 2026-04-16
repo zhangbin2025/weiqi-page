@@ -19,7 +19,7 @@ from common import (
     batch_export_sgfs, find_sgf_file_by_id, translate_result
 )
 from config import (
-    WEIQI_SGF_SCRIPT,
+    WEIQI_SGF_SCRIPT, BASE_PATH,
     SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
 )
 
@@ -116,7 +116,7 @@ def generate_games_for_date(date_str, test_mode=False, sgf_dir=None):
             generated.append({
                 "id": game_id,
                 "source": source,
-                "path": f"/games/{date_str}/{source}/{output_name}",
+                "path": f"{BASE_PATH}/games/{date_str}/{source}/{output_name}",
                 "black": game.get("black", "未知"),
                 "white": game.get("white", "未知"),
                 "black_rank": game.get("black_rank", ""),

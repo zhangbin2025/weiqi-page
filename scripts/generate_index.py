@@ -190,6 +190,7 @@ def generate_index(test_mode=False):
     template = Template(template_path.read_text(encoding="utf-8"))
     
     # 渲染
+    from config import BASE_PATH
     html = template.render(
         games_count=games_count,
         games_events=games_events,
@@ -201,13 +202,40 @@ def generate_index(test_mode=False):
         joseki_hot=joseki_hot,
         joseki_hit=joseki_hit,
         joseki_complex=joseki_complex,
-        last_update=latest_date or "暂无数据"
+        last_update=latest_date or "暂无数据",
+        base_path=BASE_PATH
     )
     
     # 保存
     output_path = base_dir / "index.html"
     output_path.write_text(html, encoding="utf-8")
     print(f"✅ 生成首页: {output_path}")
+    
+    # 生成根目录跳转页
+    from config import WORKSPACE_DIR, SITE_ROOT
+    redirect_html = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0;url=./weiqi-page/">
+    <title>围棋智能助手</title>
+</head>
+<body>
+    <p>正在跳转至 <a href="./weiqi-page/">围棋智能助手</a>...</p>
+</body>
+</html>"""
+    if test_mode:
+        # 测试模式：在 test_site/ 根目录生成跳转页
+        test_root = WORKSPACE_DIR / "test_site"
+        test_root.mkdir(parents=True, exist_ok=True)
+        root_index = test_root / "index.html"
+    else:
+        # 生产模式：在 zhangbin2025.github.io/ 根目录生成跳转页
+        SITE_ROOT.mkdir(parents=True, exist_ok=True)
+        root_index = SITE_ROOT / "index.html"
+    root_index.write_text(redirect_html, encoding="utf-8")
+    print(f"✅ 生成根目录跳转页: {root_index}")
+    
     return True
 
 

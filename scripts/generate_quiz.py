@@ -20,7 +20,7 @@ from common import (
     batch_export_sgfs, find_sgf_file_by_id, find_original_sgf
 )
 from config import (
-    WEIQI_MOVE_SCRIPT,
+    WEIQI_MOVE_SCRIPT, BASE_PATH,
     SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
 )
 
@@ -232,8 +232,8 @@ def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
                     generated.append({
                         "id": game_id,
                         "source": source,
-                        "path": f"/quiz/{date_str}/{source}/{output_name}",
-                        "game_path": f"/games/{date_str}/{source}/game_{game_id}.html",
+                        "path": f"{BASE_PATH}/quiz/{date_str}/{source}/{output_name}",
+                        "game_path": f"{BASE_PATH}/games/{date_str}/{source}/game_{game_id}.html",
                         "black": game.get("black", "未知"),
                         "white": game.get("white", "未知"),
                         "event": game.get("event", ""),

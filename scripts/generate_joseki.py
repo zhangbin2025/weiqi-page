@@ -22,7 +22,7 @@ from common import (
     get_games_by_date, batch_export_sgfs, get_game_source
 )
 from config import (
-    WEIQI_JOSEKI_DIR, WEIQI_SGF_SCRIPT,
+    WEIQI_JOSEKI_DIR, WEIQI_SGF_SCRIPT, BASE_PATH,
     SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
 )
 
@@ -253,14 +253,14 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
                    (black_name in game_black and white_name in game_white):
                     game_id = game.get("id")
                     game_source = get_game_source(game)
-                    game_path = f"/games/{date_str}/{game_source}/game_{game_id}.html"
+                    game_path = f"{BASE_PATH}/games/{date_str}/{game_source}/game_{game_id}.html"
                     break
             
             generated.append({
                 "id": f"joseki_{idx:03d}",
                 "name": name,
-                "path": f"/joseki/{date_str}/{output_name}",
-                "game_path": game_path,
+                "path": f"{BASE_PATH}/joseki/{date_str}/{output_name}",
+                "game_path": f"{BASE_PATH}{game_path}" if game_path else "",
                 "moves": moves,  # 着法序列，用于前端计算
                 "move_count": move_count,  # 总手数
                 "matched_prefix_len": matched_prefix_len,  # 匹配前缀长度

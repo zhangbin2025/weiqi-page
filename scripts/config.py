@@ -7,8 +7,9 @@ from pathlib import Path
 # 基础路径
 HOME_DIR = Path.home()
 WORKSPACE_DIR = Path("/root/.weiqi-web")
-SITE_DIR = WORKSPACE_DIR / "zhangbin2025.github.io"
-TEST_SITE_DIR = WORKSPACE_DIR / "test_site"
+SITE_ROOT = WORKSPACE_DIR / "zhangbin2025.github.io"  # GitHub Pages 根目录
+SITE_DIR = SITE_ROOT / "weiqi-page"  # 实际部署到子目录
+TEST_SITE_DIR = WORKSPACE_DIR / "test_site" / "weiqi-page"  # 测试模式也使用相同的子目录结构
 WEIQI_PAGE_DIR = WORKSPACE_DIR / "weiqi-page"
 SCRIPTS_DIR = WEIQI_PAGE_DIR / "scripts"
 TEMPLATES_DIR = WEIQI_PAGE_DIR / "templates"
@@ -52,6 +53,9 @@ SITE_CONFIG = {
     "base_url": "https://zhangbin2025.github.io",
     "sources": ["foxwq", "katago", "yike"],  # 支持的来源
 }
+
+# GitHub Pages 部署路径（子目录）
+BASE_PATH = "/weiqi-page"
 
 def ensure_dirs(test_mode=False):
     """确保必要的目录存在"""
