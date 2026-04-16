@@ -34,15 +34,17 @@ def run_joseki_cli(args, cwd=WEIQI_JOSEKI_DIR):
     return result
 
 
-def discover_joseki(sgf_dir, limit=50):
+def discover_joseki(sgf_dir, sgf_count):
     """
     发现值得研究的定式
+    limit = 棋谱数 * 4（每盘棋最多4个角）
     返回: (stats, joseki_list) 元组
     """
+    limit = sgf_count * 4
     result = run_joseki_cli([
         "discover", str(sgf_dir),
         "--first-n", "80",
-        "--min-moves", "6",
+        "--min-moves", "1",
         "--limit", str(limit),
         "--output", "json",
         "--quiet"
@@ -183,9 +185,10 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
             shutil.rmtree(temp_dir, ignore_errors=True)
         return []
     
-    # 发现定式
-    print(f"⏳ 发现定式（分析前80手，最少6手，最多50个）...")
-    stats, joseki_list = discover_joseki(temp_dir, limit=50)
+    # 发现定式 - limit = 棋谱数 * 4（每盘棋最多4个角）
+    sgf_count = len(sgf_files)
+    print(f"⏳ 发现定式（分析前80手，最少1手，最多{sgf_count * 4}个）...")
+    stats, joseki_list = discover_joseki(temp_dir, sgf_count)
     
     if not joseki_list:
         print("⚠️  未发现有效定式")
@@ -258,11 +261,15 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
                 "name": name,
                 "path": f"/joseki/{date_str}/{output_name}",
                 "game_path": game_path,
-                "moves": move_count,
+                "moves": moves,  # 着法序列，用于前端计算
+                "move_count": move_count,  # 总手数
+                "matched_prefix_len": matched_prefix_len,  # 匹配前缀长度
                 "count": frequency,
+                "frequency": frequency,  # 出现次数
+                "probability": joseki.get("probability", 0),  # 出现概率
+                "joseki_id": joseki_id,  # 匹配的定式ID
                 "corner": corner,
                 "is_rare": is_rare,
-                "matched_prefix_len": matched_prefix_len,
                 "black": black_name,
                 "white": white_name,
                 "event": event_name,
@@ -293,14 +300,16 @@ def generate_joseki_index(test_mode=False):
         
         try:
             josekis = json.loads(f.read_text())
-            # 按罕见定式和常见定式分组
-            categories = {"rare": [], "common": []}
+            # 添加 probability 字段（如果后端数据中没有）
             for joseki in josekis:
-                if joseki.get("is_rare"):
-                    categories["rare"].append(joseki)
-                else:
-                    categories["common"].append(joseki)
-            date_data[date_str] = categories
+                if "probability" not in joseki:
+                    # 从 count 和 total_files 计算，如果没有则设为 0
+                    joseki["probability"] = 0.0
+                if "moves" not in joseki and "move_count" in joseki:
+                    # 兼容旧数据，确保有 moves 字段用于前端计算
+                    joseki["moves"] = []
+            # 新格式：直接返回所有定式列表，前端进行筛选
+            date_data[date_str] = {"joseki_list": josekis}
         except:
             pass
     

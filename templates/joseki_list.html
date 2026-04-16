@@ -59,67 +59,74 @@
             .icon-btn { width: 28px; height: 28px; font-size: 0.9em; }
         }
         
-        /* 分类切换标签 */
-        .category-tabs {
+        /* 筛选标签栏 - 圆角胶囊风格，小屏幕适配 */
+        .filter-tabs {
             display: flex;
-            gap: 0;
+            gap: 6px;
             margin-bottom: 12px;
-            margin-top: 12px;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow-x: auto;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            flex-wrap: nowrap;
         }
-        .category-tab {
-            flex: 1;
-            padding: 12px 15px;
-            text-align: center;
-            cursor: pointer;
+        .filter-tabs::-webkit-scrollbar { display: none; }
+        .filter-tab {
+            flex-shrink: 0;
+            padding: 6px 10px;
+            border-radius: 16px;
+            font-size: 0.85em;
             font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            background: white;
             color: #666;
-            background: #f8f9fa;
-            border: none;
-            font-size: 0.9em;
             transition: all 0.2s;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 6px;
+            gap: 3px;
+            white-space: nowrap;
         }
-        .category-tab:hover {
-            background: #f0f0f0;
+        .filter-tab:hover {
+            background: #f8f9fa;
+            border-color: #ccc;
         }
-        .category-tab.active {
+        .filter-tab.active {
             background: #667eea;
             color: white;
+            border-color: #667eea;
         }
-        .category-tab .count {
+        .filter-tab .count {
             font-size: 0.85em;
-            padding: 2px 8px;
+            padding: 1px 6px;
             background: rgba(0,0,0,0.1);
             border-radius: 10px;
         }
-        .category-tab.active .count {
-            background: rgba(255,255,255,0.2);
+        .filter-tab.active .count {
+            background: rgba(255,255,255,0.3);
         }
+        
+        /* 统计信息 - 简洁版 */
+        .stats-bar {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            font-size: 0.9em;
+            color: #666;
+        }
+        .stats-bar .highlight {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
         
         /* 日期内容区域 */
         .date-content {
             display: none;
         }
         .date-content.active {
-            display: block;
-        }
-        
-        /* 定式列表 */
-        .joseki-section {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            overflow: hidden;
-            display: none;
-        }
-        .joseki-section.active {
             display: block;
         }
         .joseki-list {
@@ -249,6 +256,117 @@
         .game-btn:hover {
             background: #c8e6c9;
         }
+        
+        /* 定式卡片样式 */
+        .joseki-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .joseki-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        .joseki-card-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+        .joseki-card-link:visited .joseki-card {
+            opacity: 0.6;
+        }
+        .joseki-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .joseki-players {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+        .joseki-tags {
+            display: flex;
+            gap: 6px;
+        }
+        .tag {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: 500;
+        }
+        .tag-hot {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .tag-hit {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .tag-rare {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .joseki-body {
+            padding: 12px 15px;
+        }
+        .metrics-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .metric {
+            flex: 1;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #667eea;
+        }
+        .metric-label {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 2px;
+        }
+        .progress-bar {
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .progress-fill.high {
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+        }
+        .progress-fill.medium {
+            background: linear-gradient(90deg, #ff9800, #ffc107);
+        }
+        .progress-fill.low {
+            background: linear-gradient(90deg, #f44336, #ff5722);
+        }
+        .joseki-footer {
+            padding: 10px 15px;
+            background: #fafafa;
+            border-top: 1px solid #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
         footer {
             text-align: center;
             padding: 15px;
@@ -259,6 +377,9 @@
             text-align: center;
             padding: 40px;
             color: #999;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
     </style>
 </head>
@@ -279,92 +400,37 @@
         </header>
         
         <!-- 所有日期的数据 -->
-        {% for date, categories in date_data.items() %}
+        {% for date, data in date_data.items() %}
         <div class="date-content {% if date == current_date %}active{% endif %}" data-date="{{ date }}">
-            <!-- 分类切换标签 -->
-            <div class="category-tabs">
-                <div class="category-tab active" onclick="switchTab('{{ date }}', 'common')" id="tab-{{ date }}-common">
-                    📚 常见定式
-                    <span class="count">{{ categories.common|length }}</span>
+            
+            <!-- 筛选标签：热门、命中、罕见、全部 -->
+            <div class="filter-tabs">
+                <div class="filter-tab active" onclick="applyPreset('{{ date }}', 'hot')" id="tab-{{ date }}-hot">
+                    🔥 热门
+                    <span class="count" id="count-{{ date }}-hot">0</span>
                 </div>
-                <div class="category-tab" onclick="switchTab('{{ date }}', 'rare')" id="tab-{{ date }}-rare">
-                    🔍 罕见定式
-                    <span class="count">{{ categories.rare|length }}</span>
+                <div class="filter-tab" onclick="applyPreset('{{ date }}', 'hit')" id="tab-{{ date }}-hit">
+                    🎯 命中
+                    <span class="count" id="count-{{ date }}-hit">0</span>
+                </div>
+                <div class="filter-tab" onclick="applyPreset('{{ date }}', 'rare')" id="tab-{{ date }}-rare">
+                    💎 罕见
+                    <span class="count" id="count-{{ date }}-rare">0</span>
+                </div>
+                <div class="filter-tab" onclick="applyPreset('{{ date }}', 'all')" id="tab-{{ date }}-all">
+                    📋 全部
+                    <span class="count" id="count-{{ date }}-all">0</span>
                 </div>
             </div>
             
-            <!-- 罕见定式列表 -->
-            <div class="joseki-section" id="section-{{ date }}-rare">
-                {% if categories.rare %}
-                <div class="joseki-list">
-                    {% for joseki in categories.rare %}
-                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id or joseki.path }}">
-                        <div class="joseki-item">
-                            <div class="joseki-content">
-                                <div class="joseki-row">
-                                    <div class="joseki-title-row">
-                                        <span class="stone-icon stone-black"></span>
-                                        {{ joseki.black }}
-                                        <span class="joseki-vs">vs</span>
-                                        <span class="stone-icon stone-white"></span>
-                                        {{ joseki.white }}
-                                    </div>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <span class="joseki-moves">{{ joseki.moves }}手</span>
-                                        <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
-                                    </div>
-                                </div>
-                                <div class="joseki-row">
-                                    <div class="joseki-meta">{{ joseki.event }}</div>
-                                    {% if joseki.game_path %}
-                                    <span class="game-btn" data-game-path="{{ joseki.game_path }}" onclick="openGame(event, this);">📖 棋谱</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="empty-state">暂无罕见定式</div>
-                {% endif %}
+            <!-- 统计信息 - 简洁版 -->
+            <div class="stats-bar">
+                共 <span class="highlight" id="stats-total-{{ date }}">0</span> 个定式
             </div>
             
-            <!-- 常见定式列表 -->
-            <div class="joseki-section active" id="section-{{ date }}-common">
-                {% if categories.common %}
-                <div class="joseki-list">
-                    {% for joseki in categories.common %}
-                    <a href="{{ joseki.path }}" class="joseki-item-link" data-joseki-id="{{ joseki.id or joseki.path }}">
-                        <div class="joseki-item">
-                            <div class="joseki-content">
-                                <div class="joseki-row">
-                                    <div class="joseki-title-row">
-                                        <span class="stone-icon stone-black"></span>
-                                        {{ joseki.black }}
-                                        <span class="joseki-vs">vs</span>
-                                        <span class="stone-icon stone-white"></span>
-                                        {{ joseki.white }}
-                                    </div>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <span class="joseki-moves">{{ joseki.moves }}手</span>
-                                        <span class="match-count">匹配{{ joseki.matched_prefix_len }}手</span>
-                                    </div>
-                                </div>
-                                <div class="joseki-row">
-                                    <div class="joseki-meta">{{ joseki.event }}</div>
-                                    {% if joseki.game_path %}
-                                    <span class="game-btn" data-game-path="{{ joseki.game_path }}" onclick="openGame(event, this);">📖 棋谱</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="empty-state">暂无常规定式</div>
-                {% endif %}
+            <!-- 定式列表 -->
+            <div class="joseki-list" id="list-{{ date }}">
+                <!-- 动态生成 -->
             </div>
         </div>
         {% endfor %}
@@ -375,27 +441,263 @@
     </div>
     
     <script>
-        // 当前状态和默认日期
+        // 全局状态
+        const state = {};
         let currentDate = '{{ current_date }}';
-        let currentTabs = {};
         
-        // 初始化每个日期的默认标签（默认显示常见定式）
-        {% for date, categories in date_data.items() %}
-        currentTabs['{{ date }}'] = 'common';
+        // 初始化 - 从后端注入的数据
+        {% for date, data in date_data.items() %}
+        (function() {
+            // 合并所有定式数据
+            const allJoseki = {{ data.joseki_list | tojson | safe }};
+            
+            state['{{ date }}'] = {
+                allJoseki: allJoseki,
+                filteredJoseki: [],
+                currentFilter: 'hot',  // 默认显示热门
+                sortBy: 'match_rate',
+                sortDesc: true
+            };
+        })();
         {% endfor %}
         
-        function switchTab(date, tab) {
-            currentTabs[date] = tab;
-            
-            // 更新标签样式
-            document.querySelectorAll('.date-content[data-date="' + date + '"] .category-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-' + date + '-' + tab).classList.add('active');
-            
-            // 更新内容显示
-            document.querySelectorAll('.date-content[data-date="' + date + '"] .joseki-section').forEach(s => s.classList.remove('active'));
-            document.getElementById('section-' + date + '-' + tab).classList.add('active');
+        // 计算匹配度
+        function calcMatchRate(joseki) {
+            return joseki.move_count > 0 ? joseki.matched_prefix_len / joseki.move_count : 0;
         }
         
+        // 计算各类标签的数量
+        function calcStats(josekiList) {
+            const total = josekiList.length;
+            let hot = 0, hit = 0, rare = 0;
+            
+            // 计算库概率排名（前3名）
+            const sortedByProb = [...josekiList].sort((a, b) => b.probability - a.probability);
+            const top3Prob = new Set(sortedByProb.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
+            
+            // 计算匹配度排名（最后5名）
+            const sortedByRate = [...josekiList].sort((a, b) => calcMatchRate(b) - calcMatchRate(a));
+            const bottom5Rate = new Set(sortedByRate.slice(-5).map(j => j.joseki_id || j.moves.join(',')));
+            
+            josekiList.forEach(j => {
+                const rate = calcMatchRate(j);
+                const key = j.joseki_id || j.moves.join(',');
+                
+                // 热门: 前缀>=8 + 库概率前3
+                if (j.matched_prefix_len >= 8 && top3Prob.has(key)) hot++;
+                
+                // 命中: 前缀>=8 + 匹配度100%
+                if (j.matched_prefix_len >= 8 && rate >= 1) hit++;
+                
+                // 罕见: 前缀<4 + 匹配度最后5名
+                if (j.matched_prefix_len < 4 && bottom5Rate.has(key)) rare++;
+            });
+            
+            return { total, hot, hit, rare };
+        }
+        
+        // 应用预设筛选
+        function applyPreset(date, preset) {
+            const s = state[date];
+            s.currentFilter = preset;
+            
+            // 更新标签样式
+            document.querySelectorAll(`[id^="tab-${date}-"]`).forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(`tab-${date}-${preset}`).classList.add('active');
+            
+            // 筛选逻辑
+            let filtered = [...s.allJoseki];
+            
+            // 计算排名信息
+            const sortedByProb = [...s.allJoseki].sort((a, b) => b.probability - a.probability);
+            const top3Prob = new Set(sortedByProb.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
+            const sortedByRate = [...s.allJoseki].sort((a, b) => calcMatchRate(b) - calcMatchRate(a));
+            const bottom5Rate = new Set(sortedByRate.slice(-5).map(j => j.joseki_id || j.moves.join(',')));
+            
+            if (preset === 'hot') {
+                // 热门: 前缀>=8 + 库概率前3
+                filtered = filtered.filter(j => {
+                    const key = j.joseki_id || j.moves.join(',');
+                    return j.matched_prefix_len >= 8 && top3Prob.has(key);
+                });
+                // 热门默认按匹配度降序
+                s.sortBy = 'match_rate';
+                s.sortDesc = true;
+            } else if (preset === 'hit') {
+                // 命中: 前缀>=8 + 匹配度100%
+                filtered = filtered.filter(j => {
+                    return j.matched_prefix_len >= 8 && calcMatchRate(j) >= 1;
+                });
+            } else if (preset === 'rare') {
+                // 罕见: 前缀<4 + 匹配度最后5名
+                filtered = filtered.filter(j => {
+                    const key = j.joseki_id || j.moves.join(',');
+                    return j.matched_prefix_len < 4 && bottom5Rate.has(key);
+                });
+            }
+            // all 不过滤
+            
+            s.filteredJoseki = filtered;
+            renderJoseki(date);
+        }
+        
+        // 渲染定式列表
+        function renderJoseki(date) {
+            const s = state[date];
+            let list = s.filteredJoseki.length > 0 || s.currentFilter !== 'all' 
+                ? s.filteredJoseki 
+                : [...s.allJoseki];
+            
+            // 排序
+            if (s.currentFilter === 'all') {
+                // "全部" 使用特定排序：匹配度降序 → 定式串长度降序 → 库出现次数降序
+                list.sort((a, b) => {
+                    const rateA = calcMatchRate(a);
+                    const rateB = calcMatchRate(b);
+                    
+                    // 1. 匹配度降序
+                    if (rateB !== rateA) {
+                        return rateB - rateA;
+                    }
+                    
+                    // 2. 定式串长度降序（越长越前）
+                    if (b.move_count !== a.move_count) {
+                        return b.move_count - a.move_count;
+                    }
+                    
+                    // 3. 库出现次数降序
+                    const freqA = a.frequency || 0;
+                    const freqB = b.frequency || 0;
+                    return freqB - freqA;
+                });
+            } else {
+                // 其他标签使用原来的排序逻辑
+                list.sort((a, b) => {
+                    let valA, valB;
+                    switch (s.sortBy) {
+                        case 'match_rate':
+                            valA = calcMatchRate(a);
+                            valB = calcMatchRate(b);
+                            break;
+                        case 'prefix_len':
+                            valA = a.matched_prefix_len;
+                            valB = b.matched_prefix_len;
+                            break;
+                        case 'library_freq':
+                            valA = a.frequency || 0;
+                            valB = b.frequency || 0;
+                            break;
+                        case 'move_count':
+                            valA = a.move_count;
+                            valB = b.move_count;
+                            break;
+                        case 'frequency':
+                            valA = a.frequency;
+                            valB = b.frequency;
+                            break;
+                        default:
+                            valA = calcMatchRate(a);
+                            valB = calcMatchRate(b);
+                    }
+                    return s.sortDesc ? valB - valA : valA - valB;
+                });
+            }
+            
+            // 更新统计
+            const stats = calcStats(s.allJoseki);
+            document.getElementById(`stats-total-${date}`).textContent = list.length;
+            document.getElementById(`count-${date}-all`).textContent = stats.total;
+            document.getElementById(`count-${date}-hot`).textContent = stats.hot;
+            document.getElementById(`count-${date}-hit`).textContent = stats.hit;
+            document.getElementById(`count-${date}-rare`).textContent = stats.rare;
+            
+            // 渲染列表
+            const container = document.getElementById(`list-${date}`);
+            if (list.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无符合条件的定式</div>';
+                return;
+            }
+            
+            // 计算排名信息用于标签显示
+            // 热门：库概率前3名
+            const sortedByProb = [...s.allJoseki].sort((a, b) => b.probability - a.probability);
+            const top3Prob = new Set(sortedByProb.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
+            // 罕见：匹配度最后5名
+            const sortedByRate = [...s.allJoseki].sort((a, b) => calcMatchRate(b) - calcMatchRate(a));
+            const bottom5Rate = new Set(sortedByRate.slice(-5).map(j => j.joseki_id || j.moves.join(',')));
+            
+            container.innerHTML = list.map(joseki => {
+                const matchRate = calcMatchRate(joseki);
+                const key = joseki.joseki_id || joseki.moves.join(',');
+                
+                // 确定标签
+                let tags = [];
+                if (joseki.matched_prefix_len >= 8 && top3Prob.has(key)) {
+                    tags.push('<span class="tag tag-hot">🔥 热门</span>');
+                }
+                if (joseki.matched_prefix_len >= 8 && matchRate >= 1) {
+                    tags.push('<span class="tag tag-hit">🎯 命中</span>');
+                }
+                // 罕见条件：前缀<4 + 匹配度最后5名
+                if (joseki.matched_prefix_len < 4 && bottom5Rate.has(key)) {
+                    tags.push('<span class="tag tag-rare">💎 罕见</span>');
+                }
+                
+                // 进度条颜色
+                let progressClass = 'medium';
+                if (matchRate >= 0.8) progressClass = 'high';
+                else if (matchRate < 0.3) progressClass = 'low';
+                
+                return `
+                    <a href="${joseki.path}" class="joseki-card-link" data-joseki-id="${joseki.id || joseki.path}">
+                        <div class="joseki-card">
+                            <div class="joseki-header">
+                                <div class="joseki-players">
+                                    <span class="stone-icon stone-black"></span>
+                                    ${joseki.black}
+                                    <span class="joseki-vs">vs</span>
+                                    <span class="stone-icon stone-white"></span>
+                                    ${joseki.white}
+                                </div>
+                                <div class="joseki-tags">
+                                    ${tags.join('')}
+                                </div>
+                            </div>
+                            <div class="joseki-body">
+                                <div class="metrics-row">
+                                    <div class="metric">
+                                        <div class="metric-value">${joseki.matched_prefix_len}/${joseki.move_count}</div>
+                                        <div class="metric-label">匹配/总手数</div>
+                                    </div>
+                                    <div class="metric">
+                                        <div class="metric-value">${joseki.frequency || 0}</div>
+                                        <div class="metric-label">库出现次数</div>
+                                    </div>
+                                    <div class="metric">
+                                        <div class="metric-value">${(joseki.probability * 100).toFixed(1)}%</div>
+                                        <div class="metric-label">库出现概率</div>
+                                    </div>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill ${progressClass}" style="width: ${matchRate * 100}%"></div>
+                                </div>
+                            </div>
+                            <div class="joseki-footer">
+                                <div class="joseki-meta">${joseki.event || ''}</div>
+                                ${joseki.game_path ? `<button class="game-btn" data-game-path="${joseki.game_path}" onclick="openGame(event, this);">📖 棋谱</button>` : ''}
+                            </div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+            
+            // 重新绑定访问记录事件
+            bindVisitEvents();
+        }
+        
+        // 按日期筛选
         function filterByDate() {
             const selectedDate = document.getElementById('dateFilter').value;
             currentDate = selectedDate;
@@ -409,6 +711,8 @@
             const selectedContent = document.querySelector('.date-content[data-date="' + selectedDate + '"]');
             if (selectedContent) {
                 selectedContent.classList.add('active');
+                // 渲染该日期的定式
+                renderJoseki(selectedDate);
             }
         }
         
@@ -429,56 +733,45 @@
             }
         }
         
-        document.querySelectorAll('.joseki-item-link').forEach(item => {
-            item.addEventListener('click', function() {
-                const josekiId = this.dataset.josekiId;
-                let visited = getVisited();
-                if (!visited.includes(josekiId)) {
-                    visited.push(josekiId);
-                    localStorage.setItem('visited_joseki', JSON.stringify(visited));
-                }
-                // 立即应用已访问样式
-                this.style.opacity = '0.5';
-            });
-        });
-        
-        function restoreVisited() {
-            const visited = getVisited();
-            document.querySelectorAll('.joseki-item-link').forEach(item => {
-                if (visited.includes(item.dataset.josekiId)) {
-                    item.style.opacity = '0.5';
-                }
-            });
-        }
-        
         function clearVisited() {
             localStorage.removeItem('visited_joseki');
-            document.querySelectorAll('.joseki-item-link').forEach(item => {
-                item.style.opacity = '1';
+            // 重置所有卡片的样式
+            document.querySelectorAll('.joseki-card').forEach(card => {
+                card.style.opacity = '1';
+            });
+            alert('访问记录已清除');
+        }
+        
+        function bindVisitEvents() {
+            const visited = getVisited();
+            
+            document.querySelectorAll('.joseki-card-link').forEach(item => {
+                const josekiId = item.dataset.josekiId;
+                
+                // 恢复已访问样式
+                if (visited.includes(josekiId)) {
+                    item.querySelector('.joseki-card').style.opacity = '0.6';
+                }
+                
+                // 绑定点击事件（使用 once: true 防止重复绑定）
+                item.addEventListener('click', function() {
+                    let visited = getVisited();
+                    if (!visited.includes(josekiId)) {
+                        visited.push(josekiId);
+                        localStorage.setItem('visited_joseki', JSON.stringify(visited));
+                    }
+                    // 立即应用已访问样式
+                    this.querySelector('.joseki-card').style.opacity = '0.6';
+                }, { once: true });
             });
         }
         
-        // 清理可能损坏的数据
-        try {
-            const data = localStorage.getItem('visited_joseki');
-            if (data) {
-                const parsed = JSON.parse(data);
-                if (!Array.isArray(parsed)) {
-                    localStorage.removeItem('visited_joseki');
-                }
-            }
-        } catch (e) {
-            localStorage.removeItem('visited_joseki');
-        }
-        
-        // 页面加载时恢复已访问状态
-        restoreVisited();
-        
-        // 页面从缓存恢复时（返回按钮）重新应用状态
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                restoreVisited();
-            }
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化每个日期的显示
+            {% for date, data in date_data.items() %}
+            applyPreset('{{ date }}', 'hot');
+            {% endfor %}
         });
     </script>
 </body>
