@@ -208,7 +208,7 @@
                     <option value="{{ date }}" {% if date == current_date %}selected{% endif %}>{{ date }}</option>
                     {% endfor %}
                 </select>
-                <button class="icon-btn" onclick="clearVisited()" title="清除访问记录">🗑️</button>
+                <button class="icon-btn" onclick="clearVisited()" title="清除本日访问记录">👁️</button>
             </div>
         </header>
         
@@ -259,6 +259,8 @@
                     section.style.display = 'none';
                 }
             });
+            // 切换日期后重新加载访问记录
+            restoreVisited();
         }
         
         function toggleSource(header) {
@@ -273,13 +275,19 @@
             }
         }
         
+        function getStorageKey() {
+            const date = document.getElementById('dateFilter').value;
+            return 'visited_games_' + date;
+        }
+        
         document.querySelectorAll('.game-card').forEach(item => {
             item.addEventListener('click', function() {
                 const gameId = this.dataset.gameId;
-                let visited = JSON.parse(localStorage.getItem('visited_games') || '[]');
+                const key = getStorageKey();
+                let visited = JSON.parse(localStorage.getItem(key) || '[]');
                 if (!visited.includes(gameId)) {
                     visited.push(gameId);
-                    localStorage.setItem('visited_games', JSON.stringify(visited));
+                    localStorage.setItem(key, JSON.stringify(visited));
                 }
                 // 立即应用已访问样式
                 this.style.opacity = '0.6';
@@ -287,7 +295,8 @@
         });
         
         function restoreVisited() {
-            const visited = JSON.parse(localStorage.getItem('visited_games') || '[]');
+            const key = getStorageKey();
+            const visited = JSON.parse(localStorage.getItem(key) || '[]');
             document.querySelectorAll('.game-card').forEach(item => {
                 if (visited.includes(item.dataset.gameId)) {
                     item.style.opacity = '0.6';
@@ -296,7 +305,8 @@
         }
         
         function clearVisited() {
-            localStorage.removeItem('visited_games');
+            const key = getStorageKey();
+            localStorage.removeItem(key);
             document.querySelectorAll('.game-card').forEach(item => {
                 item.style.opacity = '1';
             });

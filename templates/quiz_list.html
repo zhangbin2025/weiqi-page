@@ -115,6 +115,24 @@
             font-weight: 600;
             font-size: 1.05em;
             color: #333;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stone-icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .stone-black {
+            background: radial-gradient(circle at 30% 30%, #666, #000);
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        .stone-white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border: 1px solid #ccc;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
         }
         .result {
             font-size: 0.9em;
@@ -185,7 +203,7 @@
                     <option value="{{ date }}" {% if date == current_date %}selected{% endif %}>{{ date }}</option>
                     {% endfor %}
                 </select>
-                <button class="icon-btn" onclick="clearVisited()" title="清除记录">🗑️</button>
+                <button class="icon-btn" onclick="clearVisited()" title="清除本日访问记录">👁️</button>
             </div>
         </header>
         
@@ -202,7 +220,13 @@
                         {% for quiz in quizzes %}
                         <a href="{{ quiz.path }}" class="quiz-card" data-quiz-id="{{ quiz.id }}">
                             <div class="quiz-header">
-                                <span class="players">{{ quiz.black }} vs {{ quiz.white }}</span>
+                                <span class="players">
+                                    <span class="stone-icon stone-black"></span>
+                                    {{ quiz.black }}
+                                    <span style="color:#999;font-weight:normal;">vs</span>
+                                    <span class="stone-icon stone-white"></span>
+                                    {{ quiz.white }}
+                                </span>
                                 {% if quiz.result %}
                                 <span class="result">{{ quiz.result }}</span>
                                 {% endif %}
@@ -250,6 +274,8 @@
                     section.style.display = 'none';
                 }
             });
+            // 切换日期后重新加载访问记录
+            restoreVisited();
         }
         
         function toggleSource(header) {
@@ -264,13 +290,19 @@
             }
         }
         
+        function getStorageKey() {
+            const date = document.getElementById('dateFilter').value;
+            return 'visited_quiz_' + date;
+        }
+        
         document.querySelectorAll('.quiz-card').forEach(card => {
             card.addEventListener('click', function() {
                 const quizId = this.dataset.quizId;
-                let visited = JSON.parse(localStorage.getItem('visited_quiz') || '[]');
+                const key = getStorageKey();
+                let visited = JSON.parse(localStorage.getItem(key) || '[]');
                 if (!visited.includes(quizId)) {
                     visited.push(quizId);
-                    localStorage.setItem('visited_quiz', JSON.stringify(visited));
+                    localStorage.setItem(key, JSON.stringify(visited));
                 }
                 // 立即应用已访问样式
                 this.style.opacity = '0.6';
@@ -278,7 +310,8 @@
         });
         
         function restoreVisited() {
-            const visited = JSON.parse(localStorage.getItem('visited_quiz') || '[]');
+            const key = getStorageKey();
+            const visited = JSON.parse(localStorage.getItem(key) || '[]');
             document.querySelectorAll('.quiz-card').forEach(card => {
                 if (visited.includes(card.dataset.quizId)) {
                     card.style.opacity = '0.6';
@@ -287,7 +320,8 @@
         }
         
         function clearVisited() {
-            localStorage.removeItem('visited_quiz');
+            const key = getStorageKey();
+            localStorage.removeItem(key);
             document.querySelectorAll('.quiz-card').forEach(card => {
                 card.style.opacity = '1';
             });

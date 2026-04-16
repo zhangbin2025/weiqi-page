@@ -391,7 +391,7 @@
                     <option value="{{ d }}" {% if d == current_date %}selected{% endif %}>{{ d }}</option>
                     {% endfor %}
                 </select>
-                <button class="icon-btn" onclick="clearVisited()" title="清除记录">🗑️</button>
+                <button class="icon-btn" onclick="clearVisited()" title="清除本日访问记录">👁️</button>
             </div>
         </header>
         
@@ -707,7 +707,7 @@
             const selectedContent = document.querySelector('.date-content[data-date="' + selectedDate + '"]');
             if (selectedContent) {
                 selectedContent.classList.add('active');
-                // 渲染该日期的定式
+                // 渲染该日期的定式（渲染时会自动恢复访问记录）
                 renderJoseki(selectedDate);
             }
         }
@@ -718,9 +718,13 @@
             window.location.href = element.dataset.gamePath;
         }
         
+        function getStorageKey() {
+            return 'visited_joseki_' + currentDate;
+        }
+        
         function getVisited() {
             try {
-                const data = localStorage.getItem('visited_joseki');
+                const data = localStorage.getItem(getStorageKey());
                 if (!data) return [];
                 const parsed = JSON.parse(data);
                 return Array.isArray(parsed) ? parsed : [];
@@ -730,12 +734,11 @@
         }
         
         function clearVisited() {
-            localStorage.removeItem('visited_joseki');
+            localStorage.removeItem(getStorageKey());
             // 重置所有卡片的样式
             document.querySelectorAll('.joseki-card').forEach(card => {
                 card.style.opacity = '1';
             });
-            alert('访问记录已清除');
         }
         
         function bindVisitEvents() {
@@ -751,10 +754,11 @@
                 
                 // 绑定点击事件（使用 once: true 防止重复绑定）
                 item.addEventListener('click', function() {
+                    const key = getStorageKey();
                     let visited = getVisited();
                     if (!visited.includes(josekiId)) {
                         visited.push(josekiId);
-                        localStorage.setItem('visited_joseki', JSON.stringify(visited));
+                        localStorage.setItem(key, JSON.stringify(visited));
                     }
                     // 立即应用已访问样式
                     this.querySelector('.joseki-card').style.opacity = '0.6';
