@@ -13,7 +13,7 @@
             color: #333;
         }
         .container {
-            max-width: 480px;
+            max-width: 400px;
             margin: 0 auto;
             padding: 12px;
             min-height: 100vh;
@@ -40,14 +40,15 @@
         .cards {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 8px;
+            gap: 16px;
+            margin-top: 12px;
             flex: 1;
+            justify-content: flex-start;
         }
         .card {
             background: white;
             border-radius: 12px;
-            padding: 14px;
+            padding: 16px 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s, box-shadow 0.3s;
         }
@@ -64,7 +65,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         .card-icon {
             font-size: 1.5em;
@@ -86,24 +87,25 @@
         .stat-item {
             flex: 1;
             text-align: center;
-            padding: 10px 4px;
-            border-radius: 8px;
+            padding: 20px 4px;
+            border-radius: 10px;
         }
         .stat-item .emoji { 
-            font-size: 1.4em; 
+            font-size: 1.8em; 
             display: block; 
-            margin-bottom: 2px; 
+            margin-bottom: 6px; 
         }
         .stat-item .count { 
-            font-size: 1.5em; 
+            font-size: 2em; 
             font-weight: 700; 
             color: #333; 
             line-height: 1;
+            margin: 6px 0;
         }
         .stat-item .name { 
-            font-size: 0.75em; 
+            font-size: 0.8em; 
             color: #666; 
-            margin-top: 2px;
+            margin-top: 4px;
         }
         
         /* 棋谱卡片配色 */
@@ -120,9 +122,9 @@
         .difficulty-row {
             display: flex;
             justify-content: center;
-            gap: 12px;
-            margin-bottom: 10px;
-            font-size: 0.8em;
+            gap: 16px;
+            margin-bottom: 0;
+            font-size: 0.85em;
         }
         .diff-tag {
             display: flex;
@@ -143,22 +145,6 @@
         .stat-item.hit { background: #e8f5e9; }
         .stat-item.complex { background: #e3f2fd; }
         
-        /* 按钮 */
-        .card-actions {
-            text-align: center;
-        }
-        .btn {
-            display: inline-block;
-            padding: 8px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 16px;
-            transition: opacity 0.3s;
-            font-size: 0.9em;
-            font-weight: 500;
-        }
-        .btn:hover { opacity: 0.9; }
         
         footer {
             text-align: center;
@@ -201,9 +187,6 @@
                             <span class="name">个来源</span>
                         </div>
                     </div>
-                    <div class="card-actions">
-                        <span class="btn">查看棋谱</span>
-                    </div>
                 </div>
             </a>
             
@@ -245,9 +228,6 @@
                             困难{{ quiz_difficulty.hard }}
                         </span>
                     </div>
-                    <div class="card-actions">
-                        <span class="btn">开始做题</span>
-                    </div>
                 </div>
             </a>
             
@@ -274,9 +254,6 @@
                             <span class="count">{{ joseki_complex }}</span>
                             <span class="name">复杂</span>
                         </div>
-                    </div>
-                    <div class="card-actions">
-                        <span class="btn">查看定式</span>
                     </div>
                 </div>
             </a>
