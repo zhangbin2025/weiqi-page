@@ -214,9 +214,9 @@
             background: #e3f2fd;
             color: #1976d2;
         }
-        .joseki-tag.rare {
-            background: #fff3e0;
-            color: #e65100;
+        .joseki-tag.complex {
+            background: #e3f2fd;
+            color: #1565c0;
         }
         .joseki-tag.common {
             background: #e8f5e9;
@@ -306,7 +306,7 @@
             background: #e8f5e9;
             color: #2e7d32;
         }
-        .tag-rare {
+        .tag-complex {
             background: #e3f2fd;
             color: #1565c0;
         }
@@ -399,7 +399,7 @@
         {% for date, data in date_data.items() %}
         <div class="date-content {% if date == current_date %}active{% endif %}" data-date="{{ date }}">
             
-            <!-- 筛选标签：热门、命中、罕见、全部 -->
+            <!-- 筛选标签：热门、命中、复杂、全部 -->
             <div class="filter-tabs">
                 <div class="filter-tab active" onclick="applyPreset('{{ date }}', 'hot')" id="tab-{{ date }}-hot">
                     🔥 热门
@@ -409,9 +409,9 @@
                     🎯 命中
                     <span class="count" id="count-{{ date }}-hit">0</span>
                 </div>
-                <div class="filter-tab" onclick="applyPreset('{{ date }}', 'rare')" id="tab-{{ date }}-rare">
-                    💎 罕见
-                    <span class="count" id="count-{{ date }}-rare">0</span>
+                <div class="filter-tab" onclick="applyPreset('{{ date }}', 'complex')" id="tab-{{ date }}-complex">
+                    🧩 复杂
+                    <span class="count" id="count-{{ date }}-complex">0</span>
                 </div>
                 <div class="filter-tab" onclick="applyPreset('{{ date }}', 'all')" id="tab-{{ date }}-all">
                     📋 全部
@@ -465,31 +465,33 @@
         // 计算各类标签的数量
         function calcStats(josekiList) {
             const total = josekiList.length;
-            let hot = 0, hit = 0, rare = 0;
+            let hot = 0, hit = 0, complex = 0;
             
-            // 计算库概率排名（前3名）
-            const sortedByProb = [...josekiList].sort((a, b) => b.probability - a.probability);
-            const top3Prob = new Set(sortedByProb.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
-            
-            // 计算匹配度排名（最后5名）
-            const sortedByRate = [...josekiList].sort((a, b) => calcMatchRate(b) - calcMatchRate(a));
-            const bottom5Rate = new Set(sortedByRate.slice(-5).map(j => j.joseki_id || j.moves.join(',')));
+            // 筛选匹配>=8手的定式，用于热门计算
+            const candidates8 = josekiList.filter(j => j.matched_prefix_len >= 8);
+            // 按库出现次数降序，次数相同按匹配度降序
+            const sortedByFreq = [...candidates8].sort((a, b) => {
+                const freqDiff = (b.frequency || 0) - (a.frequency || 0);
+                if (freqDiff !== 0) return freqDiff;
+                return calcMatchRate(b) - calcMatchRate(a);
+            });
+            const top3Hot = new Set(sortedByFreq.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
             
             josekiList.forEach(j => {
                 const rate = calcMatchRate(j);
                 const key = j.joseki_id || j.moves.join(',');
                 
-                // 热门: 前缀>=8 + 库概率前3
-                if (j.matched_prefix_len >= 8 && top3Prob.has(key)) hot++;
+                // 热门: 前缀>=8 + 在库出现次数前3名（次数相同按匹配度排）
+                if (j.matched_prefix_len >= 8 && top3Hot.has(key)) hot++;
                 
                 // 命中: 前缀>=8 + 匹配度100%
                 if (j.matched_prefix_len >= 8 && rate >= 1) hit++;
                 
-                // 罕见: 前缀<4 + 匹配度最后5名
-                if (j.matched_prefix_len < 4 && bottom5Rate.has(key)) rare++;
+                // 复杂: 前缀>=12
+                if (j.matched_prefix_len >= 12) complex++;
             });
             
-            return { total, hot, hit, rare };
+            return { total, hot, hit, complex };
         }
         
         // 应用预设筛选
@@ -506,19 +508,22 @@
             // 筛选逻辑
             let filtered = [...s.allJoseki];
             
-            // 计算排名信息
-            const sortedByProb = [...s.allJoseki].sort((a, b) => b.probability - a.probability);
-            const top3Prob = new Set(sortedByProb.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
-            const sortedByRate = [...s.allJoseki].sort((a, b) => calcMatchRate(b) - calcMatchRate(a));
-            const bottom5Rate = new Set(sortedByRate.slice(-5).map(j => j.joseki_id || j.moves.join(',')));
+            // 计算热门排名：匹配>=8手的定式，按库出现次数降序，次数相同按匹配度降序
+            const candidates8 = [...s.allJoseki].filter(j => j.matched_prefix_len >= 8);
+            const sortedByFreq = [...candidates8].sort((a, b) => {
+                const freqDiff = (b.frequency || 0) - (a.frequency || 0);
+                if (freqDiff !== 0) return freqDiff;
+                return calcMatchRate(b) - calcMatchRate(a);
+            });
+            const top3Hot = new Set(sortedByFreq.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
             
             if (preset === 'hot') {
-                // 热门: 前缀>=8 + 库概率前3
+                // 热门: 前缀>=8 + 库出现次数前3名
                 filtered = filtered.filter(j => {
                     const key = j.joseki_id || j.moves.join(',');
-                    return j.matched_prefix_len >= 8 && top3Prob.has(key);
+                    return j.matched_prefix_len >= 8 && top3Hot.has(key);
                 });
-                // 热门默认按匹配度降序
+                // 热门按匹配度降序
                 s.sortBy = 'match_rate';
                 s.sortDesc = true;
             } else if (preset === 'hit') {
@@ -526,12 +531,11 @@
                 filtered = filtered.filter(j => {
                     return j.matched_prefix_len >= 8 && calcMatchRate(j) >= 1;
                 });
-            } else if (preset === 'rare') {
-                // 罕见: 前缀<4 + 匹配度最后5名
-                filtered = filtered.filter(j => {
-                    const key = j.joseki_id || j.moves.join(',');
-                    return j.matched_prefix_len < 4 && bottom5Rate.has(key);
-                });
+            } else if (preset === 'complex') {
+                // 复杂: 前缀>=12，按匹配长度降序
+                filtered = filtered.filter(j => j.matched_prefix_len >= 12);
+                s.sortBy = 'prefix_len';
+                s.sortDesc = true;
             }
             // all 不过滤
             
@@ -607,7 +611,7 @@
             document.getElementById(`count-${date}-all`).textContent = stats.total;
             document.getElementById(`count-${date}-hot`).textContent = stats.hot;
             document.getElementById(`count-${date}-hit`).textContent = stats.hit;
-            document.getElementById(`count-${date}-rare`).textContent = stats.rare;
+            document.getElementById(`count-${date}-complex`).textContent = stats.complex;
             
             // 渲染列表
             const container = document.getElementById(`list-${date}`);
@@ -616,13 +620,14 @@
                 return;
             }
             
-            // 计算排名信息用于标签显示
-            // 热门：库概率前3名
-            const sortedByProb = [...s.allJoseki].sort((a, b) => b.probability - a.probability);
-            const top3Prob = new Set(sortedByProb.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
-            // 罕见：匹配度最后5名
-            const sortedByRate = [...s.allJoseki].sort((a, b) => calcMatchRate(b) - calcMatchRate(a));
-            const bottom5Rate = new Set(sortedByRate.slice(-5).map(j => j.joseki_id || j.moves.join(',')));
+            // 计算热门排名：匹配>=8手，按库出现次数降序，次数相同按匹配度降序
+            const candidates8 = [...s.allJoseki].filter(j => j.matched_prefix_len >= 8);
+            const sortedByFreq = [...candidates8].sort((a, b) => {
+                const freqDiff = (b.frequency || 0) - (a.frequency || 0);
+                if (freqDiff !== 0) return freqDiff;
+                return calcMatchRate(b) - calcMatchRate(a);
+            });
+            const top3Hot = new Set(sortedByFreq.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
             
             container.innerHTML = list.map(joseki => {
                 const matchRate = calcMatchRate(joseki);
@@ -630,15 +635,17 @@
                 
                 // 确定标签
                 let tags = [];
-                if (joseki.matched_prefix_len >= 8 && top3Prob.has(key)) {
+                // 热门：前缀>=8 + 库出现次数前3名
+                if (joseki.matched_prefix_len >= 8 && top3Hot.has(key)) {
                     tags.push('<span class="tag tag-hot">🔥 热门</span>');
                 }
+                // 命中：前缀>=8 + 匹配度100%
                 if (joseki.matched_prefix_len >= 8 && matchRate >= 1) {
                     tags.push('<span class="tag tag-hit">🎯 命中</span>');
                 }
-                // 罕见条件：前缀<4 + 匹配度最后5名
-                if (joseki.matched_prefix_len < 4 && bottom5Rate.has(key)) {
-                    tags.push('<span class="tag tag-rare">💎 罕见</span>');
+                // 复杂：前缀>=12
+                if (joseki.matched_prefix_len >= 12) {
+                    tags.push('<span class="tag tag-complex">🧩 复杂</span>');
                 }
                 
                 // 进度条颜色

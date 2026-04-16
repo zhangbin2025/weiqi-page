@@ -107,7 +107,7 @@ def generate_index(test_mode=False):
     joseki_count = 0
     joseki_hot = 0
     joseki_hit = 0
-    joseki_rare = 0
+    joseki_complex = 0
     joseki_list = []
     
     if latest_date:
@@ -154,19 +154,16 @@ def generate_index(test_mode=False):
                 joseki_list = json.loads(joseki_file.read_text())
                 joseki_count = len(joseki_list)
                 
-                # 计算库概率排名（前3名）
-                sorted_by_prob = sorted(joseki_list, key=lambda j: j.get("probability", 0), reverse=True)
-                top3_keys = set()
-                for j in sorted_by_prob[:3]:
+                # 计算热门排名：匹配>=8手的定式，按库出现次数降序，次数相同按匹配度降序
+                candidates8 = [j for j in joseki_list if j.get("matched_prefix_len", 0) >= 8]
+                sorted_by_freq = sorted(candidates8, key=lambda j: (
+                    j.get("frequency", 0),
+                    calc_match_rate(j)
+                ), reverse=True)
+                top3_hot_keys = set()
+                for j in sorted_by_freq[:3]:
                     key = j.get("joseki_id") or ",".join(j.get("moves", []))
-                    top3_keys.add(key)
-                
-                # 计算匹配度排名（最后5名）
-                sorted_by_rate = sorted(joseki_list, key=calc_match_rate, reverse=True)
-                bottom5_keys = set()
-                for j in sorted_by_rate[-5:]:
-                    key = j.get("joseki_id") or ",".join(j.get("moves", []))
-                    bottom5_keys.add(key)
+                    top3_hot_keys.add(key)
                 
                 # 分类统计
                 for j in joseki_list:
@@ -174,17 +171,17 @@ def generate_index(test_mode=False):
                     rate = calc_match_rate(j)
                     key = j.get("joseki_id") or ",".join(j.get("moves", []))
                     
-                    # 热门: 前缀>=8 + 库概率前3
-                    if prefix_len >= 8 and key in top3_keys:
+                    # 热门: 前缀>=8 + 库出现次数前3名
+                    if prefix_len >= 8 and key in top3_hot_keys:
                         joseki_hot += 1
                     
                     # 命中: 前缀>=8 + 匹配度100%
                     if prefix_len >= 8 and rate >= 1:
                         joseki_hit += 1
                     
-                    # 罕见: 前缀<4 + 匹配度最后5名
-                    if prefix_len < 4 and key in bottom5_keys:
-                        joseki_rare += 1
+                    # 复杂: 前缀>=12
+                    if prefix_len >= 12:
+                        joseki_complex += 1
             except:
                 pass
     
@@ -203,7 +200,7 @@ def generate_index(test_mode=False):
         joseki_count=joseki_count,
         joseki_hot=joseki_hot,
         joseki_hit=joseki_hit,
-        joseki_rare=joseki_rare,
+        joseki_complex=joseki_complex,
         last_update=latest_date or "暂无数据"
     )
     
