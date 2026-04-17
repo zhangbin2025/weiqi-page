@@ -620,7 +620,7 @@
                                 </div>
                             </div>
                             <div class="joseki-tags-row">
-                                ${tags.join('')}
+                                <div class="joseki-meta">${joseki.event || ''}</div>
                             </div>
                             <div class="joseki-body">
                                 <div class="metrics-row">
@@ -639,7 +639,7 @@
                                 </div>
                             </div>
                             <div class="joseki-footer">
-                                <div class="joseki-meta">${joseki.event || ''}</div>
+                                <div class="joseki-tags">${tags.join('')}</div>
                                 ${joseki.game_path ? `<button class="game-btn" data-game-path="${joseki.game_path}" onclick="openGame(event, this);">📖 棋谱</button>` : ''}
                             </div>
                         </div>

@@ -122,6 +122,7 @@ def update_katago_joseki():
         "--min-rate", str(KATAGO_CONFIG["min_rate"]),
         "--min-moves", str(KATAGO_CONFIG["min_moves"]),
         "--first-n", str(KATAGO_CONFIG["first_n"]),
+        "--corner-size", "11",
     ]
     
     # 注意：不使用 --resume，避免进度文件损坏导致跳过下载

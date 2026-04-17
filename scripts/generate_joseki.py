@@ -46,6 +46,7 @@ def discover_joseki(sgf_dir, sgf_count):
         "--first-n", "80",
         "--min-moves", "1",
         "--limit", str(limit),
+        "--corner-size", "11",
         "--output", "json",
         "--quiet"
     ])
