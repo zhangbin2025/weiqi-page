@@ -24,12 +24,19 @@ from config import (
 )
 
 
-def generate_game_page(sgf_path, output_path):
-    """生成打谱网页"""
-    # weiqi-sgf 支持: replay.py input.sgf output.html
+def generate_game_page(sgf_path, output_path, start_move="last"):
+    """生成打谱网页
+    
+    Args:
+        sgf_path: SGF文件路径
+        output_path: 输出HTML路径
+        start_move: 默认跳转手数，"last"表示最后一手，或指定数字
+    """
+    # weiqi-sgf 支持: replay.py input.sgf output.html --start-move <n|last>
     cmd = [
         "python3", str(WEIQI_SGF_SCRIPT),
-        str(sgf_path), str(output_path)
+        str(sgf_path), str(output_path),
+        "--start-move", str(start_move)
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True)

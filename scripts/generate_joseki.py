@@ -120,11 +120,19 @@ def generate_sgf_from_moves(moves, output_path, corner="tr", black="", white="",
         return False
 
 
-def generate_joseki_page(sgf_path, output_path):
-    """生成定式研究网页"""
+def generate_joseki_page(sgf_path, output_path, start_move=0):
+    """生成定式研究网页
+    
+    Args:
+        sgf_path: SGF文件路径
+        output_path: 输出HTML路径
+        start_move: 默认跳转手数，0表示从第0手开始，或指定数字
+    """
+    # weiqi-sgf 支持: replay.py input.sgf output.html --start-move <n|last>
     cmd = [
         "python3", str(WEIQI_SGF_SCRIPT),
-        str(sgf_path), str(output_path)
+        str(sgf_path), str(output_path),
+        "--start-move", str(start_move)
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -240,7 +248,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         output_name = f"joseki_{idx:03d}.html"
         output_path = joseki_dir / output_name
         
-        if generate_joseki_page(sgf_path, output_path):
+        if generate_joseki_page(sgf_path, output_path, matched_prefix_len):
             print(f"     ✅ 生成页面: {output_name}")
             
             # 查找对应棋谱路径（根据黑白棋手的名字匹配）
