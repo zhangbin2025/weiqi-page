@@ -106,20 +106,7 @@
         }
         
         /* 统计信息 - 简洁版 */
-        .stats-bar {
-            background: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            font-size: 0.9em;
-            color: #666;
-        }
-        .stats-bar .highlight {
-            color: #667eea;
-            font-weight: 600;
-        }
-        
+
         
         /* 日期内容区域 */
         .date-content {
@@ -411,10 +398,7 @@
                 </div>
             </div>
             
-            <!-- 统计信息 - 简洁版 -->
-            <div class="stats-bar">
-                共 <span class="highlight" id="stats-total-{{ date }}">0</span> 个定式
-            </div>
+
             
             <!-- 定式列表 -->
             <div class="joseki-list" id="list-{{ date }}">
@@ -583,7 +567,6 @@
             
             // 更新统计
             const stats = calcStats(s.allJoseki);
-            document.getElementById(`stats-total-${date}`).textContent = list.length;
             document.getElementById(`count-${date}-all`).textContent = stats.total;
             document.getElementById(`count-${date}-hot`).textContent = stats.hot;
             document.getElementById(`count-${date}-hit`).textContent = stats.hit;

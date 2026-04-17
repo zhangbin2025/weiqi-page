@@ -260,7 +260,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
                 "id": f"joseki_{idx:03d}",
                 "name": name,
                 "path": f"{BASE_PATH}/joseki/{date_str}/{output_name}",
-                "game_path": f"{BASE_PATH}{game_path}" if game_path else "",
+                "game_path": game_path if game_path else "",
                 "moves": moves,  # 着法序列，用于前端计算
                 "move_count": move_count,  # 总手数
                 "matched_prefix_len": matched_prefix_len,  # 匹配前缀长度

@@ -110,14 +110,16 @@
         .game-card:visited { opacity: 0.7; }
         .game-header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 8px;
             margin-bottom: 6px;
         }
         .game-players-row {
             display: flex;
             align-items: center;
             gap: 6px;
+            width: 100%;
+            overflow: hidden;
         }
         .stone-icon {
             width: 16px;
@@ -138,6 +140,9 @@
             font-weight: 600;
             font-size: 1.05em;
             color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .game-result {
             font-size: 0.9em;
@@ -145,6 +150,7 @@
             background: #f0f0f0;
             padding: 2px 8px;
             border-radius: 4px;
+            align-self: flex-start;
         }
         .game-result.black-win {
             background: #e8f5e9;

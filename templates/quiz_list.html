@@ -110,9 +110,10 @@
         .quiz-card:visited { opacity: 0.7; }
         .quiz-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 6px;
+            width: 100%;
+            overflow: hidden;
         }
         .players {
             font-weight: 600;
@@ -121,6 +122,9 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .stone-icon {
             width: 14px;
@@ -141,7 +145,7 @@
             font-size: 0.9em;
             color: #666;
             background: #f0f0f0;
-            padding: 2px 8px;
+            padding: 3px 10px;
             border-radius: 4px;
         }
         .event {
@@ -157,6 +161,8 @@
             justify-content: space-between;
             align-items: center;
             margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
         }
         .stats {
             display: flex;
@@ -179,7 +185,6 @@
             border-radius: 12px;
             font-size: 0.85em;
             white-space: nowrap;
-            flex-shrink: 0;
             cursor: pointer;
             transition: background 0.2s;
         }
@@ -230,25 +235,27 @@
                                     <span class="stone-icon stone-white"></span>
                                     {{ quiz.white }}
                                 </span>
-                                {% if quiz.result %}
-                                <span class="result">{{ quiz.result }}</span>
-                                {% endif %}
                             </div>
                             <div class="event">{{ quiz.event }}</div>
+                            <div class="stats">
+                                <span class="count">{{ quiz.count }}题</span>
+                                {% if quiz.stats %}
+                                <span class="phase">
+                                    {% if quiz.stats.phase.layout %}布局{{ quiz.stats.phase.layout }}{% endif %}
+                                    {% if quiz.stats.phase.middle %}中盘{{ quiz.stats.phase.middle }}{% endif %}
+                                    {% if quiz.stats.phase.endgame %}官子{{ quiz.stats.phase.endgame }}{% endif %}
+                                </span>
+                                <span class="difficulty">
+                                    简单{{ quiz.stats.difficulty.easy }} 中等{{ quiz.stats.difficulty.medium }} 困难{{ quiz.stats.difficulty.hard }}
+                                </span>
+                                {% endif %}
+                            </div>
                             <div class="quiz-footer">
-                                <div class="stats">
-                                    <span class="count">{{ quiz.count }}题</span>
-                                    {% if quiz.stats %}
-                                    <span class="phase">
-                                        {% if quiz.stats.phase.layout %}布局{{ quiz.stats.phase.layout }}{% endif %}
-                                        {% if quiz.stats.phase.middle %}中盘{{ quiz.stats.phase.middle }}{% endif %}
-                                        {% if quiz.stats.phase.endgame %}官子{{ quiz.stats.phase.endgame }}{% endif %}
-                                    </span>
-                                    <span class="difficulty">
-                                        简单{{ quiz.stats.difficulty.easy }} 中等{{ quiz.stats.difficulty.medium }} 困难{{ quiz.stats.difficulty.hard }}
-                                    </span>
-                                    {% endif %}
-                                </div>
+                                {% if quiz.result %}
+                                <span class="result">{{ quiz.result }}</span>
+                                {% else %}
+                                <span></span>
+                                {% endif %}
                                 {% if quiz.game_path %}
                                 <span class="game-btn" data-game-path="{{ quiz.game_path }}" onclick="openGame(event, this);">📖 棋谱</span>
                                 {% endif %}
