@@ -289,8 +289,36 @@
             return 'visited_games_' + date;
         }
         
+        // ========== 滚动位置记忆 ==========
+        function getScrollKey() {
+            const date = document.getElementById('dateFilter').value;
+            return 'scroll_games_' + date;
+        }
+        
+        let hasRestoredScroll = false;
+        
+        function saveScrollPosition() {
+            const scrollY = window.scrollY || document.documentElement.scrollTop;
+            sessionStorage.setItem(getScrollKey(), scrollY);
+        }
+        
+        function restoreScrollPosition() {
+            if (hasRestoredScroll) return;
+            hasRestoredScroll = true;
+            
+            const savedY = sessionStorage.getItem(getScrollKey());
+            if (savedY !== null) {
+                setTimeout(() => {
+                    window.scrollTo({ top: parseInt(savedY), behavior: 'instant' });
+                }, 50);
+            }
+        }
+        
         document.querySelectorAll('.game-card').forEach(item => {
             item.addEventListener('click', function() {
+                // 保存滚动位置
+                saveScrollPosition();
+                
                 const gameId = this.dataset.gameId;
                 const key = getStorageKey();
                 let visited = JSON.parse(localStorage.getItem(key) || '[]');
@@ -321,15 +349,22 @@
             });
         }
         
-        // 页面加载时恢复已访问状态
+        // 页面加载时恢复已访问状态和滚动位置
         filterByDate();
         restoreVisited();
+        restoreScrollPosition();
         
         // 页面从缓存恢复时（返回按钮）重新应用状态
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) {
                 restoreVisited();
+                restoreScrollPosition();
             }
+        });
+        
+        // 切换日期时重置滚动位置标记
+        document.getElementById('dateFilter').addEventListener('change', function() {
+            hasRestoredScroll = false;
         });
     </script>
 </body>

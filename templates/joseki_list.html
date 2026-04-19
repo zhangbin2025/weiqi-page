@@ -649,6 +649,9 @@
             
             // 重新绑定访问记录事件
             bindVisitEvents();
+            
+            // 恢复滚动位置
+            restoreScrollPosition();
         }
         
         // 按日期筛选
@@ -667,17 +670,44 @@
                 selectedContent.classList.add('active');
                 // 渲染该日期的定式（渲染时会自动恢复访问记录）
                 renderJoseki(selectedDate);
+                // 切换日期后重置滚动位置标记
+                hasRestoredScroll = false;
             }
         }
         
         function openGame(event, element) {
             event.preventDefault();
             event.stopPropagation();
+            saveScrollPosition();
             window.location.href = element.dataset.gamePath;
         }
         
         function getStorageKey() {
             return 'visited_joseki_' + currentDate;
+        }
+        
+        // ========== 滚动位置记忆 ==========
+        function getScrollKey() {
+            return 'scroll_joseki_' + currentDate;
+        }
+        
+        let hasRestoredScroll = false;
+        
+        function saveScrollPosition() {
+            const scrollY = window.scrollY || document.documentElement.scrollTop;
+            sessionStorage.setItem(getScrollKey(), scrollY);
+        }
+        
+        function restoreScrollPosition() {
+            if (hasRestoredScroll) return;
+            hasRestoredScroll = true;
+            
+            const savedY = sessionStorage.getItem(getScrollKey());
+            if (savedY !== null) {
+                setTimeout(() => {
+                    window.scrollTo({ top: parseInt(savedY), behavior: 'instant' });
+                }, 100);  // 稍长延迟，等待动态渲染完成
+            }
         }
         
         function getVisited() {
@@ -712,6 +742,9 @@
                 
                 // 绑定点击事件（使用 once: true 防止重复绑定）
                 item.addEventListener('click', function() {
+                    // 保存滚动位置
+                    saveScrollPosition();
+                    
                     const key = getStorageKey();
                     let visited = getVisited();
                     if (!visited.includes(josekiId)) {
@@ -730,6 +763,14 @@
             {% for date, data in date_data.items() %}
             applyPreset('{{ date }}', 'hot');
             {% endfor %}
+        });
+        
+        // 页面从缓存恢复时（返回按钮）重新应用状态
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                hasRestoredScroll = false;
+                restoreScrollPosition();
+            }
         });
     </script>
 </body>
