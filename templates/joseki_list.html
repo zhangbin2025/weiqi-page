@@ -662,6 +662,9 @@
             const selectedDate = document.getElementById('dateFilter').value;
             currentDate = selectedDate;
             
+            // 切换日期后立即重置滚动位置标记（必须在渲染之前）
+            hasRestoredScroll = false;
+            
             // 隐藏所有日期内容
             document.querySelectorAll('.date-content').forEach(content => {
                 content.classList.remove('active');
@@ -673,8 +676,6 @@
                 selectedContent.classList.add('active');
                 // 渲染该日期的定式（渲染时会自动恢复访问记录）
                 renderJoseki(selectedDate);
-                // 切换日期后重置滚动位置标记
-                hasRestoredScroll = false;
             }
         }
         

@@ -277,6 +277,10 @@
     <script>
         function filterByDate() {
             const selectedDate = document.getElementById('dateFilter').value;
+            
+            // 切换日期后立即重置滚动位置标记（必须在恢复访问记录之前）
+            hasRestoredScroll = false;
+            
             document.querySelectorAll('.date-section').forEach(section => {
                 if (!selectedDate || section.dataset.date === selectedDate) {
                     section.style.display = 'block';
