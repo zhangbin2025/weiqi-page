@@ -305,7 +305,7 @@
             return 'visited_quiz_' + date;
         }
         
-        // ========== 滚动位置记忆 ==========
+        // ========== 滚动位置记忆（多保险机制）==========
         function getScrollKey() {
             const date = document.getElementById('dateFilter').value;
             return 'scroll_quiz_' + date;
@@ -313,53 +313,85 @@
         
         let hasRestoredScroll = false;
         
-        function saveScrollPosition() {
+        function saveScrollPosition(elementId) {
             const scrollY = window.scrollY || document.documentElement.scrollTop;
             const key = getScrollKey();
             localStorage.setItem(key, JSON.stringify({
                 y: scrollY,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                elementId: elementId || null
             }));
         }
         
-        function restoreScrollPosition() {
+        function restoreScrollPosition(attempt = 1) {
             if (hasRestoredScroll) return;
-            hasRestoredScroll = true;
             
             const key = getScrollKey();
             const saved = localStorage.getItem(key);
-            if (saved) {
-                try {
-                    const data = JSON.parse(saved);
-                    if (Date.now() - data.timestamp < 10 * 60 * 1000) {
-                        setTimeout(() => {
-                            window.scrollTo({ top: data.y, behavior: 'instant' });
-                        }, 50);
-                    } else {
-                        localStorage.removeItem(key);
-                    }
-                } catch (e) {
+            if (!saved) return;
+            
+            try {
+                const data = JSON.parse(saved);
+                if (Date.now() - data.timestamp > 30 * 60 * 1000) {
                     localStorage.removeItem(key);
+                    return;
                 }
+                
+                const tryScroll = () => {
+                    if (document.documentElement.scrollHeight < data.y + window.innerHeight) {
+                        if (attempt < 5) {
+                            setTimeout(() => restoreScrollPosition(attempt + 1), 100);
+                            return;
+                        }
+                    }
+                    
+                    hasRestoredScroll = true;
+                    window.scrollTo({ top: data.y, behavior: 'instant' });
+                    
+                    setTimeout(() => {
+                        if (data.elementId) {
+                            const el = document.querySelector(`[data-quiz-id="${data.elementId}"]`);
+                            if (el) {
+                                el.scrollIntoView({ block: 'start', behavior: 'instant' });
+                            }
+                        }
+                    }, 200);
+                };
+                
+                requestAnimationFrame(() => {
+                    setTimeout(tryScroll, 50);
+                });
+                
+            } catch (e) {
+                localStorage.removeItem(key);
             }
         }
         
         document.querySelectorAll('.quiz-card').forEach(card => {
             card.addEventListener('click', function() {
-                // 保存滚动位置
-                saveScrollPosition();
-                
                 const quizId = this.dataset.quizId;
+                saveScrollPosition(quizId);
+                
                 const key = getStorageKey();
                 let visited = JSON.parse(localStorage.getItem(key) || '[]');
                 if (!visited.includes(quizId)) {
                     visited.push(quizId);
                     localStorage.setItem(key, JSON.stringify(visited));
                 }
-                // 立即应用已访问样式
                 this.style.opacity = '0.6';
             });
         });
+        
+        // 页面隐藏前保存
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                saveScrollPosition();
+            }
+        });
+        
+        // 页面卸载前保存
+        window.addEventListener('beforeunload', saveScrollPosition);
+        window.addEventListener('pagehide', saveScrollPosition);
         
         function restoreVisited() {
             const key = getStorageKey();

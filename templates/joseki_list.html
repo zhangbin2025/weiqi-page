@@ -693,34 +693,57 @@
         
         let hasRestoredScroll = false;
         
-        function saveScrollPosition() {
+        function saveScrollPosition(elementId) {
             const scrollY = window.scrollY || document.documentElement.scrollTop;
             const key = getScrollKey();
             localStorage.setItem(key, JSON.stringify({
                 y: scrollY,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                elementId: elementId || null
             }));
         }
         
-        function restoreScrollPosition() {
+        function restoreScrollPosition(attempt = 1) {
             if (hasRestoredScroll) return;
-            hasRestoredScroll = true;
             
             const key = getScrollKey();
             const saved = localStorage.getItem(key);
-            if (saved) {
-                try {
-                    const data = JSON.parse(saved);
-                    if (Date.now() - data.timestamp < 10 * 60 * 1000) {
-                        setTimeout(() => {
-                            window.scrollTo({ top: data.y, behavior: 'instant' });
-                        }, 100);
-                    } else {
-                        localStorage.removeItem(key);
-                    }
-                } catch (e) {
+            if (!saved) return;
+            
+            try {
+                const data = JSON.parse(saved);
+                if (Date.now() - data.timestamp > 30 * 60 * 1000) {
                     localStorage.removeItem(key);
+                    return;
                 }
+                
+                const tryScroll = () => {
+                    if (document.documentElement.scrollHeight < data.y + window.innerHeight) {
+                        if (attempt < 5) {
+                            setTimeout(() => restoreScrollPosition(attempt + 1), 100);
+                            return;
+                        }
+                    }
+                    
+                    hasRestoredScroll = true;
+                    window.scrollTo({ top: data.y, behavior: 'instant' });
+                    
+                    setTimeout(() => {
+                        if (data.elementId) {
+                            const el = document.querySelector(`[data-joseki-id="${data.elementId}"]`);
+                            if (el) {
+                                el.scrollIntoView({ block: 'start', behavior: 'instant' });
+                            }
+                        }
+                    }, 200);
+                };
+                
+                requestAnimationFrame(() => {
+                    setTimeout(tryScroll, 50);
+                });
+                
+            } catch (e) {
+                localStorage.removeItem(key);
             }
         }
         
@@ -756,8 +779,8 @@
                 
                 // 绑定点击事件（使用 once: true 防止重复绑定）
                 item.addEventListener('click', function() {
-                    // 保存滚动位置
-                    saveScrollPosition();
+                    // 保存滚动位置和元素ID
+                    saveScrollPosition(josekiId);
                     
                     const key = getStorageKey();
                     let visited = getVisited();
@@ -786,6 +809,17 @@
                 restoreScrollPosition();
             }
         });
+        
+        // 页面隐藏前保存
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                saveScrollPosition();
+            }
+        });
+        
+        // 页面卸载前保存
+        window.addEventListener('beforeunload', saveScrollPosition);
+        window.addEventListener('pagehide', saveScrollPosition);
     </script>
 </body>
 </html>

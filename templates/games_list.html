@@ -289,64 +289,100 @@
             return 'visited_games_' + date;
         }
         
-        // ========== 滚动位置记忆 ==========
+        // ========== 滚动位置记忆（多保险机制）==========
         function getScrollKey() {
             const date = document.getElementById('dateFilter').value;
             return 'scroll_games_' + date;
         }
         
         let hasRestoredScroll = false;
+        let lastClickedElement = null;
         
-        function saveScrollPosition() {
+        function saveScrollPosition(elementId) {
             const scrollY = window.scrollY || document.documentElement.scrollTop;
             const key = getScrollKey();
-            // 使用 localStorage 替代 sessionStorage，避免页面长时间后丢失
             localStorage.setItem(key, JSON.stringify({
                 y: scrollY,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                elementId: elementId || null  // 保存点击的元素ID作为锚点
             }));
         }
         
-        function restoreScrollPosition() {
+        function restoreScrollPosition(attempt = 1) {
             if (hasRestoredScroll) return;
-            hasRestoredScroll = true;
             
             const key = getScrollKey();
             const saved = localStorage.getItem(key);
-            if (saved) {
-                try {
-                    const data = JSON.parse(saved);
-                    // 只恢复 10 分钟内的位置（避免过期数据）
-                    if (Date.now() - data.timestamp < 10 * 60 * 1000) {
-                        setTimeout(() => {
-                            window.scrollTo({ top: data.y, behavior: 'instant' });
-                        }, 50);
-                    } else {
-                        // 过期则清除
-                        localStorage.removeItem(key);
-                    }
-                } catch (e) {
+            if (!saved) return;
+            
+            try {
+                const data = JSON.parse(saved);
+                if (Date.now() - data.timestamp > 30 * 60 * 1000) {  // 延长至30分钟
                     localStorage.removeItem(key);
+                    return;
                 }
+                
+                // 先尝试滚动到保存的位置
+                const tryScroll = () => {
+                    // 检查文档高度是否已加载（可能有图片等延迟内容）
+                    if (document.documentElement.scrollHeight < data.y + window.innerHeight) {
+                        if (attempt < 5) {
+                            // 内容未完全加载，延迟重试
+                            setTimeout(() => restoreScrollPosition(attempt + 1), 100);
+                            return;
+                        }
+                    }
+                    
+                    hasRestoredScroll = true;
+                    window.scrollTo({ top: data.y, behavior: 'instant' });
+                    
+                    // 二次确认，如果位置不对（因动态内容高度变化），尝试锚定元素
+                    setTimeout(() => {
+                        if (data.elementId) {
+                            const el = document.querySelector(`[data-game-id="${data.elementId}"]`);
+                            if (el) {
+                                el.scrollIntoView({ block: 'start', behavior: 'instant' });
+                            }
+                        }
+                    }, 200);
+                };
+                
+                // 使用 requestAnimationFrame 确保渲染完成
+                requestAnimationFrame(() => {
+                    setTimeout(tryScroll, 50);
+                });
+                
+            } catch (e) {
+                localStorage.removeItem(key);
             }
         }
         
+        // 点击保存（主要触发点）
         document.querySelectorAll('.game-card').forEach(item => {
             item.addEventListener('click', function() {
-                // 保存滚动位置
-                saveScrollPosition();
-                
                 const gameId = this.dataset.gameId;
+                saveScrollPosition(gameId);  // 同时保存位置和元素ID
+                
                 const key = getStorageKey();
                 let visited = JSON.parse(localStorage.getItem(key) || '[]');
                 if (!visited.includes(gameId)) {
                     visited.push(gameId);
                     localStorage.setItem(key, JSON.stringify(visited));
                 }
-                // 立即应用已访问样式
                 this.style.opacity = '0.6';
             });
         });
+        
+        // 页面隐藏前保存（Chrome冻结前的最后机会）
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                saveScrollPosition();
+            }
+        });
+        
+        // 页面卸载前保存
+        window.addEventListener('beforeunload', saveScrollPosition);
+        window.addEventListener('pagehide', saveScrollPosition);
         
         function restoreVisited() {
             const key = getStorageKey();
