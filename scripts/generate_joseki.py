@@ -248,6 +248,12 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         if generate_joseki_page(sgf_path, output_path, matched_prefix_len):
             print(f"     ✅ 生成页面: {output_name}")
             
+            # 删除临时SGF文件（网页已生成，不再需要）
+            try:
+                sgf_path.unlink()
+            except Exception:
+                pass
+            
             # 查找对应棋谱路径（根据黑白棋手的名字匹配）
             game_path = ""
             for game in games:
