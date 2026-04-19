@@ -410,6 +410,7 @@
         // 页面从缓存恢复时（返回按钮）重新应用状态
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) {
+                hasRestoredScroll = false;  // 重置标记，允许重新恢复
                 restoreVisited();
                 restoreScrollPosition();
             }
