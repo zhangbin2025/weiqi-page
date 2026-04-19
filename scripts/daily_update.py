@@ -159,13 +159,7 @@ def daily_update(date_str=None, test_mode=False):
     if not foxwq_success:
         print(f"⚠️  野狐下载失败，继续执行...")
     
-    # 2. KataGo定式日更（独立任务，不依赖SGF导出）
-    print(f"\n{'='*60}")
-    print(f"🤖 KataGo定式日更")
-    print(f"{'='*60}")
-    katago_success = run_script("katago_updater.py")
-    
-    # 3. 统一导出SGF（供后续三个任务共享）
+    # 2. 统一导出SGF（供后续三个任务共享）
     sgf_dir = export_sgfs_once(date_str)
     if not sgf_dir:
         print("❌ SGF导出失败，无法继续生成页面")
@@ -185,7 +179,6 @@ def daily_update(date_str=None, test_mode=False):
     
     results = [
         ("野狐棋谱下载", foxwq_success),
-        ("KataGo定式日更", katago_success),
     ]
     
     for step_name, script, *args in steps:

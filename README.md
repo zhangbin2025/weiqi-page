@@ -8,7 +8,6 @@
 /root/.weiqi-web/
 ├── scripts/                    # 核心脚本
 │   ├── daily_update.py         # 每日更新主控脚本
-│   ├── katago_updater.py       # KataGo定式日更
 │   ├── generate_games.py       # 棋谱页生成
 │   ├── generate_quiz.py        # 选点题生成
 │   ├── generate_joseki.py      # 定式研究页生成
@@ -77,7 +76,7 @@ crontab -e
 
 ### 棋谱页生成
 - 从 `weiqi-db` 读取棋谱
-- 按日期和来源（foxwq/katago）分类
+- 按日期和来源分类
 - 生成打谱网页（`weiqi-sgf`）
 
 ### 选点题生成
@@ -86,25 +85,14 @@ crontab -e
 - 使用 `weiqi-move` 生成做题页
 
 ### 定式研究
-- KataGo定式日更（智能日期管理）
 - 提取棋谱中的不常见定式
 - 使用 `weiqi-joseki` 识别和匹配
 
 ### 不常见定式判定
-- 基于KataGo出现次数中位数
-- 可扩展策略（预留weiqi-db统计）
+- 基于weiqi-db统计
+- 识别不常见或稀有定式变化
 
 ## 配置参数
-
-### KataGo定式更新
-```python
-KATAGO_CONFIG = {
-    "min_count": 10,     # 出现10次以上算新定式
-    "min_rate": 0,       # 不限制出现概率
-    "min_moves": 4,      # 最少4手
-    "first_n": 50,       # 每谱提取前50手
-}
-```
 
 ### 公众号文章
 ```python
@@ -132,16 +120,12 @@ WECHAT_ARTICLE = {
 ```bash
 # 运行所有测试
 python3 test_runner.py
-
-# 单独测试某模块
-python3 test_runner.py --test katago_updater
 ```
 
 ## 注意事项
 
-1. **KataGo日期管理**：使用 `last_processed.txt` 记录最后处理日期，避免遗漏
-2. **测试模式**：`--test` 参数会在 `test_site/` 生成文件，不影响正式站点
-3. **Git推送**：目前需要手动推送，后续可配置自动 `git commit & push`
+1. **测试模式**：`--test` 参数会在 `test_site/` 生成文件，不影响正式站点
+2. **Git推送**：目前需要手动推送，后续可配置自动 `git commit & push`
 
 ## 更新日志
 

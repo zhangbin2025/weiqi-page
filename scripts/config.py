@@ -26,17 +26,6 @@ WEIQI_FOXWQ_SCRIPT = SKILLS_DIR / "weiqi-foxwq/scripts/download_sgf.py"
 # 数据存储路径
 WEIQI_DB_PATH = HOME_DIR / ".weiqi-db/database.json"
 WEIQI_JOSEKI_DB_PATH = HOME_DIR / ".weiqi-joseki/database.json"
-KATAGO_CACHE_DIR = HOME_DIR / ".weiqi-joseki/katago-cache"
-KATAGO_STATE_FILE = KATAGO_CACHE_DIR / "last_processed.txt"
-
-# KataGo定式更新配置
-KATAGO_CONFIG = {
-    "min_count": 10,        # 出现10次以上算新定式
-    "min_rate": 0,          # 不限制出现概率
-    "min_moves": 4,         # 最少4手
-    "first_n": 80,          # 每谱提取前80手
-    "resume": True,         # 支持断点续传
-}
 
 # 公众号文章配置
 WECHAT_ARTICLE = {
@@ -51,7 +40,7 @@ SITE_CONFIG = {
     "title": "围棋资源站",
     "subtitle": "zhangbin2025",
     "base_url": "https://zhangbin2025.github.io",
-    "sources": ["foxwq", "katago", "yike"],  # 支持的来源
+    "sources": ["foxwq", "yike"],  # 支持的来源
 }
 
 # GitHub Pages 部署路径（子目录）
@@ -67,7 +56,6 @@ def ensure_dirs(test_mode=False):
         base_dir / "assets" / "css",
         base_dir / "assets" / "js",
         base_dir / "_data",
-        KATAGO_CACHE_DIR,
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
