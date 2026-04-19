@@ -223,11 +223,56 @@ def main():
     
     parser = argparse.ArgumentParser(description="围棋资源站每日更新")
     parser.add_argument("--date", help="指定日期 (YYYY-MM-DD)，默认昨天")
+    parser.add_argument("--dates", help="指定多个日期，逗号分隔 (2026-04-01,2026-04-02)")
+    parser.add_argument("--start-date", help="起始日期 (YYYY-MM-DD)，与 --end-date 配合使用")
+    parser.add_argument("--end-date", help="结束日期 (YYYY-MM-DD)，与 --start-date 配合使用")
     parser.add_argument("--test", action="store_true", help="测试模式（不推送）")
     
     args = parser.parse_args()
     
-    return daily_update(args.date, args.test)
+    # 收集所有日期
+    dates = []
+    
+    if args.dates:
+        # 逗号分隔的日期列表
+        dates = [d.strip() for d in args.dates.split(",") if d.strip()]
+    elif args.start_date and args.end_date:
+        # 日期范围
+        try:
+            start = datetime.strptime(args.start_date, "%Y-%m-%d")
+            end = datetime.strptime(args.end_date, "%Y-%m-%d")
+            if start > end:
+                print(f"❌ 起始日期不能晚于结束日期")
+                return 1
+            current = start
+            while current <= end:
+                dates.append(current.strftime("%Y-%m-%d"))
+                current += timedelta(days=1)
+        except ValueError as e:
+            print(f"❌ 日期格式错误: {e}")
+            return 1
+    elif args.date:
+        # 单日
+        dates = [args.date]
+    else:
+        # 默认昨天
+        dates = [(datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")]
+    
+    print(f"📅 计划更新 {len(dates)} 天: {', '.join(dates)}")
+    
+    # 逐日执行
+    all_success = True
+    for date_str in dates:
+        result = daily_update(date_str, args.test)
+        if result != 0:
+            all_success = False
+            print(f"⚠️  {date_str} 更新失败，继续执行后续日期...")
+    
+    print(f"\n{'='*60}")
+    print(f"📊 全部完成，共处理 {len(dates)} 天")
+    print(f"{'='*60}")
+    
+    return 0 if all_success else 1
 
 
 if __name__ == "__main__":

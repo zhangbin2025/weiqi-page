@@ -65,16 +65,17 @@
         /* 筛选标签栏 - 圆角胶囊风格，小屏幕适配 */
         .filter-tabs {
             display: flex;
-            gap: 4px;
+            gap: 3px;
             margin-bottom: 12px;
             padding-bottom: 4px;
             flex-wrap: nowrap;
         }
         .filter-tab {
-            flex-shrink: 0;
-            padding: 5px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
+            flex: 1;
+            min-width: 0;
+            padding: 5px 4px;
+            border-radius: 10px;
+            font-size: 0.75em;
             font-weight: 500;
             cursor: pointer;
             border: 1px solid #e0e0e0;
@@ -83,6 +84,7 @@
             transition: all 0.2s;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 2px;
             white-space: nowrap;
         }
@@ -96,10 +98,11 @@
             border-color: #667eea;
         }
         .filter-tab .count {
-            font-size: 0.85em;
-            padding: 1px 6px;
+            font-size: 0.8em;
+            padding: 1px 4px;
             background: rgba(0,0,0,0.1);
-            border-radius: 10px;
+            border-radius: 8px;
+            margin-left: 1px;
         }
         .filter-tab.active .count {
             background: rgba(255,255,255,0.3);
