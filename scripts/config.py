@@ -1,21 +1,49 @@
 """
 围棋资源站点生成器 - 配置文件
+支持环境变量配置，避免硬编码敏感信息
 """
 import os
 from pathlib import Path
 
-# 基础路径
+# 尝试加载 .env 文件（如果存在）
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    pass  # python-dotenv 未安装时跳过
+
+# 基础路径 - 使用环境变量或基于脚本位置计算
 HOME_DIR = Path.home()
-WORKSPACE_DIR = Path("/root/.weiqi-web")
-SITE_ROOT = WORKSPACE_DIR / "zhangbin2025.github.io"  # GitHub Pages 根目录
+SCRIPT_DIR = Path(__file__).parent.resolve()
+WEIQI_PAGE_DIR = SCRIPT_DIR.parent  # scripts/ 的父目录
+
+# 工作目录：优先使用环境变量，其次使用相对路径
+WORKSPACE_DIR = Path(os.getenv("WEIQI_WORKSPACE", WEIQI_PAGE_DIR.parent))
+
+# GitHub 用户名 - 必须配置，用于生成站点链接
+GITHUB_USERNAME = os.getenv("GITHUB_USERNAME")
+if not GITHUB_USERNAME:
+    # 尝试从 git config 获取
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["git", "config", "user.name"],
+            capture_output=True, text=True, check=True
+        )
+        GITHUB_USERNAME = result.stdout.strip()
+    except:
+        GITHUB_USERNAME = "your-username"  # 占位符，需要手动配置
+
+SITE_ROOT = WORKSPACE_DIR / f"{GITHUB_USERNAME}.github.io"  # GitHub Pages 根目录
 SITE_DIR = SITE_ROOT / "weiqi-page"  # 实际部署到子目录
 TEST_SITE_DIR = WORKSPACE_DIR / "test_site" / "weiqi-page"  # 测试模式也使用相同的子目录结构
-WEIQI_PAGE_DIR = WORKSPACE_DIR / "weiqi-page"
 SCRIPTS_DIR = WEIQI_PAGE_DIR / "scripts"
 TEMPLATES_DIR = WEIQI_PAGE_DIR / "templates"
 
-# 技能包路径
-SKILLS_DIR = Path("/root/.openclaw/workspace")
+# 技能包路径 - 优先使用环境变量，其次使用相对路径
+SKILLS_DIR = Path(os.getenv("WEIQI_SKILLS_DIR", WEIQI_PAGE_DIR.parent.parent / "skills"))
 WEIQI_DB_SCRIPT = SKILLS_DIR / "weiqi-db/scripts/db.py"
 WEIQI_SGF_SCRIPT = SKILLS_DIR / "weiqi-sgf/scripts/replay.py"
 WEIQI_MOVE_SCRIPT = SKILLS_DIR / "weiqi-move/scripts/quiz.py"
@@ -23,9 +51,11 @@ WEIQI_JOSEKI_DIR = SKILLS_DIR / "weiqi-joseki"  # joseki目录
 WEIQI_JOSEKI_SCRIPT = WEIQI_JOSEKI_DIR / "db.py"  # 使用db.py兼容性入口
 WEIQI_FOXWQ_SCRIPT = SKILLS_DIR / "weiqi-foxwq/scripts/download_sgf.py"
 
-# 数据存储路径
-WEIQI_DB_PATH = HOME_DIR / ".weiqi-db/database.json"
-WEIQI_JOSEKI_DB_PATH = HOME_DIR / ".weiqi-joseki/database.json"
+# 数据存储路径 - 使用环境变量或默认家目录
+WEIQI_DB_DIR = Path(os.getenv("WEIQI_DB_DIR", HOME_DIR / ".weiqi-db"))
+WEIQI_JOSEKI_DB_DIR = Path(os.getenv("WEIQI_JOSEKI_DB_DIR", HOME_DIR / ".weiqi-joseki"))
+WEIQI_DB_PATH = WEIQI_DB_DIR / "database.json"
+WEIQI_JOSEKI_DB_PATH = WEIQI_JOSEKI_DB_DIR / "database.json"
 
 # 公众号文章配置
 WECHAT_ARTICLE = {
@@ -38,8 +68,8 @@ WECHAT_ARTICLE = {
 # 站点配置
 SITE_CONFIG = {
     "title": "围棋资源站",
-    "subtitle": "zhangbin2025",
-    "base_url": "https://zhangbin2025.github.io",
+    "subtitle": GITHUB_USERNAME,
+    "base_url": f"https://{GITHUB_USERNAME}.github.io",
     "sources": ["foxwq", "yike"],  # 支持的来源
 }
 

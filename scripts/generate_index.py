@@ -230,7 +230,7 @@ def generate_index(test_mode=False):
         test_root.mkdir(parents=True, exist_ok=True)
         root_index = test_root / "index.html"
     else:
-        # 生产模式：在 zhangbin2025.github.io/ 根目录生成跳转页
+        # 生产模式：在 GitHub Pages 根目录生成跳转页
         SITE_ROOT.mkdir(parents=True, exist_ok=True)
         root_index = SITE_ROOT / "index.html"
     root_index.write_text(redirect_html, encoding="utf-8")

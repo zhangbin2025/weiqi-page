@@ -7,9 +7,10 @@ import json
 import subprocess
 from pathlib import Path
 
-# 技能包路径
-SKILLS_DIR = Path("/root/.openclaw/workspace")
-WEIQI_DB_SCRIPT = SKILLS_DIR / "weiqi-db/scripts/db.py"
+# 技能包路径 - 从 config 导入避免重复定义
+from config import SKILLS_DIR, WEIQI_DB_SCRIPT as CONFIG_DB_SCRIPT
+
+WEIQI_DB_SCRIPT = CONFIG_DB_SCRIPT
 
 
 def run_db_cmd(args):
@@ -123,8 +124,9 @@ def find_original_sgf(game_id, date_str, black_name, white_name):
     查找原始SGF文件（优先使用野狐下载的，包含AI数据）
     用于generate_quiz
     """
-    # 野狐下载目录
-    foxwq_dir = Path(f"/tmp/foxwq_downloads/{date_str}")
+    import tempfile
+    # 野狐下载目录（使用临时目录，避免硬编码）
+    foxwq_dir = Path(tempfile.gettempdir()) / "foxwq_downloads" / date_str
     if foxwq_dir.exists():
         # 使用棋手名字匹配（因为game_id是导入时生成的，和文件名不同）
         for f in foxwq_dir.glob("*.sgf"):

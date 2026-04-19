@@ -38,8 +38,9 @@ def download_foxwq_games(date_str, test_mode=False):
     print(f"{'='*60}")
     
     # 1. 下载棋谱
-    # weiqi-foxwq 默认下载到 /tmp/foxwq_downloads/日期/
-    base_download_dir = Path("/tmp/foxwq_downloads")
+    # 使用临时目录，避免硬编码路径
+    import tempfile
+    base_download_dir = Path(tempfile.gettempdir()) / "foxwq_downloads"
     date_download_dir = base_download_dir / date_str
     
     # 确保目录存在

@@ -10,34 +10,37 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import SITE_DIR, TEST_SITE_DIR, ensure_dirs
+from config import SITE_DIR, TEST_SITE_DIR, ensure_dirs, SITE_CONFIG, GITHUB_USERNAME
 
 
-ARTICLE_TEMPLATE = """# 每日围棋精选 | {date}
+def get_article_template():
+    """获取文章模板（动态生成，避免硬编码 URL）"""
+    base_url = SITE_CONFIG["base_url"]
+    return f"""# 每日围棋精选 | {{date}}
 
 ## 【今日推荐】
 
-{featured_games}
+{{featured_games}}
 
 ## 【实战选点】
 
-{featured_quiz}
+{{featured_quiz}}
 
 ## 【定式发现】
 
-{featured_joseki}
+{{featured_joseki}}
 
 ## 【数据看板】
 
-📊 今日新增棋谱：**{total_games}** 局
-🎯 今日新增选点题：**{total_quiz}** 题  
-📚 今日定式发现：**{total_joseki}** 个
+📊 今日新增棋谱：**{{total_games}}** 局
+🎯 今日新增选点题：**{{total_quiz}}** 题  
+📚 今日定式发现：**{{total_joseki}}** 个
 
-{source_breakdown}
+{{source_breakdown}}
 
 ## 【访问入口】
 
-🔗 **https://zhangbin2025.github.io/{date}/**
+🔗 **{base_url}/{{date}}/**
 
 ---
 
@@ -78,34 +81,37 @@ def select_featured(items, max_count=1):
 
 def format_game_card(game):
     """格式化棋谱卡片"""
+    base_url = SITE_CONFIG["base_url"]
     return f"""### {game.get('black', '黑方')} vs {game.get('white', '白方')}
 
 - **结果**: {game.get('result', '未知')}
 - **来源**: {game.get('source', '未知')}
 - **赛事**: {game.get('event', '一般对局')}
 
-> [查看完整棋谱](https://zhangbin2025.github.io{game.get('path', '')})
+> [查看完整棋谱]({base_url}{game.get('path', '')})
 """
 
 
 def format_quiz_card(quiz):
     """格式化选点题卡片"""
+    base_url = SITE_CONFIG["base_url"]
     total_count = sum(q.get('count', 0) for q in quiz) if isinstance(quiz, list) else quiz.get('count', 0)
     return f"""### 今日选点题 ({total_count}道)
 
 包含实战中的恶手局面，挑战你的判断力！
 
-> [开始做题](https://zhangbin2025.github.io/quiz/{quiz[0].get('date', 'today') if isinstance(quiz, list) and quiz else 'today'}/)
+> [开始做题]({base_url}/quiz/{quiz[0].get('date', 'today') if isinstance(quiz, list) and quiz else 'today'}/)
 """
 
 
 def format_joseki_card(joseki):
     """格式化定式卡片"""
+    base_url = SITE_CONFIG["base_url"]
     return f"""### 不常见定式发现
 
 从今日棋谱中发现了不常见的定式变化，值得研究。
 
-> [查看详情](https://zhangbin2025.github.io/joseki/{joseki[0].get('date', 'today') if isinstance(joseki, list) and joseki else 'today'}/)
+> [查看详情]({base_url}/joseki/{joseki[0].get('date', 'today') if isinstance(joseki, list) and joseki else 'today'}/)
 """
 
 
@@ -135,7 +141,8 @@ def generate_article(date_str, test_mode=False):
     source_breakdown = "\n".join([f"- {s}: {n}局" for s, n in source_stats.items()])
     
     # 渲染文章
-    article = ARTICLE_TEMPLATE.format(
+    article_template = get_article_template()
+    article = article_template.format(
         date=date_str,
         featured_games="\n\n".join(format_game_card(g) for g in featured_games) if featured_games else "今日暂无推荐棋谱",
         featured_quiz=format_quiz_card(featured_quiz) if featured_quiz else "今日暂无选点题",

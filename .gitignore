@@ -1,3 +1,7 @@
+# 敏感配置文件
+.env
+*.log
+
 # Python
 __pycache__/
 *.py[cod]
@@ -5,10 +9,13 @@ __pycache__/
 *.so
 .Python
 
-# Virtual environments
-venv/
-ENV/
-env/
+# 本地数据目录
+.weiqi-db/
+.weiqi-joseki/
+
+# 生成的站点目录（部署用，不提交源码）
+test_site/
+zhangbin2025.github.io/
 
 # IDE
 .vscode/
@@ -19,7 +26,3 @@ env/
 # OS
 .DS_Store
 Thumbs.db
-
-# Temporary files
-/tmp/
-*.tmp
