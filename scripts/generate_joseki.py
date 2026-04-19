@@ -43,10 +43,7 @@ def discover_joseki(sgf_dir, sgf_count):
     limit = sgf_count * 4
     result = run_joseki_cli([
         "discover", str(sgf_dir),
-        "--first-n", "80",
-        "--min-moves", "1",
         "--limit", str(limit),
-        "--corner-size", "11",
         "--output", "json",
         "--quiet"
     ])

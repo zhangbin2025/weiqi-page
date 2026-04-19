@@ -695,18 +695,32 @@
         
         function saveScrollPosition() {
             const scrollY = window.scrollY || document.documentElement.scrollTop;
-            sessionStorage.setItem(getScrollKey(), scrollY);
+            const key = getScrollKey();
+            localStorage.setItem(key, JSON.stringify({
+                y: scrollY,
+                timestamp: Date.now()
+            }));
         }
         
         function restoreScrollPosition() {
             if (hasRestoredScroll) return;
             hasRestoredScroll = true;
             
-            const savedY = sessionStorage.getItem(getScrollKey());
-            if (savedY !== null) {
-                setTimeout(() => {
-                    window.scrollTo({ top: parseInt(savedY), behavior: 'instant' });
-                }, 100);  // 稍长延迟，等待动态渲染完成
+            const key = getScrollKey();
+            const saved = localStorage.getItem(key);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (Date.now() - data.timestamp < 10 * 60 * 1000) {
+                        setTimeout(() => {
+                            window.scrollTo({ top: data.y, behavior: 'instant' });
+                        }, 100);
+                    } else {
+                        localStorage.removeItem(key);
+                    }
+                } catch (e) {
+                    localStorage.removeItem(key);
+                }
             }
         }
         

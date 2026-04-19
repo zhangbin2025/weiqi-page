@@ -299,18 +299,35 @@
         
         function saveScrollPosition() {
             const scrollY = window.scrollY || document.documentElement.scrollTop;
-            sessionStorage.setItem(getScrollKey(), scrollY);
+            const key = getScrollKey();
+            // 使用 localStorage 替代 sessionStorage，避免页面长时间后丢失
+            localStorage.setItem(key, JSON.stringify({
+                y: scrollY,
+                timestamp: Date.now()
+            }));
         }
         
         function restoreScrollPosition() {
             if (hasRestoredScroll) return;
             hasRestoredScroll = true;
             
-            const savedY = sessionStorage.getItem(getScrollKey());
-            if (savedY !== null) {
-                setTimeout(() => {
-                    window.scrollTo({ top: parseInt(savedY), behavior: 'instant' });
-                }, 50);
+            const key = getScrollKey();
+            const saved = localStorage.getItem(key);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    // 只恢复 10 分钟内的位置（避免过期数据）
+                    if (Date.now() - data.timestamp < 10 * 60 * 1000) {
+                        setTimeout(() => {
+                            window.scrollTo({ top: data.y, behavior: 'instant' });
+                        }, 50);
+                    } else {
+                        // 过期则清除
+                        localStorage.removeItem(key);
+                    }
+                } catch (e) {
+                    localStorage.removeItem(key);
+                }
             }
         }
         
