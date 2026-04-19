@@ -33,24 +33,42 @@
 
 ## 快速开始
 
-### 1. 配置环境变量
+### 1. 安装依赖
+
+```bash
+# 安装 python-dotenv（用于加载 .env 文件）
+pip3 install python-dotenv
+
+# 或使用系统包管理器
+apt install python3-dotenv  # Debian/Ubuntu
+```
+
+### 2. 配置环境变量
 
 ```bash
 # 复制环境变量模板
 cp .env.example .env
 
 # 编辑 .env 文件，填入你的 GitHub 用户名
-# GITHUB_USERNAME=your-username
+vi .env
+# 修改: GITHUB_USERNAME=your-username
 ```
 
-### 2. 运行测试
+**必须配置项：**
+- `GITHUB_USERNAME` - 你的 GitHub 用户名（用于生成站点链接）
+
+**可选配置项：**
+- `WEIQI_WORKSPACE` - 工作目录（默认自动计算）
+- `WEIQI_SKILLS_DIR` - 技能包目录（默认自动计算）
+
+### 3. 运行测试
 
 ```bash
 cd scripts
 python3 test_runner.py
 ```
 
-### 3. 测试模式运行
+### 4. 测试模式运行
 
 ```bash
 # 测试指定日期
@@ -60,7 +78,7 @@ python3 daily_update.py --date 2026-04-01 --test
 python3 daily_update.py --test
 ```
 
-### 4. 正式部署
+### 5. 正式部署
 
 ```bash
 # 默认处理昨天数据

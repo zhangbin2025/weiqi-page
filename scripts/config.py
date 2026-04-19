@@ -23,18 +23,34 @@ WEIQI_PAGE_DIR = SCRIPT_DIR.parent  # scripts/ 的父目录
 WORKSPACE_DIR = Path(os.getenv("WEIQI_WORKSPACE", WEIQI_PAGE_DIR.parent))
 
 # GitHub 用户名 - 必须配置，用于生成站点链接
+# 优先从 .env 文件加载，其次尝试 git config
 GITHUB_USERNAME = os.getenv("GITHUB_USERNAME")
-if not GITHUB_USERNAME:
-    # 尝试从 git config 获取
+if not GITHUB_USERNAME or " " in GITHUB_USERNAME:
+    # 尝试从 git config 获取（排除带空格的名称，那通常是用户全名而非用户名）
     import subprocess
     try:
         result = subprocess.run(
             ["git", "config", "user.name"],
             capture_output=True, text=True, check=True
         )
-        GITHUB_USERNAME = result.stdout.strip()
-    except:
+        git_name = result.stdout.strip()
+        # 如果 git name 包含空格，尝试使用 git remote url 解析
+        if " " in git_name:
+            result = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                capture_output=True, text=True, check=True
+            )
+            remote_url = result.stdout.strip()
+            # 从 https://github.com/username/repo.git 或 git@github.com:username/repo.git 解析用户名
+            import re
+            match = re.search(r'github\.com[/:]([^/]+)', remote_url)
+            if match:
+                git_name = match.group(1)
+        GITHUB_USERNAME = git_name
+    except Exception as e:
         GITHUB_USERNAME = "your-username"  # 占位符，需要手动配置
+        print(f"⚠️ 警告: 无法自动获取 GitHub 用户名，请在 .env 文件中配置 GITHUB_USERNAME")
+        print(f"   错误: {e}")
 
 SITE_ROOT = WORKSPACE_DIR / f"{GITHUB_USERNAME}.github.io"  # GitHub Pages 根目录
 SITE_DIR = SITE_ROOT / "weiqi-page"  # 实际部署到子目录
