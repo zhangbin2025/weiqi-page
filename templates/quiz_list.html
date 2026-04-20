@@ -9,212 +9,99 @@
     <link rel="apple-touch-icon" sizes="64x64" href="/assets/favicon/apple-touch-icon.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 480px;
-            margin: 0 auto;
-            padding: 12px;
-        }
-        header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
-            margin-bottom: 12px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: nowrap;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.6; }
+        .container { max-width: 480px; margin: 0 auto; padding: 12px; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; margin-bottom: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; }
         h1 { font-size: 1.3em; margin: 0; flex-shrink: 0; }
         .header-left { flex-shrink: 0; }
-        .header-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            justify-content: flex-end;
-        }
-        .header-actions select {
-            padding: 6px 10px;
-            border: none;
-            border-radius: 5px;
-            font-size: 0.85em;
-        }
-        .icon-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1em;
-        }
+        .header-actions { display: flex; gap: 10px; align-items: center; justify-content: flex-end; }
+        .icon-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1em; }
         .icon-btn:hover { background: rgba(255,255,255,0.3); }
-        @media (max-width: 600px) {
-            header { padding: 12px; }
-            .header-actions select { font-size: 0.8em; padding: 4px 6px; }
-            .icon-btn { width: 28px; height: 28px; font-size: 0.9em; }
-        }
-        .source-group {
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            overflow: hidden;
-        }
-        .source-header {
-            background: #f8f9fa;
-            padding: 12px 15px;
-            font-weight: bold;
-            color: #555;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-        }
+        @media (max-width: 600px) { header { padding: 12px; } .icon-btn { width: 28px; height: 28px; font-size: 0.9em; } }
+        .source-group { background: white; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+        .source-header { background: #f8f9fa; padding: 12px 15px; font-weight: bold; color: #555; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .source-header:hover { background: #f0f0f0; }
-        .source-toggle {
-            font-size: 0.8em;
-            color: #999;
-        }
-        .quiz-list {
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .quiz-card {
-            display: block;
-            padding: 14px;
-            background: #fff;
-            border: 1px solid #eee;
-            border-radius: 10px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        }
-        .quiz-card:hover {
-            background: #fafafa;
-            border-color: #ddd;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-        }
+        .source-toggle { font-size: 0.8em; color: #999; }
+        .quiz-list { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+        .quiz-card { display: block; padding: 14px; background: #fff; border: 1px solid #eee; border-radius: 10px; text-decoration: none; color: inherit; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .quiz-card:hover { background: #fafafa; border-color: #ddd; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
         .quiz-card:visited { opacity: 0.7; }
-        .quiz-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 6px;
-            width: 100%;
-            overflow: hidden;
+        .quiz-header { display: flex; align-items: center; margin-bottom: 6px; width: 100%; overflow: hidden; }
+        .players { font-weight: 600; font-size: 1.05em; color: #333; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .stone-icon { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+        .stone-black { background: radial-gradient(circle at 30% 30%, #666, #000); box-shadow: 1px 1px 3px rgba(0,0,0,0.3); }
+        .stone-white { background: radial-gradient(circle at 30% 30%, #fff, #ddd); border: 1px solid #ccc; box-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+        .result { font-size: 0.9em; color: #666; background: #f0f0f0; padding: 3px 10px; border-radius: 4px; }
+        .event { font-size: 0.85em; color: #888; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .quiz-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
+        .stats { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 0.85em; color: #666; }
+        .stats .count { font-weight: 600; color: #1976d2; }
+        .stats .phase, .stats .difficulty { color: #888; }
+        .game-btn { padding: 5px 12px; background: #e8f5e9; color: #2e7d32; border-radius: 12px; font-size: 0.85em; white-space: nowrap; cursor: pointer; transition: background 0.2s; }
+        .game-btn:hover { background: #c8e6c9; }
+        footer { text-align: center; padding: 15px; color: #999; font-size: 0.8em; }
+        /* 日历选择器样式 */
+        .calendar-btn { padding: 6px 12px; border: none; border-radius: 5px; font-size: 0.9em; background: white; color: #333; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; font-family: inherit; }
+        .calendar-btn:hover { background: #f5f5f5; }
+        .calendar-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 999; }
+        .calendar-backdrop.active { opacity: 1; visibility: visible; }
+        .calendar-sheet { position: fixed; left: 0; right: 0; bottom: 0; background: white; border-radius: 16px 16px 0 0; padding: 16px 20px 24px; transform: translateY(100%); transition: transform 0.3s ease; z-index: 1000; max-width: 480px; margin: 0 auto; }
+        .calendar-sheet.active { transform: translateY(0); }
+        .calendar-sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
+        /* PC端居中显示 */
+        @media (min-width: 768px) {
+            .calendar-sheet {
+                left: 50%;
+                right: auto;
+                top: 50%;
+                bottom: auto;
+                transform: translate(-50%, -40%) scale(0.9);
+                opacity: 0;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                max-height: 90vh;
+                overflow-y: auto;
+                transition: all 0.3s ease;
+            }
+            .calendar-sheet.active {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
         }
-        .players {
-            font-weight: 600;
-            font-size: 1.05em;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .stone-icon {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .stone-black {
-            background: radial-gradient(circle at 30% 30%, #666, #000);
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-        }
-        .stone-white {
-            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
-            border: 1px solid #ccc;
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-        }
-        .result {
-            font-size: 0.9em;
-            color: #666;
-            background: #f0f0f0;
-            padding: 3px 10px;
-            border-radius: 4px;
-        }
-        .event {
-            font-size: 0.85em;
-            color: #888;
-            margin-bottom: 10px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .quiz-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #f0f0f0;
-        }
-        .stats {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px 16px;
-            font-size: 0.85em;
-            color: #666;
-        }
-        .stats .count {
-            font-weight: 600;
-            color: #1976d2;
-        }
-        .stats .phase, .stats .difficulty {
-            color: #888;
-        }
-        .game-btn {
-            padding: 5px 12px;
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-radius: 12px;
-            font-size: 0.85em;
-            white-space: nowrap;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .game-btn:hover {
-            background: #c8e6c9;
-        }
-        footer {
-            text-align: center;
-            padding: 15px;
-            color: #999;
-            font-size: 0.8em;
-        }
+        .calendar-title { font-size: 1.1em; font-weight: 600; color: #333; }
+        .calendar-close-btn { width: 32px; height: 32px; border: none; background: #f5f5f5; border-radius: 50%; cursor: pointer; font-size: 1em; color: #666; display: flex; align-items: center; justify-content: center; }
+        .calendar-close-btn:hover { background: #e0e0e0; }
+        .calendar-placeholder { width: 32px; }
+        .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 8px; }
+        .calendar-nav-btn { width: 36px; height: 36px; border: none; background: #f5f5f5; border-radius: 50%; cursor: pointer; font-size: 0.9em; color: #667eea; transition: all 0.2s; }
+        .calendar-nav-btn:hover { background: #e8e8e8; }
+        .calendar-month { font-size: 1.1em; font-weight: 600; color: #333; }
+        .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 8px; }
+        .calendar-weekdays span { font-size: 0.85em; color: #999; padding: 8px 0; }
+        .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; font-size: 0.95em; position: relative; width: 40px; height: 40px; margin: 0 auto; transition: all 0.2s; }
+        .calendar-day.has-data { background: #e3f2fd; color: #1976d2; font-weight: 500; }
+        .calendar-day.has-data:hover { background: #bbdefb; }
+        .calendar-day.no-data { color: #bbb; cursor: not-allowed; }
+        .calendar-day.selected { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; }
+        .calendar-day.today::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; background: #f44336; border-radius: 50%; }
+        .calendar-day.selected.today::after { background: rgba(255,255,255,0.8); }
+        .calendar-day.empty { cursor: default; }
+        @media (max-width: 600px) { .calendar-btn { font-size: 0.85em; padding: 5px 8px; } .calendar-sheet { padding: 12px 16px 20px; } .calendar-day { width: 36px; height: 36px; font-size: 0.9em; } }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="header-left">
-                <h1>🎯 实战选点</h1>
-            </div>
+            <div class="header-left"><h1>🎯 实战选点</h1></div>
             <div class="header-actions">
-                <select id="dateFilter" onchange="filterByDate()">
-                    {% for date in dates %}
-                    <option value="{{ date }}" {% if date == current_date %}selected{% endif %}>{{ date }}</option>
-                    {% endfor %}
-                </select>
+                <button id="calendarBtn" class="calendar-btn" onclick="openCalendar()">📅 <span id="selectedDateText">{{ current_date }}</span></button>
                 <button class="icon-btn" onclick="clearVisited()" title="清除本日访问记录">👁️</button>
             </div>
         </header>
-        
+        <select id="dateFilter" style="display:none" onchange="filterByDate()">
+            {% for date in dates %}<option value="{{ date }}" {% if date == current_date %}selected{% endif %}>{{ date }}</option>{% endfor %}
+        </select>
         <div id="content">
             {% for date, sources in date_data.items() %}
             <div class="date-section" data-date="{{ date }}">
@@ -229,36 +116,20 @@
                         <a href="{{ quiz.path }}" class="quiz-card" data-quiz-id="{{ quiz.id }}">
                             <div class="quiz-header">
                                 <span class="players">
-                                    <span class="stone-icon stone-black"></span>
-                                    {{ quiz.black }}
-                                    <span style="color:#999;font-weight:normal;">vs</span>
-                                    <span class="stone-icon stone-white"></span>
-                                    {{ quiz.white }}
+                                    <span class="stone-icon stone-black"></span>{{ quiz.black }}<span style="color:#999;font-weight:normal;">vs</span><span class="stone-icon stone-white"></span>{{ quiz.white }}
                                 </span>
                             </div>
                             <div class="event">{{ quiz.event }}</div>
                             <div class="stats">
                                 <span class="count">{{ quiz.count }}题</span>
                                 {% if quiz.stats %}
-                                <span class="phase">
-                                    {% if quiz.stats.phase.layout %}布局{{ quiz.stats.phase.layout }}{% endif %}
-                                    {% if quiz.stats.phase.middle %}中盘{{ quiz.stats.phase.middle }}{% endif %}
-                                    {% if quiz.stats.phase.endgame %}官子{{ quiz.stats.phase.endgame }}{% endif %}
-                                </span>
-                                <span class="difficulty">
-                                    简单{{ quiz.stats.difficulty.easy }} 中等{{ quiz.stats.difficulty.medium }} 困难{{ quiz.stats.difficulty.hard }}
-                                </span>
+                                <span class="phase">{% if quiz.stats.phase.layout %}布局{{ quiz.stats.phase.layout }}{% endif %}{% if quiz.stats.phase.middle %}中盘{{ quiz.stats.phase.middle }}{% endif %}{% if quiz.stats.phase.endgame %}官子{{ quiz.stats.phase.endgame }}{% endif %}</span>
+                                <span class="difficulty">简单{{ quiz.stats.difficulty.easy }} 中等{{ quiz.stats.difficulty.medium }} 困难{{ quiz.stats.difficulty.hard }}</span>
                                 {% endif %}
                             </div>
                             <div class="quiz-footer">
-                                {% if quiz.result %}
-                                <span class="result">{{ quiz.result }}</span>
-                                {% else %}
-                                <span></span>
-                                {% endif %}
-                                {% if quiz.game_path %}
-                                <span class="game-btn" data-game-path="{{ quiz.game_path }}" onclick="openGame(event, this);">📖 棋谱</span>
-                                {% endif %}
+                                {% if quiz.result %}<span class="result">{{ quiz.result }}</span>{% else %}<span></span>{% endif %}
+                                {% if quiz.game_path %}<span class="game-btn" data-game-path="{{ quiz.game_path }}" onclick="openGame(event, this);">📖 棋谱</span>{% endif %}
                             </div>
                         </a>
                         {% endfor %}
@@ -268,179 +139,180 @@
             </div>
             {% endfor %}
         </div>
-        
-        <footer>
-            <p>围棋智能助手 &copy; 2026</p>
-        </footer>
+        <footer><p>围棋智能助手 &copy; 2026</p></footer>
     </div>
-    
+    <div id="calendarBackdrop" class="calendar-backdrop" onclick="closeCalendar()"></div>
+    <div id="calendarSheet" class="calendar-sheet">
+        <div class="calendar-sheet-header">
+            <button class="calendar-close-btn" onclick="closeCalendar()">✕</button>
+            <div class="calendar-title">选择日期</div>
+            <div class="calendar-placeholder"></div>
+        </div>
+        <div class="calendar-nav">
+            <button class="calendar-nav-btn" onclick="prevMonth()">◀</button>
+            <div class="calendar-month" id="calendarMonth"></div>
+            <button class="calendar-nav-btn" onclick="nextMonth()">▶</button>
+        </div>
+        <div class="calendar-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+        <div class="calendar-days" id="calendarDays"></div>
+    </div>
     <script>
+        // ========== 日历选择器功能 ==========
+        const availableDates = {{ dates | tojson }};
+        let currentMonth = new Date();
+        let selectedDate = '{{ current_date }}';
+
+        function openCalendar() {
+            document.getElementById('calendarBackdrop').classList.add('active');
+            document.getElementById('calendarSheet').classList.add('active');
+            if (selectedDate) { currentMonth = new Date(selectedDate + 'T00:00:00'); }
+            renderCalendar();
+        }
+        function closeCalendar() {
+            document.getElementById('calendarBackdrop').classList.remove('active');
+            document.getElementById('calendarSheet').classList.remove('active');
+        }
+        function nextMonth() { currentMonth.setMonth(currentMonth.getMonth() + 1); renderCalendar(); }
+        function prevMonth() { currentMonth.setMonth(currentMonth.getMonth() - 1); renderCalendar(); }
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            document.getElementById('calendarMonth').textContent = year + '年' + (month + 1) + '月';
+            const daysContainer = document.getElementById('calendarDays');
+            daysContainer.innerHTML = '';
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            const todayStr = formatDate(today);
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day empty';
+                daysContainer.appendChild(emptyDay);
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                dayEl.textContent = day;
+                const hasData = availableDates.includes(dateStr);
+                const isToday = dateStr === todayStr;
+                const isSelected = dateStr === selectedDate;
+                if (hasData) { dayEl.classList.add('has-data'); dayEl.onclick = function() { selectDate(dateStr); }; }
+                else { dayEl.classList.add('no-data'); }
+                if (isToday) dayEl.classList.add('today');
+                if (isSelected) dayEl.classList.add('selected');
+                daysContainer.appendChild(dayEl);
+            }
+        }
+        function selectDate(dateStr) {
+            selectedDate = dateStr;
+            document.getElementById('selectedDateText').textContent = dateStr;
+            closeCalendar();
+            const dateFilter = document.getElementById('dateFilter');
+            if (dateFilter) { dateFilter.value = dateStr; }
+            if (typeof filterByDate === 'function') { filterByDate(); }
+        }
+        function formatDate(date) {
+            return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+        }
+        let touchStartY = 0, touchStartX = 0, touchEndY = 0, touchEndX = 0;
+        const calendarSheet = document.getElementById('calendarSheet');
+        if (calendarSheet) {
+            calendarSheet.addEventListener('touchstart', function(e) {
+                touchStartY = e.changedTouches[0].screenY;
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            calendarSheet.addEventListener('touchend', function(e) {
+                touchEndY = e.changedTouches[0].screenY;
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+        }
+        function handleSwipe() {
+            const deltaY = touchEndY - touchStartY;
+            const deltaX = touchEndX - touchStartX;
+            if (deltaY > 80 && Math.abs(deltaX) < 50) { closeCalendar(); }
+            if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 50) {
+                if (deltaX > 0) { prevMonth(); } else { nextMonth(); }
+            }
+        }
+        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeCalendar(); });
+
+        // ========== 原有功能 ==========
         function filterByDate() {
             const selectedDate = document.getElementById('dateFilter').value;
-            
-            // 切换日期后立即重置滚动位置标记（必须在恢复访问记录之前）
             hasRestoredScroll = false;
-            
             document.querySelectorAll('.date-section').forEach(section => {
-                if (!selectedDate || section.dataset.date === selectedDate) {
-                    section.style.display = 'block';
-                } else {
-                    section.style.display = 'none';
-                }
+                if (!selectedDate || section.dataset.date === selectedDate) { section.style.display = 'block'; }
+                else { section.style.display = 'none'; }
             });
-            // 切换日期后重新加载访问记录
             restoreVisited();
         }
-        
         function toggleSource(header) {
             const list = header.nextElementSibling;
             const toggle = header.querySelector('.source-toggle');
-            if (list.style.display === 'none') {
-                list.style.display = 'flex';
-                toggle.textContent = '▼';
-            } else {
-                list.style.display = 'none';
-                toggle.textContent = '▶';
-            }
+            if (list.style.display === 'none') { list.style.display = 'flex'; toggle.textContent = '▼'; }
+            else { list.style.display = 'none'; toggle.textContent = '▶'; }
         }
-        
-        function getStorageKey() {
-            const date = document.getElementById('dateFilter').value;
-            return 'visited_quiz_' + date;
-        }
-        
-        // ========== 滚动位置记忆（多保险机制）==========
-        function getScrollKey() {
-            const date = document.getElementById('dateFilter').value;
-            return 'scroll_quiz_' + date;
-        }
-        
+        function getStorageKey() { const date = document.getElementById('dateFilter').value; return 'visited_quiz_' + date; }
+        function getScrollKey() { const date = document.getElementById('dateFilter').value; return 'scroll_quiz_' + date; }
         let hasRestoredScroll = false;
-        
         function saveScrollPosition(elementId) {
             const scrollY = window.scrollY || document.documentElement.scrollTop;
-            const key = getScrollKey();
-            localStorage.setItem(key, JSON.stringify({
-                y: scrollY,
-                timestamp: Date.now(),
-                elementId: elementId || null
-            }));
+            localStorage.setItem(getScrollKey(), JSON.stringify({ y: scrollY, timestamp: Date.now(), elementId: elementId || null }));
         }
-        
-        function restoreScrollPosition(attempt = 1) {
+        function restoreScrollPosition(attempt) {
+            attempt = attempt || 1;
             if (hasRestoredScroll) return;
-            
-            const key = getScrollKey();
-            const saved = localStorage.getItem(key);
+            const saved = localStorage.getItem(getScrollKey());
             if (!saved) return;
-            
             try {
                 const data = JSON.parse(saved);
-                if (Date.now() - data.timestamp > 30 * 60 * 1000) {
-                    localStorage.removeItem(key);
-                    return;
-                }
-                
-                const tryScroll = () => {
+                if (Date.now() - data.timestamp > 30 * 60 * 1000) { localStorage.removeItem(getScrollKey()); return; }
+                const tryScroll = function() {
                     if (document.documentElement.scrollHeight < data.y + window.innerHeight) {
-                        if (attempt < 5) {
-                            setTimeout(() => restoreScrollPosition(attempt + 1), 100);
-                            return;
-                        }
+                        if (attempt < 5) { setTimeout(function() { restoreScrollPosition(attempt + 1); }, 100); return; }
                     }
-                    
                     hasRestoredScroll = true;
                     window.scrollTo({ top: data.y, behavior: 'instant' });
-                    
-                    setTimeout(() => {
+                    setTimeout(function() {
                         if (data.elementId) {
-                            const el = document.querySelector(`[data-quiz-id="${data.elementId}"]`);
-                            if (el) {
-                                el.scrollIntoView({ block: 'start', behavior: 'instant' });
-                            }
+                            const el = document.querySelector('[data-quiz-id="' + data.elementId + '"]');
+                            if (el) el.scrollIntoView({ block: 'start', behavior: 'instant' });
                         }
                     }, 200);
                 };
-                
-                requestAnimationFrame(() => {
-                    setTimeout(tryScroll, 50);
-                });
-                
-            } catch (e) {
-                localStorage.removeItem(key);
-            }
+                requestAnimationFrame(function() { setTimeout(tryScroll, 50); });
+            } catch (e) { localStorage.removeItem(getScrollKey()); }
         }
-        
         document.querySelectorAll('.quiz-card').forEach(card => {
             card.addEventListener('click', function() {
                 const quizId = this.dataset.quizId;
                 saveScrollPosition(quizId);
-                
                 const key = getStorageKey();
                 let visited = JSON.parse(localStorage.getItem(key) || '[]');
-                if (!visited.includes(quizId)) {
-                    visited.push(quizId);
-                    localStorage.setItem(key, JSON.stringify(visited));
-                }
+                if (!visited.includes(quizId)) { visited.push(quizId); localStorage.setItem(key, JSON.stringify(visited)); }
                 this.style.opacity = '0.6';
             });
         });
-        
-        // 页面隐藏前保存
-        document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'hidden') {
-                saveScrollPosition();
-            }
-        });
-        
-        // 页面卸载前保存
+        document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') saveScrollPosition(); });
         window.addEventListener('beforeunload', saveScrollPosition);
         window.addEventListener('pagehide', saveScrollPosition);
-        
         function restoreVisited() {
             const key = getStorageKey();
             const visited = JSON.parse(localStorage.getItem(key) || '[]');
-            document.querySelectorAll('.quiz-card').forEach(card => {
-                if (visited.includes(card.dataset.quizId)) {
-                    card.style.opacity = '0.6';
-                }
-            });
+            document.querySelectorAll('.quiz-card').forEach(card => { if (visited.includes(card.dataset.quizId)) card.style.opacity = '0.6'; });
         }
-        
         function clearVisited() {
             const key = getStorageKey();
             localStorage.removeItem(key);
-            document.querySelectorAll('.quiz-card').forEach(card => {
-                card.style.opacity = '1';
-            });
+            document.querySelectorAll('.quiz-card').forEach(card => { card.style.opacity = '1'; });
         }
-        
-        // 页面加载时恢复已访问状态和滚动位置
         filterByDate();
         restoreVisited();
         restoreScrollPosition();
-        
-        // 页面从缓存恢复时（返回按钮）重新应用状态
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                hasRestoredScroll = false;  // 重置标记，允许重新恢复
-                restoreVisited();
-                restoreScrollPosition();
-            }
-        });
-        
-        // 切换日期时重置滚动位置标记
-        document.getElementById('dateFilter').addEventListener('change', function() {
-            hasRestoredScroll = false;
-        });
-        
-        // 查看棋谱按钮点击
-        function openGame(event, element) {
-            event.preventDefault();
-            event.stopPropagation();
-            saveScrollPosition();  // 保存滚动位置
-            window.location.href = element.dataset.gamePath;
-        }
+        window.addEventListener('pageshow', function(event) { if (event.persisted) { hasRestoredScroll = false; restoreVisited(); restoreScrollPosition(); } });
+        function openGame(event, element) { event.preventDefault(); event.stopPropagation(); saveScrollPosition(); window.location.href = element.dataset.gamePath; }
     </script>
 </body>
 </html>
