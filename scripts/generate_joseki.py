@@ -333,7 +333,7 @@ def generate_joseki_index(test_mode=False):
     template_path = TEMPLATES_DIR / "joseki_list.html"
     template = Template(template_path.read_text(encoding="utf-8"))
     
-    # 使用最新的日期作为当前日期
+    # 使用最新的日期作为当前日期（availableDates 的最后一天，即最新有数据的日期）
     sorted_dates = sorted(all_dates, reverse=True)
     current_date = sorted_dates[0] if sorted_dates else datetime.now().strftime("%Y-%m-%d")
     

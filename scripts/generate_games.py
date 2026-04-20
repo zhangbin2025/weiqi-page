@@ -176,10 +176,12 @@ def generate_games_index(test_mode=False):
     template_path = TEMPLATES_DIR / "games_list.html"
     template = Template(template_path.read_text(encoding="utf-8"))
     
-    current_date = datetime.now().strftime("%Y-%m-%d")
+    # 使用有数据的最后一天（最新日期）作为默认日期
+    sorted_dates = sorted(all_dates, reverse=True)
+    current_date = sorted_dates[0] if sorted_dates else datetime.now().strftime("%Y-%m-%d")
     
     html = template.render(
-        dates=sorted(all_dates, reverse=True),
+        dates=sorted_dates,
         current_date=current_date,
         date_data=date_data
     )

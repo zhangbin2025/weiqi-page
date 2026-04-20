@@ -159,8 +159,8 @@
     <script>
         // ========== 日历选择器功能 ==========
         const availableDates = {{ dates | tojson }};
-        let currentMonth = new Date();
-        let selectedDate = '{{ current_date }}';
+        let selectedDate = availableDates.length > 0 ? availableDates[0] : '{{ current_date }}';
+        let currentMonth = new Date(selectedDate + 'T00:00:00');
 
         function openCalendar() {
             document.getElementById('calendarBackdrop').classList.add('active');
@@ -172,8 +172,8 @@
             document.getElementById('calendarBackdrop').classList.remove('active');
             document.getElementById('calendarSheet').classList.remove('active');
         }
-        function nextMonth() { currentMonth.setMonth(currentMonth.getMonth() + 1); renderCalendar(); }
-        function prevMonth() { currentMonth.setMonth(currentMonth.getMonth() - 1); renderCalendar(); }
+        function nextMonth() { const year = currentMonth.getFullYear(); const month = currentMonth.getMonth(); currentMonth = new Date(year, month + 1, 1); renderCalendar(); }
+        function prevMonth() { const year = currentMonth.getFullYear(); const month = currentMonth.getMonth(); currentMonth = new Date(year, month - 1, 1); renderCalendar(); }
         function renderCalendar() {
             const year = currentMonth.getFullYear();
             const month = currentMonth.getMonth();
