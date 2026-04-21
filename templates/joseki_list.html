@@ -269,8 +269,9 @@
         function applyPreset(date, preset, saveState = true) {
             const s = state[date];
             s.currentFilter = preset;
-            document.querySelectorAll('[id^="tab-' + date + '-"]').forEach(tab => tab.classList.remove('active'));
-            document.getElementById('tab-' + date + '-' + preset).classList.add('active');
+            document.querySelectorAll('.filter-tab[data-date="' + date + '"]').forEach(tab => tab.classList.remove('active'));
+            const activeTab = document.querySelector('.filter-tab[data-date="' + date + '"][data-filter="' + preset + '"]');
+            if (activeTab) activeTab.classList.add('active');
             // 保存筛选状态
             if (saveState) saveFilterState(preset);
             let filtered = [...s.allJoseki];
@@ -310,10 +311,14 @@
                 });
             }
             const stats = calcStats(s.allJoseki);
-            document.getElementById('count-' + date + '-all').textContent = stats.total;
-            document.getElementById('count-' + date + '-hot').textContent = stats.hot;
-            document.getElementById('count-' + date + '-hit').textContent = stats.hit;
-            document.getElementById('count-' + date + '-complex').textContent = stats.complex;
+            const countAll = document.getElementById('count-' + date + '-all');
+            const countHot = document.getElementById('count-' + date + '-hot');
+            const countHit = document.getElementById('count-' + date + '-hit');
+            const countComplex = document.getElementById('count-' + date + '-complex');
+            if (countAll) countAll.textContent = stats.total;
+            if (countHot) countHot.textContent = stats.hot;
+            if (countHit) countHit.textContent = stats.hit;
+            if (countComplex) countComplex.textContent = stats.complex;
             const container = document.getElementById('list-' + date);
             if (list.length === 0) { container.innerHTML = '<div class="empty-state">暂无符合条件的定式</div>'; return; }
             const candidates8 = [...s.allJoseki].filter(j => j.matched_prefix_len >= 8);
