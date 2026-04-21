@@ -413,7 +413,7 @@
             const selectedDate = document.getElementById('dateFilter').value;
             currentDate = selectedDate;
             hasRestoredScroll = false;
-            clickedJosekiIds.clear(); // 切换日期时清空点击记录
+            // 切换日期时重置滚动恢复标记
             document.querySelectorAll('.date-content').forEach(content => content.classList.remove('active'));
             const selectedContent = document.querySelector('.date-content[data-date="' + selectedDate + '"]');
             if (selectedContent) { 
