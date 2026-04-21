@@ -29,7 +29,7 @@ from config import (
 
 def run_joseki_cli(args, cwd=WEIQI_JOSEKI_DIR):
     """运行 weiqi-joseki CLI 命令"""
-    cmd = ["python3", "-m", "scripts.cli"] + args
+    cmd = ["python3", "-m", "src.cli.commands"] + args
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(cwd))
     return result
 
@@ -37,15 +37,11 @@ def run_joseki_cli(args, cwd=WEIQI_JOSEKI_DIR):
 def discover_joseki(sgf_dir, sgf_count):
     """
     发现值得研究的定式
-    limit = 棋谱数 * 4（每盘棋最多4个角）
     返回: (stats, joseki_list) 元组
     """
-    limit = sgf_count * 4
     result = run_joseki_cli([
         "discover", str(sgf_dir),
-        "--limit", str(limit),
-        "--output", "json",
-        "--quiet"
+        "--json"
     ])
     
     if result.returncode != 0:
@@ -53,9 +49,9 @@ def discover_joseki(sgf_dir, sgf_count):
         return None, []
     
     try:
-        data = json.loads(result.stdout.strip())
-        stats = data.get("stats", {})
-        joseki_list = data.get("joseki_list", [])
+        # 新接口直接返回数组
+        joseki_list = json.loads(result.stdout.strip())
+        stats = {"unique_joseki": len(joseki_list)}
         return stats, joseki_list
     except json.JSONDecodeError as e:
         print(f"❌ 解析discover结果失败: {e}")
@@ -212,27 +208,23 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
     
     for idx, joseki in enumerate(joseki_list, 1):
         joseki_id = joseki.get("joseki_id", "")
-        is_rare = joseki.get("is_rare", True)
-        matched_prefix_len = joseki.get("matched_prefix_len", 0)
-        moves = joseki.get("moves", [])
-        move_count = joseki.get("move_count", len(moves))
+        matched_prefix_len = joseki.get("prefix_len", 0)
+        # prefix 是字符串，需要 split 成列表
+        prefix_str = joseki.get("prefix", "")
+        moves = prefix_str.split() if prefix_str else []
+        move_count = joseki.get("total_moves", len(moves))
         frequency = joseki.get("frequency", 0)
-        sources = joseki.get("sources", [])
         
-        # 获取主要来源信息
-        source = sources[0] if sources else {}
-        corner = source.get("corner", "tr")
-        # discover返回的字段名是 black_player/white_player
-        black_name = source.get("black_player") or source.get("black", "未知")
-        white_name = source.get("white_player") or source.get("white", "未知")
-        event_name = source.get("event", "")
+        # 获取来源信息（从game_info和source_corner）
+        game_info = joseki.get("game_info", {})
+        corner = joseki.get("source_corner", "tr")
+        black_name = game_info.get("black", "未知")
+        white_name = game_info.get("white", "未知")
+        event_name = game_info.get("event", "")
         
-        if is_rare:
-            name = f"{corner.upper()}角罕见定式"
-            print(f"\n  🔍 [{idx}/{len(joseki_list)}] 罕见定式 ({move_count}手, 匹配{matched_prefix_len}手) - {black_name} vs {white_name}")
-        else:
-            name = joseki.get("name") or f"定式{joseki_id}"
-            print(f"\n  📖 [{idx}/{len(joseki_list)}] {name} ({move_count}手, 次数{frequency}) - {black_name} vs {white_name}")
+        # 新接口不区分罕见/常见，统一显示
+        name = f"{corner.upper()}角定式 {joseki_id}"
+        print(f"\n  📖 [{idx}/{len(joseki_list)}] {name} ({move_count}手, 匹配{matched_prefix_len}手, 次数{frequency}) - {black_name} vs {white_name}")
         
         # 生成SGF
         sgf_path = joseki_dir / f"joseki_{idx:03d}.sgf"
@@ -281,11 +273,10 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
                 "probability": joseki.get("probability", 0),  # 出现概率
                 "joseki_id": joseki_id,  # 匹配的定式ID
                 "corner": corner,
-                "is_rare": is_rare,
                 "black": black_name,
                 "white": white_name,
                 "event": event_name,
-                "date": source.get("date", date_str),
+                "date": game_info.get("date", date_str),
             })
         else:
             print(f"     ❌ 生成页面失败")
