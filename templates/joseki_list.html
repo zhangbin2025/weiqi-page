@@ -328,6 +328,9 @@
                 return calcMatchRate(b) - calcMatchRate(a);
             });
             const top3Hot = new Set(sortedByFreq.slice(0, 3).map(j => j.joseki_id || j.moves.join(',')));
+            // 获取已访问的定式列表
+            const visited = getVisited();
+            
             container.innerHTML = list.map(joseki => {
                 const matchRate = calcMatchRate(joseki);
                 const key = joseki.joseki_id || joseki.moves.join(',');
