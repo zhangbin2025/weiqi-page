@@ -379,12 +379,18 @@
             }
         }
         
-        // 调试：记录所有点击
-        function debugClick(e) {
-            if (e.target.closest('.joseki-card-link')) {
-                console.log('卡片被点击:', e.target.tagName, e.target.className);
+        // 调试：记录所有点击事件
+        document.addEventListener('click', function(e) {
+            const card = e.target.closest('.joseki-card-link');
+            if (card) {
+                console.log('[DEBUG] 点击事件:', {
+                    target: e.target.tagName,
+                    targetClass: e.target.className,
+                    cardHref: card.href,
+                    defaultPrevented: e.defaultPrevented
+                });
             }
-        }
+        }, true);  // 使用捕获阶段
         
         function handleFilterClick(e) {
             const tab = e.target.closest('.filter-tab');
@@ -436,8 +442,6 @@
             });
             // 棋谱按钮点击 - 事件委托
             document.addEventListener('click', handleGameBtnClick);
-            // 调试点击
-            document.addEventListener('click', debugClick);
         }
         function getStorageKey() { return 'visited_joseki_' + currentDate; }
         function getScrollKey() { return 'scroll_joseki_' + currentDate; }
