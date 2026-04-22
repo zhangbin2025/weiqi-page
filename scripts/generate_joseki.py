@@ -209,9 +209,16 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
     for idx, joseki in enumerate(joseki_list, 1):
         joseki_id = joseki.get("joseki_id", "")
         matched_prefix_len = joseki.get("prefix_len", 0)
-        # prefix 是字符串，需要 split 成列表
-        prefix_str = joseki.get("prefix", "")
-        moves = prefix_str.split() if prefix_str else []
+        # 使用完整着法序列（extracted_moves），而不是匹配的前缀（prefix）
+        # extracted_moves 包含棋谱中该角的完整着法序列
+        # prefix 只是匹配定式库的前缀部分
+        full_moves_str = joseki.get("extracted_moves", "")
+        if full_moves_str:
+            moves = full_moves_str.split()
+        else:
+            # 回退：使用 prefix（兼容旧接口）
+            prefix_str = joseki.get("prefix", "")
+            moves = prefix_str.split() if prefix_str else []
         move_count = joseki.get("total_moves", len(moves))
         frequency = joseki.get("frequency", 0)
         
