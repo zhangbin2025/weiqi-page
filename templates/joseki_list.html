@@ -36,6 +36,7 @@
             text-decoration: none;
             color: inherit;
             cursor: pointer;
+            position: relative; /* 确保层级正确 */
         }
         .joseki-card {
             background: white;
@@ -43,14 +44,20 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
             transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-            user-select: none;
-            -webkit-user-select: none;
+            position: relative;
         }
         .joseki-card-link:hover .joseki-card {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.12);
         }
         .joseki-card-link:visited .joseki-card { opacity: 0.6; }
+        /* 确保所有子元素都允许点击 */
+        .joseki-card-link * {
+            pointer-events: none; /* 让点击穿透到a标签 */
+        }
+        .joseki-card-link .game-btn {
+            pointer-events: auto; /* 棋谱按钮需要单独点击 */
+        }
         .joseki-header { padding: 12px 15px 8px; border-bottom: none; }
         .joseki-tags-row { padding: 0 15px 8px; display: flex; flex-wrap: wrap; gap: 6px; }
         .joseki-players { display: flex; align-items: center; gap: 8px; font-weight: 600; color: #333; font-size: 0.95em; }
