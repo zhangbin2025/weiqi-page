@@ -30,10 +30,27 @@
         .stone-icon { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
         .stone-black { background: radial-gradient(circle at 30% 30%, #666, #000); box-shadow: 1px 1px 3px rgba(0,0,0,0.3); }
         .stone-white { background: radial-gradient(circle at 30% 30%, #fff, #ddd); border: 1px solid #ccc; box-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
-        .joseki-card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
-        .joseki-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-        .joseki-card-link { display: block; text-decoration: none; color: inherit; cursor: pointer; }
-        .joseki-card.visited { opacity: 0.6; }
+        /* 卡片链接 - 使用原生a标签 */
+        .joseki-card-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+        }
+        .joseki-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .joseki-card-link:hover .joseki-card {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        .joseki-card-link:visited .joseki-card { opacity: 0.6; }
         .joseki-header { padding: 12px 15px 8px; border-bottom: none; }
         .joseki-tags-row { padding: 0 15px 8px; display: flex; flex-wrap: wrap; gap: 6px; }
         .joseki-players { display: flex; align-items: center; gap: 8px; font-weight: 600; color: #333; font-size: 0.95em; }
@@ -343,47 +360,23 @@
                 if (joseki.matched_prefix_len >= 8 && top3Hot.has(key)) tags.push('<span class="tag tag-hot">🔥 热门</span>');
                 if (joseki.matched_prefix_len >= 8 && matchRate >= 1) tags.push('<span class="tag tag-hit">🎯 命中</span>');
                 if (joseki.matched_prefix_len >= 12) tags.push('<span class="tag tag-complex">🧩 复杂</span>');
-                const visitedClass = visited.includes(joseki.id || joseki.path) ? 'visited' : '';
-                return '<div class="joseki-card-link" data-joseki-id="' + (joseki.id || joseki.path) + '" data-path="' + joseki.path + '"><div class="joseki-card ' + visitedClass + '"><div class="joseki-header"><div class="joseki-players"><span class="stone-icon stone-black"></span>' + joseki.black + '<span class="joseki-vs">vs</span><span class="stone-icon stone-white"></span>' + joseki.white + '</div></div><div class="joseki-tags-row"><div class="joseki-meta">' + (joseki.event || '') + '</div></div><div class="joseki-body"><div class="metrics-row"><div class="metric"><div class="metric-value">' + joseki.matched_prefix_len + '/' + joseki.move_count + '</div><div class="metric-label">匹配/总手数</div></div><div class="metric"><div class="metric-value">' + (joseki.frequency || 0) + '</div><div class="metric-label">库出现次数</div></div><div class="metric"><div class="metric-value">' + (joseki.probability * 100).toFixed(1) + '%</div><div class="metric-label">库出现概率</div></div></div></div><div class="joseki-footer"><div class="joseki-tags">' + tags.join('') + '</div>' + (joseki.game_path ? '<button class="game-btn" data-game-path="' + joseki.game_path + '">📖 棋谱</button>' : '') + '</div></div></div>';
+                return '<a href="' + joseki.path + '" class="joseki-card-link"><div class="joseki-card"><div class="joseki-header"><div class="joseki-players"><span class="stone-icon stone-black"></span>' + joseki.black + '<span class="joseki-vs">vs</span><span class="stone-icon stone-white"></span>' + joseki.white + '</div></div><div class="joseki-tags-row"><div class="joseki-meta">' + (joseki.event || '') + '</div></div><div class="joseki-body"><div class="metrics-row"><div class="metric"><div class="metric-value">' + joseki.matched_prefix_len + '/' + joseki.move_count + '</div><div class="metric-label">匹配/总手数</div></div><div class="metric"><div class="metric-value">' + (joseki.frequency || 0) + '</div><div class="metric-label">库出现次数</div></div><div class="metric"><div class="metric-value">' + (joseki.probability * 100).toFixed(1) + '%</div><div class="metric-label">库出现概率</div></div></div></div><div class="joseki-footer"><div class="joseki-tags">' + tags.join('') + '</div>' + (joseki.game_path ? '<button class="game-btn" data-game-path="' + joseki.game_path + '">📖 棋谱</button>' : '') + '</div></div></a>';
             }).join('');
             restoreScrollPosition();
         }
         
-        // 事件委托处理
-        function handleJosekiListClick(e) {
-            // 处理棋谱按钮点击
+        // 简化的点击处理 - 只处理棋谱按钮
+        function handleGameBtnClick(e) {
             const gameBtn = e.target.closest('.game-btn');
-            if (gameBtn) {
-                e.stopPropagation();
-                const gamePath = gameBtn.dataset.gamePath;
-                if (gamePath) {
-                    saveScrollPosition();
-                    window.location.href = gamePath;
-                }
-                return;
+            if (!gameBtn) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            const gamePath = gameBtn.dataset.gamePath;
+            if (gamePath) {
+                saveScrollPosition();
+                window.location.href = gamePath;
             }
-            
-            // 处理定式卡片点击
-            const card = e.target.closest('.joseki-card-link');
-            if (!card) return;
-            
-            const josekiId = card.dataset.josekiId;
-            const path = card.dataset.path;
-            
-            // 保存滚动位置和访问状态
-            saveScrollPosition(josekiId);
-            let visited = getVisited();
-            if (!visited.includes(josekiId)) {
-                visited.push(josekiId);
-                localStorage.setItem(getStorageKey(), JSON.stringify(visited));
-            }
-            
-            // 立即更新视觉状态
-            const cardInner = card.querySelector('.joseki-card');
-            if (cardInner) cardInner.classList.add('visited');
-            
-            // 跳转
-            window.location.href = path;
         }
         
         function handleFilterClick(e) {
@@ -430,12 +423,12 @@
         }
         // 事件委托初始化
         function setupEventDelegation() {
+            // 筛选标签点击
             document.querySelectorAll('.filter-tabs').forEach(tabs => {
                 tabs.addEventListener('click', handleFilterClick);
             });
-            document.querySelectorAll('.joseki-list').forEach(list => {
-                list.addEventListener('click', handleJosekiListClick);
-            });
+            // 棋谱按钮点击 - 事件委托
+            document.addEventListener('click', handleGameBtnClick);
         }
         function getStorageKey() { return 'visited_joseki_' + currentDate; }
         function getScrollKey() { return 'scroll_joseki_' + currentDate; }
@@ -477,12 +470,7 @@
             localStorage.removeItem(getStorageKey());
             clearVisitedStyles();
         }
-        // 清理已访问样式
-        function clearVisitedStyles() {
-            document.querySelectorAll('.joseki-card.visited').forEach(card => {
-                card.classList.remove('visited');
-            });
-        }
+        // 清理已访问样式 - 浏览器原生处理:visited，无需JS干预
         document.addEventListener('DOMContentLoaded', function() {
             setupEventDelegation();
             {% for date, data in date_data.items() %} 
