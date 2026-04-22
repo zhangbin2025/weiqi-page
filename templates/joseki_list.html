@@ -493,7 +493,16 @@
             applyPreset('{{ date }}', savedFilter{{ loop.index }}, false); 
             {% endfor %}
         });
-        window.addEventListener('pageshow', function(event) { if (event.persisted) { hasRestoredScroll = false; restoreScrollPosition(); } });
+        window.addEventListener('pageshow', function(event) { 
+            if (event.persisted) { 
+                // 从缓存恢复时，重新应用筛选状态和渲染
+                const savedFilter = restoreFilterState();
+                applyPreset(currentDate, savedFilter, false);
+                // 恢复滚动位置
+                hasRestoredScroll = false;
+                restoreScrollPosition();
+            } 
+        });
         document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') saveScrollPosition(); });
         window.addEventListener('beforeunload', saveScrollPosition);
         window.addEventListener('pagehide', saveScrollPosition);
