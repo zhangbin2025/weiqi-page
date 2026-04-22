@@ -79,25 +79,30 @@
             flex-direction: column;
             gap: 10px;
         }
-        .game-card {
+        /* 卡片容器 - 使用div代替a标签，避免:visited问题 */
+        .game-card-wrapper {
             display: block;
+            cursor: pointer;
+        }
+        .game-card {
             padding: 14px;
             background: #fff;
             border: 1px solid #eee;
             border-radius: 10px;
-            text-decoration: none;
-            color: inherit;
             transition: all 0.2s ease;
             box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        .game-card:hover {
+        .game-card-wrapper:hover .game-card {
             background: #fafafa;
             border-color: #ddd;
             transform: translateY(-1px);
             box-shadow: 0 3px 8px rgba(0,0,0,0.08);
         }
-        .game-card:visited { opacity: 0.7; cursor: pointer; }
+        .game-card.visited { opacity: 0.6; }
+        /* 修复点击：让所有子元素点击穿透到容器 */
+        .game-card-wrapper * { pointer-events: none; }
         .game-header {
             display: flex;
             flex-direction: column;
@@ -423,7 +428,7 @@
                     </div>
                     <div class="game-list">
                         {% for game in games %}
-                        <a href="{{ game.path }}" class="game-card" data-game-id="{{ game.id }}">
+                        <div class="game-card-wrapper" data-path="{{ game.path }}" data-game-id="{{ game.id }}"><div class="game-card">
                             <div class="game-header">
                                 <div class="game-players-row">
                                     <div class="stone-icon stone-black"></div>
@@ -435,7 +440,7 @@
                                 <span class="game-result {% if game.result.startswith('B+') %}black-win{% endif %}{% if game.result.startswith('W+') %}white-win{% endif %}">{{ game.result_cn }}</span>
                             </div>
                             <div class="game-event">{{ game.event }}</div>
-                        </a>
+                        </div></div>
                         {% endfor %}
                     </div>
                 </div>
@@ -711,19 +716,34 @@
             }
         }
         
-        document.querySelectorAll('.game-card').forEach(item => {
-            item.addEventListener('click', function() {
-                const gameId = this.dataset.gameId;
-                saveScrollPosition(gameId);
-                
-                const key = getStorageKey();
-                let visited = JSON.parse(localStorage.getItem(key) || '[]');
-                if (!visited.includes(gameId)) {
-                    visited.push(gameId);
-                    localStorage.setItem(key, JSON.stringify(visited));
-                }
-                this.style.opacity = '0.6';
-            });
+        // 事件委托处理卡片点击
+        function handleGameListClick(e) {
+            const wrapper = e.target.closest('.game-card-wrapper');
+            if (!wrapper) return;
+            
+            const gameId = wrapper.dataset.gameId;
+            const path = wrapper.dataset.path;
+            
+            // 保存状态
+            saveScrollPosition(gameId);
+            const key = getStorageKey();
+            let visited = JSON.parse(localStorage.getItem(key) || '[]');
+            if (!visited.includes(gameId)) {
+                visited.push(gameId);
+                localStorage.setItem(key, JSON.stringify(visited));
+            }
+            
+            // 立即更新视觉状态
+            const card = wrapper.querySelector('.game-card');
+            if (card) card.classList.add('visited');
+            
+            // 跳转
+            window.location.href = path;
+        }
+        
+        // 绑定事件委托到列表容器
+        document.querySelectorAll('.game-list').forEach(list => {
+            list.addEventListener('click', handleGameListClick);
         });
         
         document.addEventListener('visibilitychange', function() {
@@ -738,9 +758,10 @@
         function restoreVisited() {
             const key = getStorageKey();
             const visited = JSON.parse(localStorage.getItem(key) || '[]');
-            document.querySelectorAll('.game-card').forEach(item => {
-                if (visited.includes(item.dataset.gameId)) {
-                    item.style.opacity = '0.6';
+            document.querySelectorAll('.game-card-wrapper').forEach(wrapper => {
+                if (visited.includes(wrapper.dataset.gameId)) {
+                    const card = wrapper.querySelector('.game-card');
+                    if (card) card.classList.add('visited');
                 }
             });
         }
@@ -748,8 +769,8 @@
         function clearVisited() {
             const key = getStorageKey();
             localStorage.removeItem(key);
-            document.querySelectorAll('.game-card').forEach(item => {
-                item.style.opacity = '1';
+            document.querySelectorAll('.game-card').forEach(card => {
+                card.classList.remove('visited');
             });
         }
         

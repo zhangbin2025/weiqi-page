@@ -23,9 +23,30 @@
         .source-header:hover { background: #f0f0f0; }
         .source-toggle { font-size: 0.8em; color: #999; }
         .quiz-list { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-        .quiz-card { display: block; padding: 14px; background: #fff; border: 1px solid #eee; border-radius: 10px; text-decoration: none; color: inherit; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.04); cursor: pointer; }
-        .quiz-card:hover { background: #fafafa; border-color: #ddd; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
-        .quiz-card:visited { opacity: 0.7; cursor: pointer; }
+        /* 卡片容器 - 使用div代替a标签，避免:visited问题 */
+        .quiz-card-wrapper {
+            display: block;
+            cursor: pointer;
+        }
+        .quiz-card {
+            padding: 14px;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .quiz-card-wrapper:hover .quiz-card {
+            background: #fafafa;
+            border-color: #ddd;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        }
+        .quiz-card.visited { opacity: 0.6; }
+        /* 修复点击：让所有子元素点击穿透到容器 */
+        .quiz-card-wrapper * { pointer-events: none; }
         .quiz-header { display: flex; align-items: center; margin-bottom: 6px; width: 100%; overflow: hidden; }
         .players { font-weight: 600; font-size: 1.05em; color: #333; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .stone-icon { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
@@ -113,7 +134,7 @@
                     </div>
                     <div class="quiz-list">
                         {% for quiz in quizzes %}
-                        <a href="{{ quiz.path }}" class="quiz-card" data-quiz-id="{{ quiz.id }}">
+                        <div class="quiz-card-wrapper" data-path="{{ quiz.path }}" data-quiz-id="{{ quiz.id }}"><div class="quiz-card">
                             <div class="quiz-header">
                                 <span class="players">
                                     <span class="stone-icon stone-black"></span>{{ quiz.black }}<span style="color:#999;font-weight:normal;">vs</span><span class="stone-icon stone-white"></span>{{ quiz.white }}
@@ -129,9 +150,9 @@
                             </div>
                             <div class="quiz-footer">
                                 {% if quiz.result %}<span class="result">{{ quiz.result }}</span>{% else %}<span></span>{% endif %}
-                                {% if quiz.game_path %}<span class="game-btn" data-game-path="{{ quiz.game_path }}" onclick="openGame(event, this);">📖 棋谱</span>{% endif %}
+                                {% if quiz.game_path %}<span class="game-btn" data-game-path="{{ quiz.game_path }}">📖 棋谱</span>{% endif %}
                             </div>
-                        </a>
+                        </div></div>
                         {% endfor %}
                     </div>
                 </div>
@@ -292,15 +313,43 @@
                 requestAnimationFrame(function() { setTimeout(tryScroll, 50); });
             } catch (e) { localStorage.removeItem(getScrollKey()); }
         }
-        document.querySelectorAll('.quiz-card').forEach(card => {
-            card.addEventListener('click', function() {
-                const quizId = this.dataset.quizId;
-                saveScrollPosition(quizId);
-                const key = getStorageKey();
-                let visited = JSON.parse(localStorage.getItem(key) || '[]');
-                if (!visited.includes(quizId)) { visited.push(quizId); localStorage.setItem(key, JSON.stringify(visited)); }
-                this.style.opacity = '0.6';
-            });
+        // 事件委托处理卡片点击
+        function handleQuizListClick(e) {
+            // 处理棋谱按钮点击
+            const gameBtn = e.target.closest('.game-btn');
+            if (gameBtn) {
+                e.stopPropagation();
+                const gamePath = gameBtn.dataset.gamePath;
+                if (gamePath) {
+                    saveScrollPosition();
+                    window.location.href = gamePath;
+                }
+                return;
+            }
+            
+            const wrapper = e.target.closest('.quiz-card-wrapper');
+            if (!wrapper) return;
+            
+            const quizId = wrapper.dataset.quizId;
+            const path = wrapper.dataset.path;
+            
+            saveScrollPosition(quizId);
+            const key = getStorageKey();
+            let visited = JSON.parse(localStorage.getItem(key) || '[]');
+            if (!visited.includes(quizId)) {
+                visited.push(quizId);
+                localStorage.setItem(key, JSON.stringify(visited));
+            }
+            
+            const card = wrapper.querySelector('.quiz-card');
+            if (card) card.classList.add('visited');
+            
+            window.location.href = path;
+        }
+        
+        // 绑定事件委托到列表容器
+        document.querySelectorAll('.quiz-list').forEach(list => {
+            list.addEventListener('click', handleQuizListClick);
         });
         document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') saveScrollPosition(); });
         window.addEventListener('beforeunload', saveScrollPosition);
@@ -308,18 +357,23 @@
         function restoreVisited() {
             const key = getStorageKey();
             const visited = JSON.parse(localStorage.getItem(key) || '[]');
-            document.querySelectorAll('.quiz-card').forEach(card => { if (visited.includes(card.dataset.quizId)) card.style.opacity = '0.6'; });
+            document.querySelectorAll('.quiz-card-wrapper').forEach(wrapper => { 
+                if (visited.includes(wrapper.dataset.quizId)) {
+                    const card = wrapper.querySelector('.quiz-card');
+                    if (card) card.classList.add('visited');
+                }
+            });
         }
         function clearVisited() {
             const key = getStorageKey();
             localStorage.removeItem(key);
-            document.querySelectorAll('.quiz-card').forEach(card => { card.style.opacity = '1'; });
+            document.querySelectorAll('.quiz-card').forEach(card => { card.classList.remove('visited'); });
         }
         filterByDate();
         restoreVisited();
         restoreScrollPosition();
         window.addEventListener('pageshow', function(event) { if (event.persisted) { hasRestoredScroll = false; restoreVisited(); restoreScrollPosition(); } });
-        function openGame(event, element) { event.preventDefault(); event.stopPropagation(); saveScrollPosition(); window.location.href = element.dataset.gamePath; }
+
     </script>
 </body>
 </html>
