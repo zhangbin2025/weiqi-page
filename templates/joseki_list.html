@@ -237,6 +237,11 @@
         }
         document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeCalendar(); });
 
+        // ========== 设备检测 ==========
+        function isMobile() {
+            return window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
         // ========== 原有功能 ==========
         const state = {};
         let currentDate = '{{ current_date }}';
@@ -436,12 +441,14 @@
         function getScrollKey() { return 'scroll_joseki_' + currentDate; }
         let hasRestoredScroll = false;
         function saveScrollPosition(elementId) {
+            if (!isMobile()) return; // PC端不保存滚动位置
             const scrollY = window.scrollY || document.documentElement.scrollTop;
             localStorage.setItem(getScrollKey(), JSON.stringify({ y: scrollY, timestamp: Date.now(), elementId: elementId || null }));
         }
         function restoreScrollPosition(attempt) {
             attempt = attempt || 1;
             if (hasRestoredScroll) return;
+            if (!isMobile()) { hasRestoredScroll = true; return; } // PC端不恢复滚动位置
             const saved = localStorage.getItem(getScrollKey());
             if (!saved) return;
             try {

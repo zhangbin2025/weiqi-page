@@ -23,9 +23,9 @@
         .source-header:hover { background: #f0f0f0; }
         .source-toggle { font-size: 0.8em; color: #999; }
         .quiz-list { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-        .quiz-card { display: block; padding: 14px; background: #fff; border: 1px solid #eee; border-radius: 10px; text-decoration: none; color: inherit; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .quiz-card { display: block; padding: 14px; background: #fff; border: 1px solid #eee; border-radius: 10px; text-decoration: none; color: inherit; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.04); cursor: pointer; }
         .quiz-card:hover { background: #fafafa; border-color: #ddd; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
-        .quiz-card:visited { opacity: 0.7; }
+        .quiz-card:visited { opacity: 0.7; cursor: pointer; }
         .quiz-header { display: flex; align-items: center; margin-bottom: 6px; width: 100%; overflow: hidden; }
         .players { font-weight: 600; font-size: 1.05em; color: #333; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .stone-icon { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
@@ -238,6 +238,11 @@
         }
         document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeCalendar(); });
 
+        // ========== 设备检测 ==========
+        function isMobile() {
+            return window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
         // ========== 原有功能 ==========
         function filterByDate() {
             const selectedDate = document.getElementById('dateFilter').value;
@@ -258,12 +263,14 @@
         function getScrollKey() { const date = document.getElementById('dateFilter').value; return 'scroll_quiz_' + date; }
         let hasRestoredScroll = false;
         function saveScrollPosition(elementId) {
+            if (!isMobile()) return; // PC端不保存滚动位置
             const scrollY = window.scrollY || document.documentElement.scrollTop;
             localStorage.setItem(getScrollKey(), JSON.stringify({ y: scrollY, timestamp: Date.now(), elementId: elementId || null }));
         }
         function restoreScrollPosition(attempt) {
             attempt = attempt || 1;
             if (hasRestoredScroll) return;
+            if (!isMobile()) { hasRestoredScroll = true; return; } // PC端不恢复滚动位置
             const saved = localStorage.getItem(getScrollKey());
             if (!saved) return;
             try {
