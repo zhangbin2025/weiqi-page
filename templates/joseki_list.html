@@ -365,7 +365,7 @@
             restoreScrollPosition();
         }
         
-        // 简化的点击处理 - 只处理棋谱按钮
+        // 棋谱按钮点击 - 使用事件委托
         function handleGameBtnClick(e) {
             const gameBtn = e.target.closest('.game-btn');
             if (!gameBtn) return;
@@ -376,6 +376,13 @@
             if (gamePath) {
                 saveScrollPosition();
                 window.location.href = gamePath;
+            }
+        }
+        
+        // 调试：记录所有点击
+        function debugClick(e) {
+            if (e.target.closest('.joseki-card-link')) {
+                console.log('卡片被点击:', e.target.tagName, e.target.className);
             }
         }
         
@@ -429,6 +436,8 @@
             });
             // 棋谱按钮点击 - 事件委托
             document.addEventListener('click', handleGameBtnClick);
+            // 调试点击
+            document.addEventListener('click', debugClick);
         }
         function getStorageKey() { return 'visited_joseki_' + currentDate; }
         function getScrollKey() { return 'scroll_joseki_' + currentDate; }
