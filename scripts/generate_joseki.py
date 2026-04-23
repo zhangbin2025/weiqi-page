@@ -58,24 +58,26 @@ def discover_joseki(sgf_dir, sgf_count):
         return None, []
 
 
-def generate_sgf_from_moves(moves, output_path, corner="tr", black="", white="", event="", date=""):
+def generate_sgf_from_moves(tree_sgf, output_path, corner="tr", black="", white="", event="", date=""):
     """
-    根据着法序列生成SGF，包含棋谱元数据
-    moves: list of coord strings like ['pd', 'qf', 'nc', 'rd']
+    根据 tree SGF 生成带元数据的 SGF 文件
+    tree_sgf: tree SGF 字符串（从 discover 接口获取）
     """
-    if not moves:
+    if not tree_sgf:
         return False
     
-    # 构建SGF头部元数据
-    header_props = [
-        "CA[utf-8]",
-        "FF[4]",
-        "AP[WeiqiPage]",
-        "SZ[19]",
-        "GM[1]",
-    ]
+    # 去掉换行符，简化处理
+    tree_sgf_oneline = tree_sgf.replace('\n', '')
     
-    # 添加棋手信息
+    # 找到着法开始位置（第一个 ;B[ 或 ;W[）
+    body_start = tree_sgf_oneline.find(";B[")
+    if body_start == -1:
+        body_start = tree_sgf_oneline.find(";W[")
+    
+    sgf_body = tree_sgf_oneline[body_start:] if body_start != -1 else ""
+    
+    # 构建新头部
+    header_props = ["CA[utf-8]", "FF[4]", "AP[WeiqiPage]", "SZ[19]", "GM[1]"]
     if black:
         header_props.append(f"PB[{black}]")
     if white:
@@ -85,23 +87,12 @@ def generate_sgf_from_moves(moves, output_path, corner="tr", black="", white="",
     if date:
         header_props.append(f"DT[{date}]")
     
-    # 构建注释
     comment = f"定式 ({corner.upper()}角)"
     if black and white:
         comment = f"{black} vs {white} - {comment}"
     if event:
         comment = f"{event} - {comment}"
     header_props.append(f"C[{comment}]")
-    
-    # 构建着法
-    sgf_body = ""
-    color = "B"  # 黑先
-    for coord in moves:
-        if coord == "tt":
-            sgf_body += f";{color}[tt]"
-        else:
-            sgf_body += f";{color}[{coord}]"
-        color = "W" if color == "B" else "B"
     
     sgf = f"(;{' '.join(header_props)}{sgf_body})"
     
@@ -209,17 +200,11 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
     for idx, joseki in enumerate(joseki_list, 1):
         joseki_id = joseki.get("joseki_id", "")
         matched_prefix_len = joseki.get("prefix_len", 0)
-        # 使用完整着法序列（extracted_moves），而不是匹配的前缀（prefix）
-        # extracted_moves 包含棋谱中该角的完整着法序列
-        # prefix 只是匹配定式库的前缀部分
-        full_moves_str = joseki.get("extracted_moves", "")
-        if full_moves_str:
-            moves = full_moves_str.split()
-        else:
-            # 回退：使用 prefix（兼容旧接口）
-            prefix_str = joseki.get("prefix", "")
-            moves = prefix_str.split() if prefix_str else []
-        move_count = joseki.get("total_moves", len(moves))
+        # extracted_moves 现在是 tree SGF 字符串
+        tree_sgf = joseki.get("extracted_moves", "")
+        prefix_str = joseki.get("prefix", "")  # 用于显示
+        move_count = joseki.get("total_moves", 0)
+        moves = tree_sgf  # 保持兼容，moves 字段现在放 tree SGF
         frequency = joseki.get("frequency", 0)
         
         # 获取来源信息（从game_info和source_corner）
@@ -236,7 +221,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         # 生成SGF
         sgf_path = joseki_dir / f"joseki_{idx:03d}.sgf"
         
-        if not generate_sgf_from_moves(moves, sgf_path, corner, black_name, white_name, event_name, date_str):
+        if not generate_sgf_from_moves(tree_sgf, sgf_path, corner, black_name, white_name, event_name, date_str):
             print(f"     ❌ 生成SGF失败")
             continue
         
