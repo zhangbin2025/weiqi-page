@@ -58,7 +58,17 @@
         .quiz-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
         .stats { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 0.85em; color: #666; }
         .stats .count { font-weight: 600; color: #1976d2; }
-        .stats .phase, .stats .difficulty { color: #888; }
+        .stats .phase { color: #888; }
+        .stats .level { 
+            color: #fff; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .stats .level[data-level="职业"] { background: #E57373; }  /* 原困难色 */
+        .stats .level[data-level="高段"] { background: #FFB74D; }  /* 原中等色 */
+        .stats .level[data-level="普通"] { background: #81C784; }  /* 原简单色 */
         .game-btn { padding: 5px 12px; background: #e8f5e9; color: #2e7d32; border-radius: 12px; font-size: 0.85em; white-space: nowrap; cursor: pointer; transition: background 0.2s; }
         .game-btn:hover { background: #c8e6c9; }
         footer { text-align: center; padding: 15px; color: #999; font-size: 0.8em; }
@@ -146,7 +156,7 @@
                                 <span class="count">{{ quiz.count }}题</span>
                                 {% if quiz.stats %}
                                 <span class="phase">{% if quiz.stats.phase.layout %}布局{{ quiz.stats.phase.layout }}{% endif %}{% if quiz.stats.phase.middle %}中盘{{ quiz.stats.phase.middle }}{% endif %}{% if quiz.stats.phase.endgame %}官子{{ quiz.stats.phase.endgame }}{% endif %}</span>
-                                <span class="difficulty">简单{{ quiz.stats.difficulty.easy }} 中等{{ quiz.stats.difficulty.medium }} 困难{{ quiz.stats.difficulty.hard }}</span>
+                                <span class="level" data-level="{{ quiz.stats.game_level }}">{{ quiz.stats.game_level }}</span>
                                 {% endif %}
                             </div>
                             <div class="quiz-footer">

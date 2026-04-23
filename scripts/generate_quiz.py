@@ -62,8 +62,8 @@ def parse_quiz_output(stdout):
     stats = {
         "total": 0,
         "result": "",
-        "phase": {"layout": 0, "middle": 0, "endgame": 0},
-        "difficulty": {"easy": 0, "medium": 0, "hard": 0}
+        "game_level": "未知",  # 新增：整局等级
+        "phase": {"layout": 0, "middle": 0, "endgame": 0}
     }
     
     for line in stdout.split('\n'):
@@ -80,29 +80,23 @@ def parse_quiz_output(stdout):
             if match:
                 stats["total"] = int(match.group(1))
         
-        # 解析阶段分布
-        if '布局:' in line or '中盘:' in line or '官子:' in line:
-            phase_match = re.search(r'布局:\s*(\d+)', line)
+        # 解析等级
+        if '等级:' in line:
+            level_match = re.search(r'等级:\s*(\S+)', line)
+            if level_match:
+                stats["game_level"] = level_match.group(1)
+        
+        # 解析阶段分布（新格式：阶段: 布局x, 中盘y, 官子z）
+        if '阶段:' in line and ('布局' in line or '中盘' in line or '官子' in line):
+            phase_match = re.search(r'布局\s*(\d+)', line)
             if phase_match:
                 stats["phase"]["layout"] = int(phase_match.group(1))
-            phase_match = re.search(r'中盘:\s*(\d+)', line)
+            phase_match = re.search(r'中盘\s*(\d+)', line)
             if phase_match:
                 stats["phase"]["middle"] = int(phase_match.group(1))
-            phase_match = re.search(r'官子:\s*(\d+)', line)
+            phase_match = re.search(r'官子\s*(\d+)', line)
             if phase_match:
                 stats["phase"]["endgame"] = int(phase_match.group(1))
-        
-        # 解析难度分布
-        if '简单:' in line or '中等:' in line or '困难:' in line:
-            diff_match = re.search(r'简单:\s*(\d+)', line)
-            if diff_match:
-                stats["difficulty"]["easy"] = int(diff_match.group(1))
-            diff_match = re.search(r'中等:\s*(\d+)', line)
-            if diff_match:
-                stats["difficulty"]["medium"] = int(diff_match.group(1))
-            diff_match = re.search(r'困难:\s*(\d+)', line)
-            if diff_match:
-                stats["difficulty"]["hard"] = int(diff_match.group(1))
     
     return stats
 

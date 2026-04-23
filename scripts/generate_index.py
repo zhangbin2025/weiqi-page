@@ -102,7 +102,7 @@ def generate_index(test_mode=False):
     
     quiz_count = 0
     quiz_phase = {"layout": 0, "middle": 0, "endgame": 0}
-    quiz_difficulty = {"easy": 0, "medium": 0, "hard": 0}
+    quiz_level = {"职业": 0, "高段": 0, "普通": 0}  # 三级划分
     
     joseki_count = 0
     joseki_hot = 0
@@ -137,13 +137,15 @@ def generate_index(test_mode=False):
                     quiz_count += count
                     stats = q.get("stats", {})
                     phase = stats.get("phase", {})
-                    difficulty = stats.get("difficulty", {})
+                    game_level = stats.get("game_level", "普通")
                     quiz_phase["layout"] += phase.get("layout", 0)
                     quiz_phase["middle"] += phase.get("middle", 0)
                     quiz_phase["endgame"] += phase.get("endgame", 0)
-                    quiz_difficulty["easy"] += difficulty.get("easy", 0)
-                    quiz_difficulty["medium"] += difficulty.get("medium", 0)
-                    quiz_difficulty["hard"] += difficulty.get("hard", 0)
+                    # 按等级统计题目数（三级）
+                    if game_level in quiz_level:
+                        quiz_level[game_level] += count
+                    else:
+                        quiz_level["普通"] += count
             except:
                 pass
         
@@ -197,7 +199,7 @@ def generate_index(test_mode=False):
         games_sources=games_sources,
         quiz_count=quiz_count,
         quiz_phase=quiz_phase,
-        quiz_difficulty=quiz_difficulty,
+        quiz_level=quiz_level,
         joseki_count=joseki_count,
         joseki_hot=joseki_hot,
         joseki_hit=joseki_hit,
