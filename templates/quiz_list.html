@@ -45,8 +45,9 @@
             box-shadow: 0 3px 8px rgba(0,0,0,0.08);
         }
         .quiz-card.visited { opacity: 0.6; }
-        /* 修复点击：让所有子元素点击穿透到容器 */
+        /* 修复点击：让所有子元素点击穿透到容器，但保留棋谱按钮 */
         .quiz-card-wrapper * { pointer-events: none; }
+        .quiz-card-wrapper .game-btn { pointer-events: auto; }
         .quiz-header { display: flex; align-items: center; margin-bottom: 6px; width: 100%; overflow: hidden; }
         .players { font-weight: 600; font-size: 1.05em; color: #333; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .stone-icon { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
