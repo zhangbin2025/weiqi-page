@@ -87,8 +87,13 @@ def generate_sgf_from_moves(tree_sgf, output_path, corner="tr", prefix_len=0):
     
     # 构建新头部 - 纯定式教学视角，不含棋手信息
     header_props = ["CA[utf-8]", "FF[4]", "AP[WeiqiPage]", "SZ[19]", "GM[1]"]
-    comment = f"实战{corner_name}标准化定式（{prefix_len}手）"
-    header_props.append(f"C[{comment}]")
+    
+    # 定式标题（用于网页标题显示）
+    joseki_title = f"实战{corner_name}标准化定式（{prefix_len}手）"
+    header_props.append(f"GN[{joseki_title}]")
+    
+    # 注释（显示在棋盘上方）
+    header_props.append(f"C[{joseki_title}]")
     
     sgf = f"(;{' '.join(header_props)}{sgf_body})"
     
