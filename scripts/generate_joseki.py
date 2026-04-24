@@ -222,8 +222,9 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         # 生成SGF
         sgf_path = joseki_dir / f"joseki_{idx:03d}.sgf"
         
-        # 坐标已统一转换为右上角视角，所以标题也统一显示右上角
-        if not generate_sgf_from_moves(tree_sgf, sgf_path, "tr", matched_prefix_len):
+        # tree_sgf 坐标已统一转换为右上角视角
+        # 但标题显示真实来源角位（source_corner）
+        if not generate_sgf_from_moves(tree_sgf, sgf_path, corner, matched_prefix_len):
             print(f"     ❌ 生成SGF失败")
             continue
         
