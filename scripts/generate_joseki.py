@@ -58,7 +58,7 @@ def discover_joseki(sgf_dir, sgf_count):
         return None, []
 
 
-def generate_sgf_from_moves(tree_sgf, output_path, corner="tr", black="", white="", event="", date=""):
+def generate_sgf_from_moves(tree_sgf, output_path, corner="tr", prefix_len=0):
     """
     根据 tree SGF 生成带元数据的 SGF 文件
     tree_sgf: tree SGF 字符串（从 discover 接口获取）
@@ -76,22 +76,18 @@ def generate_sgf_from_moves(tree_sgf, output_path, corner="tr", black="", white=
     
     sgf_body = tree_sgf_oneline[body_start:] if body_start != -1 else ""
     
-    # 构建新头部
-    header_props = ["CA[utf-8]", "FF[4]", "AP[WeiqiPage]", "SZ[19]", "GM[1]"]
-    if black:
-        header_props.append(f"PB[{black}]")
-    if white:
-        header_props.append(f"PW[{white}]")
-    if event:
-        header_props.append(f"GN[{event}]")
-    if date:
-        header_props.append(f"DT[{date}]")
+    # 角位映射
+    corner_map = {
+        'tr': '右上角',
+        'tl': '左上角',
+        'br': '右下角',
+        'bl': '左下角'
+    }
+    corner_name = corner_map.get(corner.lower(), f"{corner.upper()}角")
     
-    comment = f"定式 ({corner.upper()}角)"
-    if black and white:
-        comment = f"{black} vs {white} - {comment}"
-    if event:
-        comment = f"{event} - {comment}"
+    # 构建新头部 - 纯定式教学视角，不含棋手信息
+    header_props = ["CA[utf-8]", "FF[4]", "AP[WeiqiPage]", "SZ[19]", "GM[1]"]
+    comment = f"实战{corner_name}标准化定式（{prefix_len}手）"
     header_props.append(f"C[{comment}]")
     
     sgf = f"(;{' '.join(header_props)}{sgf_body})"
@@ -209,7 +205,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         
         # 获取来源信息（从game_info和source_corner）
         game_info = joseki.get("game_info", {})
-        corner = joseki.get("source_corner", "tr")
+        corner = joseki.get("corner", "tr")
         black_name = game_info.get("black", "未知")
         white_name = game_info.get("white", "未知")
         event_name = game_info.get("event", "")
@@ -221,7 +217,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
         # 生成SGF
         sgf_path = joseki_dir / f"joseki_{idx:03d}.sgf"
         
-        if not generate_sgf_from_moves(tree_sgf, sgf_path, corner, black_name, white_name, event_name, date_str):
+        if not generate_sgf_from_moves(tree_sgf, sgf_path, corner, matched_prefix_len):
             print(f"     ❌ 生成SGF失败")
             continue
         
