@@ -21,7 +21,7 @@ def run_db_cmd(args):
 
 
 def get_games_by_date(date_str):
-    """从weiqi-db获取指定日期的棋谱列表"""
+    """从weiqi-db获取指定日期的棋谱列表，并翻译韩文棋手名"""
     result = run_db_cmd(["query", "--date", date_str])
     
     if result.returncode != 0:
@@ -31,10 +31,24 @@ def get_games_by_date(date_str):
     try:
         data = json.loads(result.stdout)
         if isinstance(data, list):
-            return data
+            games = data
         elif isinstance(data, dict) and "games" in data:
-            return data["games"]
-        return []
+            games = data["games"]
+        else:
+            return []
+        
+        # 翻译棋手名
+        try:
+            from translator import translate_player_name
+            for game in games:
+                if game.get("black"):
+                    game["black"] = translate_player_name(game["black"])
+                if game.get("white"):
+                    game["white"] = translate_player_name(game["white"])
+        except Exception as e:
+            print(f"  ⚠️  棋手名翻译警告: {e}")
+        
+        return games
     except json.JSONDecodeError:
         return []
 
@@ -49,13 +63,32 @@ def get_game_source(game):
 
 
 def batch_export_sgfs(game_ids, output_dir):
-    """批量导出SGF文件到指定目录"""
+    """批量导出SGF文件到指定目录，并翻译韩文棋手名"""
     if not game_ids:
         return False
     
     ids_str = ",".join(game_ids)
     result = run_db_cmd(["get", "--ids", ids_str, "-d", str(output_dir)])
-    return result.returncode == 0
+    
+    if result.returncode != 0:
+        return False
+    
+    # 翻译所有导出的SGF文件
+    output_path = Path(output_dir)
+    sgf_files = list(output_path.glob("*.sgf"))
+    
+    if sgf_files:
+        try:
+            from translator import translate_sgf
+            for sgf_file in sgf_files:
+                sgf_content = sgf_file.read_text(encoding='utf-8')
+                translated = translate_sgf(sgf_content)
+                if translated != sgf_content:
+                    sgf_file.write_text(translated, encoding='utf-8')
+        except Exception as e:
+            print(f"  ⚠️  SGF翻译警告: {e}")
+    
+    return True
 
 
 def find_sgf_file_by_id(sgf_dir, game_id):
