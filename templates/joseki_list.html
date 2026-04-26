@@ -356,8 +356,10 @@
                     probDisplay = (prob * 100).toFixed(2) + '%';  // 0.1%-1%: 0.85%
                 } else if (prob >= 0.0001) {
                     probDisplay = (prob * 100).toFixed(3) + '%';  // 0.01%-0.1%: 0.085%
+                } else if (prob >= 0.00001) {
+                    probDisplay = (prob * 100).toFixed(4) + '%';  // 0.001%-0.01%: 0.0085%
                 } else if (prob > 0) {
-                    probDisplay = '<0.01%';  // <0.01%: <0.01%
+                    probDisplay = (prob * 100).toFixed(5) + '%';  // <0.001%: 0.00085%
                 } else {
                     probDisplay = '0%';
                 }
