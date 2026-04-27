@@ -67,6 +67,9 @@ WEIQI_JOSEKI_DIR = SKILLS_DIR / "weiqi-joseki"  # joseki目录
 WEIQI_JOSEKI_SCRIPT = WEIQI_JOSEKI_DIR / "db.py"  # 使用db.py兼容性入口
 WEIQI_FOXWQ_SCRIPT = SKILLS_DIR / "weiqi-foxwq/scripts/download_sgf.py"
 
+# 记谱工具路径 - 优先使用环境变量，其次在工作区查找
+WEIQI_RECORDER_PATH = Path(os.getenv("WEIQI_RECORDER_PATH", WORKSPACE_DIR.parent / ".openclaw/workspace/weiqi-recorder/assets/weiqi_recorder.html"))
+
 # 数据存储路径 - 使用环境变量或默认家目录
 WEIQI_DB_DIR = Path(os.getenv("WEIQI_DB_DIR", HOME_DIR / ".weiqi-db"))
 WEIQI_JOSEKI_DB_DIR = Path(os.getenv("WEIQI_JOSEKI_DB_DIR", HOME_DIR / ".weiqi-joseki"))

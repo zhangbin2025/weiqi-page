@@ -213,15 +213,18 @@ def generate_index(test_mode=False):
     output_path.write_text(html, encoding="utf-8")
     print(f"✅ 生成首页: {output_path}")
     
-    # 复制工具目录到站点
+    # 复制记谱工具到站点
     import shutil
-    tools_src = TEMPLATES_DIR.parent / "tools"
+    from config import WEIQI_RECORDER_PATH
     tools_dst = base_dir / "tools"
-    if tools_src.exists():
-        if tools_dst.exists():
-            shutil.rmtree(tools_dst)
-        shutil.copytree(tools_src, tools_dst)
-        print(f"✅ 复制工具目录: {tools_dst}")
+    recorder_dst = tools_dst / "recorder.html"
+    
+    if WEIQI_RECORDER_PATH.exists():
+        tools_dst.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(WEIQI_RECORDER_PATH, recorder_dst)
+        print(f"✅ 复制记谱工具: {recorder_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到记谱工具: {WEIQI_RECORDER_PATH}")
     
     # 生成根目录跳转页
     from config import WORKSPACE_DIR, SITE_ROOT
