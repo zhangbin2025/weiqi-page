@@ -620,6 +620,11 @@
             return window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
         
+        // ========== 微信浏览器检测 ==========
+        function isWechatBrowser() {
+            return /MicroMessenger/i.test(navigator.userAgent);
+        }
+        
         // ========== 原有功能 ==========
         function filterByDate() {
             const selectedDate = document.getElementById('dateFilter').value;
@@ -661,7 +666,7 @@
         let lastClickedElement = null;
         
         function saveScrollPosition(elementId) {
-            if (!isMobile()) return; // PC端不保存滚动位置
+            if (!isWechatBrowser()) return; // 非微信浏览器不保存滚动位置
             const scrollY = window.scrollY || document.documentElement.scrollTop;
             const key = getScrollKey();
             localStorage.setItem(key, JSON.stringify({
@@ -673,7 +678,7 @@
         
         function restoreScrollPosition(attempt = 1) {
             if (hasRestoredScroll) return;
-            if (!isMobile()) { hasRestoredScroll = true; return; } // PC端不恢复滚动位置
+            if (!isWechatBrowser()) { hasRestoredScroll = true; return; } // 非微信浏览器不恢复滚动位置
             
             const key = getScrollKey();
             const saved = localStorage.getItem(key);
