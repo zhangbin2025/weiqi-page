@@ -49,22 +49,19 @@
             border-radius: 10px;
         }
         .tools-btn {
-            background: rgba(255,255,255,0.9);
+            background: transparent;
             border: none;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            font-size: 1.2em;
+            padding: 4px;
+            font-size: 1.4em;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
         .tools-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transform: scale(1.1);
         }
         .cards {
             display: flex;
