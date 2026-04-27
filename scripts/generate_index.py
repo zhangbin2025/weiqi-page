@@ -213,6 +213,16 @@ def generate_index(test_mode=False):
     output_path.write_text(html, encoding="utf-8")
     print(f"✅ 生成首页: {output_path}")
     
+    # 复制工具目录到站点
+    import shutil
+    tools_src = TEMPLATES_DIR.parent / "tools"
+    tools_dst = base_dir / "tools"
+    if tools_src.exists():
+        if tools_dst.exists():
+            shutil.rmtree(tools_dst)
+        shutil.copytree(tools_src, tools_dst)
+        print(f"✅ 复制工具目录: {tools_dst}")
+    
     # 生成根目录跳转页
     from config import WORKSPACE_DIR, SITE_ROOT
     redirect_html = """<!DOCTYPE html>
