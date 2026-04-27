@@ -419,19 +419,23 @@
             applyPreset(date, filter);
         }
         
-        function getFilterKey() { return 'filter_joseki_' + currentDate; }
+        // 全局保存最后使用的标签（跨日期）
+        function getGlobalFilterKey() { return 'filter_joseki_last'; }
         
         function saveFilterState(filter) {
-            localStorage.setItem(getFilterKey(), JSON.stringify({ filter: filter, timestamp: Date.now() }));
+            // 保存到全局 key，跨日期记住用户偏好
+            localStorage.setItem(getGlobalFilterKey(), JSON.stringify({ filter: filter, timestamp: Date.now() }));
         }
         
         function restoreFilterState() {
-            const saved = localStorage.getItem(getFilterKey());
+            // 读取全局保存的最后使用标签
+            const saved = localStorage.getItem(getGlobalFilterKey());
             if (!saved) return 'hot'; // 默认返回热门
             try {
                 const data = JSON.parse(saved);
-                if (Date.now() - data.timestamp > 30 * 60 * 1000) { 
-                    localStorage.removeItem(getFilterKey()); 
+                // 7天内有效
+                if (Date.now() - data.timestamp > 7 * 24 * 60 * 60 * 1000) { 
+                    localStorage.removeItem(getGlobalFilterKey()); 
                     return 'hot'; 
                 }
                 return data.filter || 'hot';
