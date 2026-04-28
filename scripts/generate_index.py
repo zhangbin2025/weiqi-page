@@ -8,7 +8,7 @@ from pathlib import Path
 from jinja2 import Template
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
+from config import SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs, WEIQI_PAGE_DIR
 
 
 def normalize_event_name(event):
@@ -225,6 +225,38 @@ def generate_index(test_mode=False):
         print(f"✅ 复制记谱工具: {recorder_dst}")
     else:
         print(f"⚠️ 警告: 未找到记谱工具: {WEIQI_RECORDER_PATH}")
+    
+    # 复制棋手查询工具到站点
+    player_query_src = TEMPLATES_DIR / "tools" / "player_query.html"
+    player_query_dst = tools_dst / "player_query.html"
+    
+    if player_query_src.exists():
+        tools_dst.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(player_query_src, player_query_dst)
+        print(f"✅ 复制棋手查询工具: {player_query_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到棋手查询工具: {player_query_src}")
+    
+    # 复制认证页面到站点
+    auth_src = TEMPLATES_DIR / "auth.html"
+    auth_dst = base_dir / "auth.html"
+    
+    if auth_src.exists():
+        shutil.copy2(auth_src, auth_dst)
+        print(f"✅ 复制认证页面: {auth_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到认证页面: {auth_src}")
+    
+    # 复制认证工具 JS 到站点
+    static_js_src = WEIQI_PAGE_DIR / "static" / "js" / "auth.js"
+    static_js_dst = base_dir / "static" / "js" / "auth.js"
+    
+    if static_js_src.exists():
+        static_js_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(static_js_src, static_js_dst)
+        print(f"✅ 复制认证工具 JS: {static_js_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到认证工具 JS: {static_js_src}")
     
     # 生成根目录跳转页
     from config import WORKSPACE_DIR, SITE_ROOT
