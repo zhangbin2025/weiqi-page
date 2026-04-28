@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>棋手查询 - 围棋智能助手</title>
     <link rel="icon" type="image/x-icon" href="/weiqi-page/assets/favicon/favicon.ico">
-    <link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon/favicon.png">
-    <script src="/weiqi-page/static/js/auth.js?v=1"></script>
+    <script src="/weiqi-page/static/js/auth.js?v=2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -172,21 +171,6 @@
             margin-bottom: 12px;
         }
         
-        /* Token 信息 */
-        .token-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.85em;
-            color: #666;
-            margin-top: 8px;
-        }
-        
-        .token-info a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
         /* 页脚 */
         footer {
             text-align: center;
@@ -208,11 +192,6 @@
             <h2>🔍 棋手姓名</h2>
             <input type="text" id="nameInput" placeholder="请输入棋手姓名..." maxlength="20">
             <button onclick="queryPlayer()" id="queryBtn">开始查询</button>
-            
-            <div class="token-info">
-                <span id="tokenStatus">Token: 已保存</span>
-                <a href="/weiqi-page/auth.html" onclick="clearToken()">重新输入 Token</a>
-            </div>
         </div>
         
         <!-- 结果显示 -->
@@ -224,25 +203,6 @@
     </div>
     
     <script>
-        // 页面加载时检查 Token
-        window.onload = function() {
-            updateTokenStatus();
-        };
-        
-        // 更新 Token 状态显示
-        function updateTokenStatus() {
-            const statusEl = document.getElementById('tokenStatus');
-            if (hasToken()) {
-                const token = getToken();
-                const preview = token.substring(0, 8) + '...';
-                statusEl.textContent = `Token: ${preview}`;
-            } else {
-                statusEl.textContent = 'Token: 未设置';
-                // 无 Token 自动跳转
-                redirectToAuth();
-            }
-        }
-        
         // 查询棋手
         async function queryPlayer() {
             const name = document.getElementById('nameInput').value.trim();
@@ -254,7 +214,7 @@
                 return;
             }
             
-            // 检查 Token
+            // 检查 Token（只在查询时判断）
             if (!hasToken()) {
                 redirectToAuth();
                 return;
@@ -297,7 +257,7 @@
                         <div class="error">
                             <strong>查询失败</strong>
                             <p>${error.message}</p>
-                            <small>如果提示 Token 无效，请点击"重新输入 Token"</small>
+                            <small>如果提示 Token 无效，请重新输入 Token</small>
                         </div>
                     </div>
                 `;
