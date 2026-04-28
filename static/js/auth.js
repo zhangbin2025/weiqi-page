@@ -44,7 +44,7 @@ function hasToken() {
 function redirectToAuth(returnUrl) {
     const url = returnUrl || window.location.href;
     const encodedReturnUrl = encodeURIComponent(url);
-    window.location.href = `/auth.html?return=${encodedReturnUrl}`;
+    window.location.href = `/weiqi-page/auth.html?return=${encodedReturnUrl}`;
 }
 
 /**
