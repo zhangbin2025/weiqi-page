@@ -94,7 +94,7 @@ async function fetchWithAuth(url, options = {}) {
  */
 async function validateToken(token) {
     try {
-        const response = await fetch(`${API_BASE}/status`, {
+        const response = await fetch(`${API_BASE}/api/status`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         return response.ok;
