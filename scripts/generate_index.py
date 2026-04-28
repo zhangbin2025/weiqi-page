@@ -226,6 +226,19 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到记谱工具: {WEIQI_RECORDER_PATH}")
     
+    # 获取 Git commit hash (短格式) - 提前获取，供后续模板替换使用
+    import subprocess
+    try:
+        git_hash = subprocess.run(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            cwd=WEIQI_PAGE_DIR,
+            capture_output=True,
+            text=True,
+            check=True
+        ).stdout.strip()
+    except:
+        git_hash = 'dev'
+    
     # 复制棋手查询工具到站点
     player_query_src = TEMPLATES_DIR / "tools" / "player_query.html"
     player_query_dst = tools_dst / "player_query.html"
@@ -238,19 +251,6 @@ def generate_index(test_mode=False):
         print(f"✅ 复制棋手查询工具: {player_query_dst} (git:{git_hash})")
     else:
         print(f"⚠️ 警告: 未找到棋手查询工具: {player_query_src}")
-    
-    # 获取 Git commit hash (短格式)
-    import subprocess
-    try:
-        git_hash = subprocess.run(
-            ['git', 'rev-parse', '--short', 'HEAD'],
-            cwd=WEIQI_PAGE_DIR,
-            capture_output=True,
-            text=True,
-            check=True
-        ).stdout.strip()
-    except:
-        git_hash = 'dev'
     
     # 复制认证页面到站点
     auth_src = TEMPLATES_DIR / "auth.html"
