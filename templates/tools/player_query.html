@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棋手查询 - 围棋智能助手</title>
+    <link rel="icon" type="image/x-icon" href="/assets/favicon/favicon.ico">
+    <link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon/favicon.png">
+    <script src="/static/js/auth.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 12px;
+            min-height: 100vh;
+        }
+        
+        /* 头部 */
+        header {
+            padding: 12px 10px;
+            color: white;
+            text-align: center;
+        }
+        
+        h1 { 
+            font-size: 1.6em; 
+            margin-bottom: 4px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+        
+        /* 卡片通用样式 */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 输入框 */
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        /* 按钮 */
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            width: 100%;
+            margin-top: 12px;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 错误提示 */
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .error small {
+            display: block;
+            margin-top: 8px;
+            color: #888;
+        }
+        
+        /* 结果卡片 */
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        
+        .result-card h3 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 1em;
+        }
+        
+        .result-card pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #555;
+            font-family: inherit;
+        }
+        
+        .result-card .not-found {
+            color: #888;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        /* 查询时间 */
+        .query-time {
+            text-align: center;
+            color: #888;
+            font-size: 0.8em;
+            margin-bottom: 12px;
+        }
+        
+        /* Token 信息 */
+        .token-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 8px;
+        }
+        
+        .token-info a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        /* 页脚 */
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.7em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👤 棋手查询</h1>
+            <p class="subtitle">查询手谈等级分与业余段位</p>
+        </header>
+        
+        <!-- 查询输入 -->
+        <div class="card">
+            <h2>🔍 棋手姓名</h2>
+            <input type="text" id="nameInput" placeholder="请输入棋手姓名..." maxlength="20">
+            <button onclick="queryPlayer()" id="queryBtn">开始查询</button>
+            
+            <div class="token-info">
+                <span id="tokenStatus">Token: 已保存</span>
+                <a href="/auth.html" onclick="clearToken()">重新输入 Token</a>
+            </div>
+        </div>
+        
+        <!-- 结果显示 -->
+        <div id="resultSection" style="display: none;"></div>
+        
+        <footer>
+            <p>围棋智能助手 &copy; 2026</p>
+        </footer>
+    </div>
+    
+    <script>
+        const API_BASE = 'https://1.14.205.137:9801';
+        
+        // 页面加载时检查 Token
+        window.onload = function() {
+            updateTokenStatus();
+        };
+        
+        // 更新 Token 状态显示
+        function updateTokenStatus() {
+            const statusEl = document.getElementById('tokenStatus');
+            if (hasToken()) {
+                const token = getToken();
+                const preview = token.substring(0, 8) + '...';
+                statusEl.textContent = `Token: ${preview}`;
+            } else {
+                statusEl.textContent = 'Token: 未设置';
+                // 无 Token 自动跳转
+                redirectToAuth();
+            }
+        }
+        
+        // 查询棋手
+        async function queryPlayer() {
+            const name = document.getElementById('nameInput').value.trim();
+            const queryBtn = document.getElementById('queryBtn');
+            const resultSection = document.getElementById('resultSection');
+            
+            if (!name) {
+                alert('请输入棋手姓名');
+                return;
+            }
+            
+            // 检查 Token
+            if (!hasToken()) {
+                redirectToAuth();
+                return;
+            }
+            
+            // 禁用按钮，显示加载
+            queryBtn.disabled = true;
+            queryBtn.textContent = '查询中...';
+            resultSection.style.display = 'block';
+            resultSection.innerHTML = `
+                <div class="card loading">
+                    <div class="spinner"></div>
+                    <p>正在查询 "${name}"...</p>
+                    <p style="font-size: 0.85em; color: #888; margin-top: 8px;">
+                        手谈查询约 1-3 秒，易查分查询约 5-10 秒
+                    </p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetchWithAuth(
+                    `${API_BASE}/api/player?name=${encodeURIComponent(name)}`
+                );
+                
+                // 如果 response 为 null，说明已跳转到认证页
+                if (!response) return;
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error?.message || '查询失败');
+                }
+                
+                // 显示结果
+                displayResult(data);
+                
+            } catch (error) {
+                resultSection.innerHTML = `
+                    <div class="card">
+                        <div class="error">
+                            <strong>查询失败</strong>
+                            <p>${error.message}</p>
+                            <small>如果提示 Token 无效，请点击"重新输入 Token"</small>
+                        </div>
+                    </div>
+                `;
+            } finally {
+                queryBtn.disabled = false;
+                queryBtn.textContent = '开始查询';
+            }
+        }
+        
+        // 显示查询结果
+        function displayResult(data) {
+            const resultSection = document.getElementById('resultSection');
+            
+            let html = `
+                <div class="card">
+                    <div class="query-time">查询时间: ${new Date(data.query_time).toLocaleString()}</div>
+                    <h2>📊 查询结果: ${data.name}</h2>
+            `;
+            
+            // 手谈结果
+            html += '<div class="result-card">';
+            html += '<h3>【手谈等级分】</h3>';
+            if (data.shoutan?.found) {
+                html += `<pre>${data.shoutan.raw_output}</pre>`;
+            } else {
+                html += '<div class="not-found">❌ 未找到手谈等级分信息</div>';
+            }
+            html += '</div>';
+            
+            // 易查分结果
+            html += '<div class="result-card">';
+            html += '<h3>【易查分业余段位】</h3>';
+            if (data.yichafen?.found) {
+                html += `<pre>${data.yichafen.raw_output}</pre>`;
+            } else {
+                html += '<div class="not-found">⚠️ 未查询到业余段位信息</div>';
+            }
+            html += '</div>';
+            
+            html += '</div>';
+            
+            resultSection.innerHTML = html;
+        }
+        
+        // 回车键查询
+        document.getElementById('nameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                queryPlayer();
+            }
+        });
+    </script>
+</body>
+</html>
