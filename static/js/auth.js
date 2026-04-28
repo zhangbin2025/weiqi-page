@@ -3,7 +3,12 @@
  * 提供 Token 管理和带认证的请求
  */
 
-const API_BASE = 'https://1.14.205.137:9801';
+// API 基础地址
+// 生产环境使用相对路径，由 Nginx 代理
+// 测试环境直接访问外部 API
+const API_BASE = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' 
+    ? 'https://1.14.205.137:9801'  // 测试环境
+    : '/api';  // 生产环境（Nginx 代理）
 const TOKEN_KEY = 'weiqi_token';
 
 /**
