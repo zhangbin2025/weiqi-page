@@ -232,31 +232,48 @@ def generate_index(test_mode=False):
     
     if player_query_src.exists():
         tools_dst.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(player_query_src, player_query_dst)
-        print(f"✅ 复制棋手查询工具: {player_query_dst}")
+        pq_content = player_query_src.read_text(encoding='utf-8')
+        pq_content = pq_content.replace('{{GIT_HASH}}', git_hash)
+        player_query_dst.write_text(pq_content, encoding='utf-8')
+        print(f"✅ 复制棋手查询工具: {player_query_dst} (git:{git_hash})")
     else:
         print(f"⚠️ 警告: 未找到棋手查询工具: {player_query_src}")
+    
+    # 获取 Git commit hash (短格式)
+    import subprocess
+    try:
+        git_hash = subprocess.run(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            cwd=WEIQI_PAGE_DIR,
+            capture_output=True,
+            text=True,
+            check=True
+        ).stdout.strip()
+    except:
+        git_hash = 'dev'
     
     # 复制认证页面到站点
     auth_src = TEMPLATES_DIR / "auth.html"
     auth_dst = base_dir / "auth.html"
     
     if auth_src.exists():
-        shutil.copy2(auth_src, auth_dst)
+        auth_content = auth_src.read_text(encoding='utf-8')
+        auth_content = auth_content.replace('{{GIT_HASH}}', git_hash)
+        auth_dst.write_text(auth_content, encoding='utf-8')
         print(f"✅ 复制认证页面: {auth_dst}")
     else:
         print(f"⚠️ 警告: 未找到认证页面: {auth_src}")
     
-    # 复制认证工具 JS 到站点
-    static_js_src = WEIQI_PAGE_DIR / "static" / "js" / "auth.js"
-    static_js_dst = base_dir / "static" / "js" / "auth.js"
+    # 复制认证工具 JS 到站点 (assets/js/)
+    assets_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "auth.js"
+    assets_js_dst = base_dir / "assets" / "js" / "auth.js"
     
-    if static_js_src.exists():
-        static_js_dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(static_js_src, static_js_dst)
-        print(f"✅ 复制认证工具 JS: {static_js_dst}")
+    if assets_js_src.exists():
+        assets_js_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(assets_js_src, assets_js_dst)
+        print(f"✅ 复制认证工具 JS: {assets_js_dst}")
     else:
-        print(f"⚠️ 警告: 未找到认证工具 JS: {static_js_src}")
+        print(f"⚠️ 警告: 未找到认证工具 JS: {assets_js_src}")
     
     # 生成根目录跳转页
     from config import WORKSPACE_DIR, SITE_ROOT
