@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Token 认证 - 围棋智能助手</title>
+    <title>身份认证 - 围棋智能助手</title>
     <link rel="icon" type="image/x-icon" href="/weiqi-page/assets/favicon/favicon.ico">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -21,34 +21,34 @@
         .auth-card {
             background: white;
             border-radius: 16px;
-            padding: 32px 24px;
+            padding: 20px 20px;
             width: 100%;
-            max-width: 360px;
+            max-width: 340px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
         
         .auth-icon {
-            font-size: 48px;
+            font-size: 40px;
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
         }
         
         h1 {
             text-align: center;
-            font-size: 1.5em;
-            margin-bottom: 8px;
+            font-size: 1.3em;
+            margin-bottom: 4px;
             color: #333;
         }
         
         .subtitle {
             text-align: center;
             color: #666;
-            margin-bottom: 24px;
-            font-size: 0.9em;
+            margin-bottom: 16px;
+            font-size: 0.85em;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 14px;
         }
         
         label {
@@ -58,23 +58,25 @@
             font-size: 0.9em;
         }
         
-        input[type="text"] {
+        textarea {
             width: 100%;
-            padding: 12px 16px;
+            padding: 10px 12px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 15px;
             transition: border-color 0.3s;
+            resize: vertical;
+            font-family: inherit;
         }
         
-        input[type="text"]:focus {
+        textarea:focus {
             outline: none;
             border-color: #667eea;
         }
         
         button {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
@@ -96,7 +98,7 @@
         .divider {
             height: 1px;
             background: #e0e0e0;
-            margin: 24px 0;
+            margin: 16px 0;
         }
         
         .help-text {
@@ -109,28 +111,43 @@
         .help-text strong {
             color: #555;
         }
+        
+        .qr-code {
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .qr-code img {
+            max-width: 140px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
     <div class="auth-card">
         <div class="auth-icon">🔐</div>
-        <h1>Token 认证</h1>
-        <p class="subtitle">您访问的页面需要有效的 Token</p>
+        <h1>身份认证</h1>
+        <p class="subtitle">您访问的页面需要验证身份</p>
         
         <form id="authForm">
             <div class="form-group">
-                <label for="tokenInput">请输入 Token</label>
-                <input type="text" id="tokenInput" placeholder="粘贴您的 Token..." required>
+                <label for="tokenInput">请输入访问凭证</label>
+                <textarea id="tokenInput" placeholder="粘贴您的访问凭证..." rows="3" autocomplete="off" required></textarea>
             </div>
             
-            <button type="submit" id="submitBtn">💾 保存并返回</button>
+            <button type="submit" id="submitBtn">✅ 进入</button>
         </form>
         
         <div class="divider"></div>
         
         <div class="help-text">
-            <p><strong>还没有 Token？</strong></p>
-            <p>请联系管理员申请<br>Token 有效期通常为 24 小时</p>
+            <p><strong>还没有访问凭证？</strong></p>
+            <p>请扫码关注公众号获取</p>
+            <div class="qr-code">
+                <img src="{{base_path}}/assets/images/public.jpg" alt="公众号二维码" onerror="this.style.display='none'">
+            </div>
+            <p>访问凭证有效期通常为 24 小时</p>
         </div>
     </div>
     

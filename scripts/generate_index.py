@@ -252,6 +252,19 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到棋手查询工具: {player_query_src}")
     
+    # 复制云比赛查询工具到站点
+    yunbisai_src = TEMPLATES_DIR / "tools" / "yunbisai.html"
+    yunbisai_dst = tools_dst / "yunbisai.html"
+    
+    if yunbisai_src.exists():
+        tools_dst.mkdir(parents=True, exist_ok=True)
+        yb_content = yunbisai_src.read_text(encoding='utf-8')
+        yb_content = yb_content.replace('{{GIT_HASH}}', git_hash)
+        yunbisai_dst.write_text(yb_content, encoding='utf-8')
+        print(f"✅ 复制云比赛查询工具: {yunbisai_dst} (git:{git_hash})")
+    else:
+        print(f"⚠️ 警告: 未找到云比赛查询工具: {yunbisai_src}")
+    
     # 复制认证页面到站点
     auth_src = TEMPLATES_DIR / "auth.html"
     auth_dst = base_dir / "auth.html"
@@ -259,6 +272,7 @@ def generate_index(test_mode=False):
     if auth_src.exists():
         auth_content = auth_src.read_text(encoding='utf-8')
         auth_content = auth_content.replace('{{GIT_HASH}}', git_hash)
+        auth_content = auth_content.replace('{{base_path}}', BASE_PATH)
         auth_dst.write_text(auth_content, encoding='utf-8')
         print(f"✅ 复制认证页面: {auth_dst}")
     else:
@@ -274,6 +288,17 @@ def generate_index(test_mode=False):
         print(f"✅ 复制认证工具 JS: {assets_js_dst}")
     else:
         print(f"⚠️ 警告: 未找到认证工具 JS: {assets_js_src}")
+    
+    # 复制公众号二维码图片到站点 (assets/images/)
+    public_img_src = WEIQI_PAGE_DIR / "assets" / "images" / "public.jpg"
+    public_img_dst = base_dir / "assets" / "images" / "public.jpg"
+    
+    if public_img_src.exists():
+        public_img_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(public_img_src, public_img_dst)
+        print(f"✅ 复制公众号二维码: {public_img_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到公众号二维码: {public_img_src}")
     
     # 生成根目录跳转页
     from config import WORKSPACE_DIR, SITE_ROOT

@@ -307,6 +307,10 @@
             background: linear-gradient(135deg, #42A5F5 0%, #66BB6A 100%);
             box-shadow: 0 4px 12px rgba(66, 165, 245, 0.3);
         }
+        .tool-icon.yunbisai {
+            background: linear-gradient(135deg, #FF8F00 0%, #FFB300 100%);
+            box-shadow: 0 4px 12px rgba(255, 143, 0, 0.3);
+        }
         .tool-name {
             font-size: 0.85em;
             color: #555;
@@ -437,7 +441,10 @@
                 <div class="tool-icon player">👤</div>
                 <span class="tool-name">棋手查询</span>
             </a>
-            <!-- 预留更多工具位置 -->
+            <a href="{{ base_path }}/tools/yunbisai.html" class="tool-item" onclick="closeToolsPanel()">
+                <div class="tool-icon yunbisai">🏆</div>
+                <span class="tool-name">云比赛</span>
+            </a>
         </div>
     </div>
     
