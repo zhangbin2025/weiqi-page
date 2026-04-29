@@ -252,18 +252,22 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到棋手查询工具: {player_query_src}")
     
-    # 复制云比赛查询工具到站点
-    yunbisai_src = TEMPLATES_DIR / "tools" / "yunbisai.html"
-    yunbisai_dst = tools_dst / "yunbisai.html"
+    # 复制云比赛查询工具目录到站点
+    yunbisai_src_dir = TEMPLATES_DIR / "tools" / "yunbisai"
+    yunbisai_dst_dir = tools_dst / "yunbisai"
     
-    if yunbisai_src.exists():
-        tools_dst.mkdir(parents=True, exist_ok=True)
-        yb_content = yunbisai_src.read_text(encoding='utf-8')
-        yb_content = yb_content.replace('{{GIT_HASH}}', git_hash)
-        yunbisai_dst.write_text(yb_content, encoding='utf-8')
-        print(f"✅ 复制云比赛查询工具: {yunbisai_dst} (git:{git_hash})")
+    if yunbisai_src_dir.exists():
+        yunbisai_dst_dir.mkdir(parents=True, exist_ok=True)
+        # 复制目录下所有文件
+        for src_file in yunbisai_src_dir.glob("*.html"):
+            dst_file = yunbisai_dst_dir / src_file.name
+            content = src_file.read_text(encoding='utf-8')
+            content = content.replace('{{GIT_HASH}}', git_hash)
+            dst_file.write_text(content, encoding='utf-8')
+            print(f"✅ 复制云比赛页面: {dst_file.name} (git:{git_hash})")
+        print(f"✅ 复制云比赛查询工具目录完成")
     else:
-        print(f"⚠️ 警告: 未找到云比赛查询工具: {yunbisai_src}")
+        print(f"⚠️ 警告: 未找到云比赛查询工具目录: {yunbisai_src_dir}")
     
     # 复制认证页面到站点
     auth_src = TEMPLATES_DIR / "auth.html"
