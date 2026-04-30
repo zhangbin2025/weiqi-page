@@ -134,6 +134,7 @@
             <div class="form-group">
                 <label for="tokenInput">请输入访问凭证</label>
                 <textarea id="tokenInput" placeholder="粘贴您的访问凭证..." rows="3" autocomplete="off" required></textarea>
+<p id="errorMsg" style="color: #c62828; font-size: 0.85em; margin-top: 8px; display: none;">⚠️ 访问凭证只能包含字母、数字和符号，不能包含中文</p>
             </div>
             
             <button type="submit" id="submitBtn">✅ 进入</button>
@@ -156,15 +157,55 @@
         const urlParams = new URLSearchParams(window.location.search);
         const returnUrl = urlParams.get('return') || '/';
         
+        const tokenInput = document.getElementById('tokenInput');
+        const errorMsg = document.getElementById('errorMsg');
+        
+        // 检查是否包含非 ASCII 字符
+        function hasNonAscii(str) {
+            for (let i = 0; i < str.length; i++) {
+                if (str.charCodeAt(i) > 127) return true;
+            }
+            return false;
+        }
+        
+        // 实时过滤输入
+        tokenInput.addEventListener('input', function() {
+            const value = this.value;
+            if (hasNonAscii(value)) {
+                // 过滤掉非 ASCII 字符
+                this.value = value.replace(/[^\x00-\x7F]/g, '');
+                errorMsg.style.display = 'block';
+                setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
+            }
+        });
+        
+        // 粘贴时过滤
+        tokenInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const paste = (e.clipboardData || window.clipboardData).getData('text');
+            const filtered = paste.replace(/[^\x00-\x7F]/g, '');
+            document.execCommand('insertText', false, filtered);
+            if (filtered.length !== paste.length) {
+                errorMsg.style.display = 'block';
+                setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
+            }
+        });
+        
         // 表单提交
         document.getElementById('authForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const token = document.getElementById('tokenInput').value.trim();
+            const token = tokenInput.value.trim();
             const submitBtn = document.getElementById('submitBtn');
             
             if (!token) {
                 alert('请输入 Token');
+                return;
+            }
+            
+            // 再次检查非法字符
+            if (hasNonAscii(token)) {
+                alert('Token 不能包含中文或其他特殊字符，请重新输入');
                 return;
             }
             
@@ -183,7 +224,7 @@
         window.onload = function() {
             const existingToken = localStorage.getItem('weiqi_token');
             if (existingToken) {
-                document.getElementById('tokenInput').value = existingToken;
+                tokenInput.value = existingToken;
             }
         };
     </script>

@@ -24,7 +24,6 @@ async function getApiBase() {
     const now = Date.now();
     
     if (cached && (now - cachedTime) < CACHE_MAX_AGE) {
-        console.log('使用缓存的域名:', cached);
         return cached;
     }
     
@@ -35,7 +34,6 @@ async function getApiBase() {
             // 缓存到 localStorage
             localStorage.setItem(DOMAIN_CACHE_KEY, window.API_BASE);
             localStorage.setItem(DOMAIN_CACHE_TIME_KEY, now.toString());
-            console.log('域名已更新:', window.API_BASE);
             return window.API_BASE;
         }
     } catch (e) {
@@ -44,7 +42,6 @@ async function getApiBase() {
     
     // 4. 使用过期缓存（降级）
     if (cached) {
-        console.warn('使用过期的域名缓存:', cached);
         return cached;
     }
     
@@ -54,20 +51,22 @@ async function getApiBase() {
 // 动态加载 JS 文件（支持跨域）
 function loadScript(src) {
     return new Promise((resolve, reject) => {
-        console.log('[Auth] 正在加载域名配置:', src);
         const script = document.createElement('script');
         script.src = src;
         script.crossOrigin = 'anonymous';
-        script.onload = () => {
-            console.log('[Auth] 域名配置加载完成, API_BASE=', window.API_BASE);
-            resolve();
-        };
-        script.onerror = (e) => {
-            console.error('[Auth] 加载失败:', src, e);
-            reject(new Error('Failed to load: ' + src));
-        };
+        script.onload = () => resolve();
+        script.onerror = (e) => reject(new Error('Failed to load: ' + src));
         document.head.appendChild(script);
     });
+}
+
+// 检查字符串是否包含非 ISO-8859-1 字符
+function hasInvalidChars(str) {
+    if (!str) return false;
+    for (let i = 0; i < str.length; i++) {
+        if (str.charCodeAt(i) > 255) return true;
+    }
+    return false;
 }
 
 /**
@@ -75,7 +74,17 @@ function loadScript(src) {
  * @returns {string} Token 或空字符串
  */
 function getToken() {
-    return localStorage.getItem(TOKEN_KEY) || '';
+    try {
+        const token = localStorage.getItem(TOKEN_KEY);
+        // 检测 Token 是否包含非法字符（如中文），有则清除
+        if (token && hasInvalidChars(token)) {
+            clearToken();
+            return '';
+        }
+        return token || '';
+    } catch (e) {
+        return '';
+    }
 }
 
 /**
@@ -124,7 +133,6 @@ function redirectToAuth(returnUrl) {
 async function fetchWithAuth(url, options = {}) {
     const token = getToken();
     const apiBase = await getApiBase();
-    
     const fullUrl = url.startsWith('http') ? url : `${apiBase}${url}`;
     
     // 添加认证头
@@ -150,7 +158,6 @@ async function fetchWithAuth(url, options = {}) {
         
         return response;
     } catch (error) {
-        console.error('请求失败:', error);
         throw new Error('网络请求失败，请检查网络连接');
     }
 }
