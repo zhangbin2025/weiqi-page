@@ -92,7 +92,7 @@
             document.getElementById('groupSelect').innerHTML = '<option value="">选择分组</option>';
             if (!hasToken()) { redirectToAuth(); return; }
             try {
-                const response = await fetchWithAuth(`${API_BASE}/api/v1/yunbisai/events/${event.id}/groups`);
+                const response = await fetchWithAuth(`/api/v1/yunbisai/events/${event.id}/groups`);
                 if (!response) return;
                 const data = await response.json();
                 if (!data.success) throw new Error(data.error?.message);
@@ -133,7 +133,7 @@
             document.getElementById('rankingList').innerHTML = '<div class="loading"><div class="spinner"></div><p>加载排名...</p></div>';
             if (!hasToken()) { redirectToAuth(); return null; }
             try {
-                const response = await fetchWithAuth(`${API_BASE}/api/v1/yunbisai/groups/${selectedGroup.id}`);
+                const response = await fetchWithAuth(`/api/v1/yunbisai/groups/${selectedGroup.id}`);
                 if (!response) return null;
                 const data = await response.json();
                 if (!data.success) throw new Error(data.error?.message);
@@ -175,7 +175,7 @@
             if (!hasToken()) { redirectToAuth(); return; }
             try {
                 // 加载对阵
-                const response = await fetchWithAuth(`${API_BASE}/api/v1/yunbisai/groups/${selectedGroup.id}/matches?round=${round}`);
+                const response = await fetchWithAuth(`/api/v1/yunbisai/groups/${selectedGroup.id}/matches?round=${round}`);
                 if (!response) return;
                 const data = await response.json();
                 if (!data.success) throw new Error(data.error?.message);
@@ -196,7 +196,7 @@
         
         async function loadRoundRanking(round) {
             try {
-                const response = await fetchWithAuth(`${API_BASE}/api/v1/yunbisai/groups/${selectedGroup.id}?round=${round}`);
+                const response = await fetchWithAuth(`/api/v1/yunbisai/groups/${selectedGroup.id}?round=${round}`);
                 if (!response) return;
                 const data = await response.json();
                 if (!data.success) return;

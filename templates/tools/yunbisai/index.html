@@ -74,7 +74,7 @@
             document.getElementById('queryBtn').textContent = '查询中...';
             
             try {
-                let url = `${API_BASE}/api/v1/yunbisai/events?month=${month}`;
+                let url = `/api/v1/yunbisai/events?month=${month}`;
                 if (area) url += `&area=${encodeURIComponent(area)}`;
                 if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
                 

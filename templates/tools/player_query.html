@@ -346,7 +346,7 @@
             
             try {
                 const response = await fetchWithAuth(
-                    `${API_BASE}/api/player?name=${encodeURIComponent(name)}`
+                    `/api/player?name=${encodeURIComponent(name)}`
                 );
                 
                 // 如果 response 为 null，说明已跳转到认证页
