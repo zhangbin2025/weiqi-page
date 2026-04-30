@@ -39,6 +39,7 @@
         .match-player.white::before { content: "⚪"; display: block; font-size: 0.8em; }
         .match-player .player-name { font-weight: 500; font-size: 0.95em; }
         .match-player .player-score { font-size: 0.8em; color: #4caf50; margin-top: 2px; }
+        .match-player .player-integral { font-size: 0.75em; color: #ff9800; margin-top: 4px; font-weight: 600; background: #fff3e0; padding: 2px 8px; border-radius: 10px; display: inline-block; }
         .match-result { font-size: 0.75em; color: #667eea; margin-top: 4px; font-weight: 500; }
         .match-vs { color: #888; padding: 0 8px; font-size: 0.9em; }
         .loading { text-align: center; padding: 40px 20px; }
@@ -79,6 +80,7 @@
     </div>
     <script>
         let event = null, groups = [], selectedGroup = null, totalRounds = 1, currentRound = 1, rankingsMap = {};
+        const LAST_GROUP_KEY = 'yunbisai_last_group';
         
         async function init() {
             event = JSON.parse(sessionStorage.getItem('yunbisai_event') || '{}');
@@ -98,7 +100,9 @@
                 if (!data.success) throw new Error(data.error?.message);
                 groups = data.data.groups || [];
                 renderGroupSelect();
-                // 默认不选择任何分组，等待用户选择
+                
+                // 尝试恢复最近访问的分组
+                restoreLastGroup();
             } catch (error) {
                 document.getElementById('groupSelect').innerHTML = `<option>${error.message}</option>`;
             }
@@ -115,12 +119,45 @@
             select.innerHTML = html;
         }
         
-        async function onGroupChange() {
-            const groupId = document.getElementById('groupSelect').value;
-            if (!groupId) return;
-            selectedGroup = groups.find(g => g.id == groupId);
-            if (!selectedGroup) return;
-            
+        // 保存最近访问的分组到 localStorage
+        function saveLastGroup(group) {
+            if (!group || !event) return;
+            const data = {
+                eventId: event.id,
+                groupId: group.id,
+                groupName: group.name,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(LAST_GROUP_KEY, JSON.stringify(data));
+        }
+        
+        // 从 localStorage 恢复最近访问的分组
+        function restoreLastGroup() {
+            try {
+                const saved = localStorage.getItem(LAST_GROUP_KEY);
+                if (!saved) return;
+                
+                const data = JSON.parse(saved);
+                // 检查是否是当前比赛的分组
+                if (data.eventId !== event.id) return;
+                
+                // 检查该分组是否存在于当前分组列表中
+                const group = groups.find(g => g.id == data.groupId);
+                if (!group) return;
+                
+                // 自动选择该分组
+                document.getElementById('groupSelect').value = data.groupId;
+                selectedGroup = group;
+                
+                // 加载数据
+                loadGroupData();
+            } catch (e) {
+                console.error('恢复分组失败:', e);
+            }
+        }
+        
+        // 加载分组数据（排名和对阵）
+        async function loadGroupData() {
             const rankingData = await loadRanking();
             if (rankingData && rankingData.total_rounds) {
                 totalRounds = rankingData.total_rounds;
@@ -129,7 +166,28 @@
             }
         }
         
+        async function onGroupChange() {
+            const groupId = document.getElementById('groupSelect').value;
+            if (!groupId) {
+                selectedGroup = null;
+                return;
+            }
+            selectedGroup = groups.find(g => g.id == groupId);
+            if (!selectedGroup) return;
+            
+            // 保存到 localStorage
+            saveLastGroup(selectedGroup);
+            
+            await loadGroupData();
+        }
+        
         async function loadRanking() {
+            // 检查是否已选择分组
+            if (!selectedGroup) {
+                document.getElementById('rankingList').innerHTML = '<div style="text-align:center;padding:40px;color:#666;">请先选择分组</div>';
+                return null;
+            }
+            
             document.getElementById('rankingList').innerHTML = '<div class="loading"><div class="spinner"></div><p>加载排名...</p></div>';
             if (!hasToken()) { redirectToAuth(); return null; }
             try {
@@ -170,6 +228,12 @@
         }
         
         async function loadMatches(round) {
+            // 检查是否已选择分组
+            if (!selectedGroup) {
+                document.getElementById('matchesList').innerHTML = '<div style="text-align:center;padding:40px;color:#666;">请先选择分组</div>';
+                return;
+            }
+            
             currentRound = round;
             document.getElementById('matchesList').innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
             if (!hasToken()) { redirectToAuth(); return; }
@@ -220,7 +284,10 @@
             let html = '';
             data.matches.forEach(match => {
                 const result = match.result ? `<div class="match-result">${match.result}</div>` : '';
-                html += `<div class="match-card"><div class="match-round">台号 ${match.table}</div><div class="match-players"><div class="match-player black"><div class="player-name">${match.black}</div></div><div class="match-vs">VS${result}</div><div class="match-player white"><div class="player-name">${match.white}</div></div></div></div>`;
+                // 显示选手积分（black_integral 和 white_integral）
+                const blackIntegral = match.black_integral !== undefined ? `<div class="player-integral">积分: ${match.black_integral}</div>` : '';
+                const whiteIntegral = match.white_integral !== undefined ? `<div class="player-integral">积分: ${match.white_integral}</div>` : '';
+                html += `<div class="match-card"><div class="match-round">台号 ${match.table}</div><div class="match-players"><div class="match-player black"><div class="player-name">${match.black}</div>${blackIntegral}</div><div class="match-vs">VS${result}</div><div class="match-player white"><div class="player-name">${match.white}</div>${whiteIntegral}</div></div></div>`;
             });
             document.getElementById('matchesList').innerHTML = html;
         }
@@ -229,6 +296,16 @@
         function nextRound() { if (currentRound < totalRounds) loadMatches(currentRound + 1); }
         
         function switchTab(tab) {
+            // 如果切换到对阵标签但没有选择分组，显示提示
+            if (tab === 'matches' && !selectedGroup) {
+                document.getElementById('rankingTab').classList.remove('active');
+                document.getElementById('matchesTab').classList.add('active');
+                document.getElementById('rankingContent').style.display = 'none';
+                document.getElementById('matchesContent').style.display = 'block';
+                document.getElementById('matchesList').innerHTML = '<div style="text-align:center;padding:40px;color:#666;">请先选择分组</div>';
+                return;
+            }
+            
             document.getElementById('rankingTab').classList.toggle('active', tab === 'ranking');
             document.getElementById('matchesTab').classList.toggle('active', tab === 'matches');
             document.getElementById('rankingContent').style.display = tab === 'ranking' ? 'block' : 'none';
