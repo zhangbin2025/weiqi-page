@@ -676,11 +676,16 @@
             const qrContainer = document.getElementById('qrcode');
             qrContainer.innerHTML = '';
             
-            // 构建游戏数据对象
-            const gameState = {
-                sgf: atob(currentGameData.sgf_base64),
-                filename: currentGameData.filename || 'game.sgf'
-            };
+            // 解析 SGF 为 moves 数组
+            const sgfContent = atob(currentGameData.sgf_base64);
+            const gameState = parseSgfToMoves(sgfContent);
+            
+            if (gameState.length === 0) {
+                // 无法解析，回退到直接下载
+                console.error('无法解析 SGF，回退到直接下载');
+                directDownload();
+                return;
+            }
             
             WeiqiShare.generateQR(qrContainer, gameState)
                 .then(() => {
@@ -688,9 +693,23 @@
                 })
                 .catch(err => {
                     console.error('二维码生成失败:', err);
-                    // 失败时回退到直接下载
                     directDownload();
                 });
+        }
+        
+        // 解析 SGF 为 moves 数组 [{col, row, player, isPass}]
+        function parseSgfToMoves(sgf) {
+            const moves = [];
+            // 匹配 ;B[xx] 或 ;W[xx] 格式，xx 是两个小写字母 (a-s, 0-18)
+            const regex = /;([BW])\[([a-s]{2})\]/g;
+            let match;
+            while ((match = regex.exec(sgf)) !== null) {
+                const player = match[1];
+                const col = match[2].charCodeAt(0) - 97; // 第一个字符 a-s
+                const row = match[2].charCodeAt(1) - 97; // 第二个字符 a-s
+                moves.push({ col, row, player, isPass: false });
+            }
+            return moves;
         }
         
         // 关闭二维码弹窗
