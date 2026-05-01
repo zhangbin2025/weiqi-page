@@ -240,17 +240,17 @@ def generate_index(test_mode=False):
         git_hash = 'dev'
     
     # 复制棋手查询工具到站点
-    player_query_src = TEMPLATES_DIR / "tools" / "player_query.html"
-    player_query_dst = tools_dst / "player_query.html"
+    player_src = TEMPLATES_DIR / "tools" / "player.html"
+    player_dst = tools_dst / "player.html"
     
-    if player_query_src.exists():
+    if player_src.exists():
         tools_dst.mkdir(parents=True, exist_ok=True)
-        pq_content = player_query_src.read_text(encoding='utf-8')
+        pq_content = player_src.read_text(encoding='utf-8')
         pq_content = pq_content.replace('{{GIT_HASH}}', git_hash)
-        player_query_dst.write_text(pq_content, encoding='utf-8')
-        print(f"✅ 复制棋手查询工具: {player_query_dst} (git:{git_hash})")
+        player_dst.write_text(pq_content, encoding='utf-8')
+        print(f"✅ 复制棋手查询工具: {player_dst} (git:{git_hash})")
     else:
-        print(f"⚠️ 警告: 未找到棋手查询工具: {player_query_src}")
+        print(f"⚠️ 警告: 未找到棋手查询工具: {player_src}")
     
     # 复制云比赛查询工具目录到站点
     yunbisai_src_dir = TEMPLATES_DIR / "tools" / "yunbisai"
@@ -268,6 +268,19 @@ def generate_index(test_mode=False):
         print(f"✅ 复制云比赛查询工具目录完成")
     else:
         print(f"⚠️ 警告: 未找到云比赛查询工具目录: {yunbisai_src_dir}")
+    
+    # 复制棋谱抓取工具到站点
+    fetcher_src = TEMPLATES_DIR / "tools" / "fetcher.html"
+    fetcher_dst = tools_dst / "fetcher.html"
+    
+    if fetcher_src.exists():
+        tools_dst.mkdir(parents=True, exist_ok=True)
+        content = fetcher_src.read_text(encoding='utf-8')
+        content = content.replace('{{GIT_HASH}}', git_hash)
+        fetcher_dst.write_text(content, encoding='utf-8')
+        print(f"✅ 复制棋谱抓取工具: {fetcher_dst} (git:{git_hash})")
+    else:
+        print(f"⚠️ 警告: 未找到棋谱抓取工具: {fetcher_src}")
     
     # 复制认证页面到站点
     auth_src = TEMPLATES_DIR / "auth.html"
