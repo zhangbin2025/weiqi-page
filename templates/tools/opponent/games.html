@@ -121,6 +121,21 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         footer { text-align: center; padding: 15px; color: #999; font-size: 0.8em; }
+        
+        /* iframe 全屏容器 */
+        .replay-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: white;
+            z-index: 10000;
+            display: none;
+        }
+        .replay-overlay.active { display: block; }
+        .replay-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -140,6 +155,11 @@
         </div>
         
         <footer><p>围棋智能助手 &copy; 2026</p></footer>
+    </div>
+    
+    <!-- 棋谱显示容器 -->
+    <div id="replayOverlay" class="replay-overlay">
+        <iframe id="replayIframe" class="replay-iframe"></iframe>
     </div>
     
     <script>
@@ -239,6 +259,11 @@
             viewGame(game, 'last');
         }
         
+        // 检测微信浏览器
+        function isWeixinBrowser() {
+            return /MicroMessenger/i.test(navigator.userAgent);
+        }
+        
         // 查看棋谱
         async function viewGame(game, gotoMove) {
             const sgf = game.sgf;
@@ -272,10 +297,24 @@
                 }
                 const htmlWithGoto = data.html.replace('</body>', gotoScript + '</body>');
                 
-                const newWindow = window.open('', '_blank');
-                newWindow.document.open();
-                newWindow.document.write(htmlWithGoto);
-                newWindow.document.close();
+                // 使用 iframe 全屏显示
+                const iframe = document.getElementById('replayIframe');
+                iframe.srcdoc = htmlWithGoto;
+                document.getElementById('replayOverlay').classList.add('active');
+                
+                // 添加历史记录，支持返回键关闭
+                history.pushState({replay: true}, '');
+                
+                // 添加 popstate 监听（只添加一次）
+                if (!window._replayPopstateAdded) {
+                    window._replayPopstateAdded = true;
+                    window.addEventListener('popstate', function(e) {
+                        if (document.getElementById('replayOverlay').classList.contains('active')) {
+                            document.getElementById('replayOverlay').classList.remove('active');
+                            iframe.srcdoc = '';
+                        }
+                    });
+                }
                 
             } catch (error) {
                 alert('加载失败: ' + error.message);
