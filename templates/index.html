@@ -210,6 +210,7 @@
             border-radius: 16px 16px 0 0;
             padding: 16px 20px 24px;
             transform: translateY(100%);
+            pointer-events: none;
             transition: transform 0.3s ease;
             z-index: 1000;
             max-width: 480px;
@@ -217,6 +218,7 @@
         }
         .tools-panel.active {
             transform: translateY(0);
+            pointer-events: auto;
         }
         
         /* PC端居中显示 */
@@ -228,6 +230,7 @@
                 bottom: auto;
                 transform: translate(-50%, -40%) scale(0.9);
                 opacity: 0;
+                pointer-events: none;
                 border-radius: 16px;
                 box-shadow: 0 10px 40px rgba(0,0,0,0.3);
                 max-height: 80vh;
@@ -237,6 +240,7 @@
             .tools-panel.active {
                 transform: translate(-50%, -50%) scale(1);
                 opacity: 1;
+                pointer-events: auto;
             }
         }
         
