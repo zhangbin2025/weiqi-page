@@ -25,18 +25,19 @@ from config import (
 
 
 def generate_game_page(sgf_path, output_path, start_move="last"):
-    """生成打谱网页
+    """生成棋谱数据文件（JSON格式）
     
     Args:
         sgf_path: SGF文件路径
-        output_path: 输出HTML路径
+        output_path: 输出JSON路径
         start_move: 默认跳转手数，"last"表示最后一手，或指定数字
     """
-    # weiqi-sgf 支持: replay.py input.sgf output.html --start-move <n|last>
+    # weiqi-sgf 新版: replay.py input.sgf --data-only --start-move N -o output.json
     cmd = [
         "python3", str(WEIQI_SGF_SCRIPT),
-        str(sgf_path), str(output_path),
-        "--start-move", str(start_move)
+        str(sgf_path), "--data-only",
+        "--start-move", str(start_move),
+        "-o", str(output_path)
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -115,7 +116,8 @@ def generate_games_for_date(date_str, test_mode=False, sgf_dir=None):
             continue
         
         # 生成打谱页
-        output_name = f"game_{game_id}.html"
+        # 输出 JSON 数据文件，打谱页面通过 replay.html?data= 加载
+        output_name = f"game_{game_id}.json"
         output_path = date_source_dir / output_name
         
         if generate_game_page(sgf_path, output_path):
@@ -123,7 +125,8 @@ def generate_games_for_date(date_str, test_mode=False, sgf_dir=None):
             generated.append({
                 "id": game_id,
                 "source": source,
-                "path": f"{BASE_PATH}/games/{date_str}/{source}/{output_name}",
+                # 路径改为 replay.html?data=xxx.json
+                "path": f"{BASE_PATH}/replay.html?data={BASE_PATH}/games/{date_str}/{source}/{output_name}",
                 "black": game.get("black", "未知"),
                 "white": game.get("white", "未知"),
                 "black_rank": game.get("black_rank", ""),

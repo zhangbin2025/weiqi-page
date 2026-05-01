@@ -62,6 +62,7 @@ TEMPLATES_DIR = WEIQI_PAGE_DIR / "templates"
 SKILLS_DIR = Path(os.getenv("WEIQI_SKILLS_DIR", WEIQI_PAGE_DIR.parent.parent / "skills"))
 WEIQI_DB_SCRIPT = SKILLS_DIR / "weiqi-db/scripts/db.py"
 WEIQI_SGF_SCRIPT = SKILLS_DIR / "weiqi-sgf/scripts/replay.py"
+WEIQI_SGF_TEMPLATE = SKILLS_DIR / "weiqi-sgf/scripts/templates/replay.html"  # 打谱模板
 WEIQI_MOVE_SCRIPT = SKILLS_DIR / "weiqi-move/scripts/quiz.py"
 WEIQI_JOSEKI_DIR = SKILLS_DIR / "weiqi-joseki"  # joseki目录
 WEIQI_JOSEKI_SCRIPT = WEIQI_JOSEKI_DIR / "db.py"  # 使用db.py兼容性入口

@@ -106,21 +106,23 @@ def generate_sgf_from_moves(tree_sgf, output_path, corner="tr", prefix_len=0):
 
 
 def generate_joseki_page(sgf_path, output_path, start_move=0):
-    """生成定式研究网页
+    """生成定式研究数据文件（JSON格式）
     
     Args:
         sgf_path: SGF文件路径
-        output_path: 输出HTML路径
-        start_move: 默认跳转手数，0表示从第0手开始，或指定数字
+        output_path: 输出JSON路径
+        start_move: 默认跳转手数
     """
-    # weiqi-sgf 支持: replay.py input.sgf output.html --start-move <n|last>
+    # weiqi-sgf 新版: replay.py input.sgf --data-only --start-move N -o output.json
     cmd = [
         "python3", str(WEIQI_SGF_SCRIPT),
-        str(sgf_path), str(output_path),
-        "--start-move", str(start_move)
+        str(sgf_path), "--data-only",
+        "--start-move", str(start_move),
+        "-o", str(output_path)
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
+    return result.returncode == 0
     return result.returncode == 0
 
 
@@ -228,14 +230,14 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
             print(f"     ❌ 生成SGF失败")
             continue
         
-        # 生成网页
-        output_name = f"joseki_{idx:03d}.html"
+        # 生成数据文件
+        output_name = f"joseki_{idx:03d}.json"
         output_path = joseki_dir / output_name
         
         if generate_joseki_page(sgf_path, output_path, matched_prefix_len):
-            print(f"     ✅ 生成页面: {output_name}")
+            print(f"     ✅ 生成数据: {output_name}")
             
-            # 删除临时SGF文件（网页已生成，不再需要）
+            # 删除临时SGF文件
             try:
                 sgf_path.unlink()
             except Exception:
@@ -246,19 +248,18 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
             for game in games:
                 game_black = game.get("black", "")
                 game_white = game.get("white", "")
-                # 匹配棋手名字
                 if (game_black == black_name and game_white == white_name) or \
                    (game_black in black_name and game_white in white_name) or \
                    (black_name in game_black and white_name in game_white):
                     game_id = game.get("id")
                     game_source = get_game_source(game)
-                    game_path = f"{BASE_PATH}/games/{date_str}/{game_source}/game_{game_id}.html"
+                    game_path = f"{BASE_PATH}/replay.html?data={BASE_PATH}/games/{date_str}/{game_source}/game_{game_id}.json"
                     break
             
             generated.append({
                 "id": f"joseki_{idx:03d}",
                 "name": name,
-                "path": f"{BASE_PATH}/joseki/{date_str}/{output_name}",
+                "path": f"{BASE_PATH}/replay.html?data={BASE_PATH}/joseki/{date_str}/{output_name}",
                 "game_path": game_path if game_path else "",
                 "moves": moves,  # 着法序列，用于前端计算
                 "move_count": move_count,  # 总手数

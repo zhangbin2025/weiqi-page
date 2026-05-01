@@ -283,38 +283,20 @@
                 
                 const data = await response.json();
                 
-                if (!data.success || !data.html) {
-                    alert('生成打谱页面失败');
+                if (!data.success || !data.data) {
+                    alert('生成棋谱数据失败');
                     return;
                 }
                 
-                // 注入跳转脚本
-                let gotoScript = '';
-                if (gotoMove === 'last') {
-                    gotoScript = `<script>(function(){var t=setInterval(function(){if(typeof goToMove==='function'){clearInterval(t);var s=document.getElementById('moveSlider');if(s)goToMove(s.max)}},100)})();<\/script>`;
-                } else if (gotoMove && !isNaN(parseInt(gotoMove))) {
-                    gotoScript = `<script>(function(){var t=setInterval(function(){if(typeof goToMove==='function'){clearInterval(t);goToMove(${parseInt(gotoMove)})}},100)})();<\/script>`;
-                }
-                const htmlWithGoto = data.html.replace('</body>', gotoScript + '</body>');
+                // 生成唯一 key
+                const localKey = 'replay_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 
-                // 使用 iframe 全屏显示
-                const iframe = document.getElementById('replayIframe');
-                iframe.srcdoc = htmlWithGoto;
-                document.getElementById('replayOverlay').classList.add('active');
+                // 保存到 localStorage
+                localStorage.setItem(localKey, JSON.stringify(data.data));
                 
-                // 添加历史记录，支持返回键关闭
-                history.pushState({replay: true}, '');
-                
-                // 添加 popstate 监听（只添加一次）
-                if (!window._replayPopstateAdded) {
-                    window._replayPopstateAdded = true;
-                    window.addEventListener('popstate', function(e) {
-                        if (document.getElementById('replayOverlay').classList.contains('active')) {
-                            document.getElementById('replayOverlay').classList.remove('active');
-                            iframe.srcdoc = '';
-                        }
-                    });
-                }
+                // 跳转到 replay.html
+                const replayUrl = `/weiqi-page/replay.html?local=${localKey}`;
+                window.location.href = replayUrl;
                 
             } catch (error) {
                 alert('加载失败: ' + error.message);
