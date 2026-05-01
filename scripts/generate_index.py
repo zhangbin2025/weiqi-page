@@ -215,7 +215,11 @@ def generate_index(test_mode=False):
     
     # 复制记谱工具到站点
     import shutil
-    from config import WEIQI_RECORDER_PATH, WEIQI_SGF_TEMPLATE
+    from config import WEIQI_RECORDER_PATH, WEIQI_SGF_TEMPLATE, SKILLS_DIR
+    
+    # 添加 quiz 模板路径
+    WEIQI_QUIZ_TEMPLATE = SKILLS_DIR / "weiqi-move/templates/quiz.html"
+    
     tools_dst = base_dir / "tools"
     recorder_dst = tools_dst / "recorder.html"
     
@@ -233,6 +237,14 @@ def generate_index(test_mode=False):
         print(f"✅ 复制打谱模板: {replay_dst}")
     else:
         print(f"⚠️ 警告: 未找到打谱模板: {WEIQI_SGF_TEMPLATE}")
+    
+    # 复制做题模板到站点（支持 JSON 数据加载）
+    quiz_dst = base_dir / "quiz.html"
+    if WEIQI_QUIZ_TEMPLATE.exists():
+        shutil.copy2(WEIQI_QUIZ_TEMPLATE, quiz_dst)
+        print(f"✅ 复制做题模板: {quiz_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到做题模板: {WEIQI_QUIZ_TEMPLATE}")
     
     # 获取 Git commit hash (短格式) - 提前获取，供后续模板替换使用
     import subprocess

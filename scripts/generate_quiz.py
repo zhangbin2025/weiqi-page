@@ -102,13 +102,14 @@ def parse_quiz_output(stdout):
 
 
 def generate_quiz(sgf_path, output_path, quiz_type="blunder"):
-    """生成选点题，返回统计信息"""
+    """生成选点题 JSON 数据，返回统计信息"""
     # 确保输出目录存在
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     cmd = [
         "python3", str(WEIQI_MOVE_SCRIPT),
         str(sgf_path),
+        "--data-only",  # 仅输出 JSON
         "-o", str(output_path),
         "-t", quiz_type,
         "-n", "10"  # 最多生成10题
@@ -210,8 +211,8 @@ def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
         date_source_dir = quiz_dir / date_str / source
         date_source_dir.mkdir(parents=True, exist_ok=True)
         
-        # 生成选点题（恶手类型）
-        output_name = f"quiz_{game_id}.html"
+        # 生成选点题（恶手类型）- 输出 JSON
+        output_name = f"quiz_{game_id}.json"
         output_path = date_source_dir / output_name
         
         quiz_result = generate_quiz(sgf_path, output_path, "blunder")
@@ -226,7 +227,7 @@ def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
                     generated.append({
                         "id": game_id,
                         "source": source,
-                        "path": f"{BASE_PATH}/quiz/{date_str}/{source}/{output_name}",
+                        "path": f"{BASE_PATH}/quiz.html?data={BASE_PATH}/quiz/{date_str}/{source}/{output_name}",
                         "game_path": f"{BASE_PATH}/games/{date_str}/{source}/game_{game_id}.html",
                         "black": game.get("black", "未知"),
                         "white": game.get("white", "未知"),
