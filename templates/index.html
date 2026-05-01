@@ -307,6 +307,10 @@
             background: linear-gradient(135deg, #42A5F5 0%, #66BB6A 100%);
             box-shadow: 0 4px 12px rgba(66, 165, 245, 0.3);
         }
+        .tool-icon.opponent {
+            background: linear-gradient(135deg, #AB47BC 0%, #EC407A 100%);
+            box-shadow: 0 4px 12px rgba(171, 71, 188, 0.3);
+        }
         .tool-icon.yunbisai {
             background: linear-gradient(135deg, #FF8F00 0%, #FFB300 100%);
             box-shadow: 0 4px 12px rgba(255, 143, 0, 0.3);
@@ -366,7 +370,7 @@
             <a href="{{ base_path }}/quiz/" class="card-link">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon">🎯</div>
+                        <div class="card-icon">📊</div>
                         <h2>实战选点</h2>
                     </div>
                     <div class="triple-stats">
@@ -408,7 +412,7 @@
                             <span class="name">热门</span>
                         </div>
                         <div class="stat-item hit">
-                            <span class="emoji">🎯</span>
+                            <span class="emoji">📊</span>
                             <span class="count">{{ joseki_hit }}</span>
                             <span class="name">命中</span>
                         </div>
@@ -444,6 +448,10 @@
             <a href="{{ base_path }}/tools/player.html" class="tool-item" onclick="closeToolsPanel()">
                 <div class="tool-icon player">👤</div>
                 <span class="tool-name">棋手查询</span>
+            </a>
+            <a href="{{ base_path }}/tools/opponent/" class="tool-item" onclick="closeToolsPanel()">
+                <div class="tool-icon opponent">📊</div>
+                <span class="tool-name">对手分析</span>
             </a>
             <a href="{{ base_path }}/tools/yunbisai/" class="tool-item" onclick="closeToolsPanel()">
                 <div class="tool-icon yunbisai">🏆</div>

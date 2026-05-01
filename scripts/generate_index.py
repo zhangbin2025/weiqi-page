@@ -269,6 +269,23 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到云比赛查询工具目录: {yunbisai_src_dir}")
     
+    # 复制对手分析工具目录到站点
+    opponent_src_dir = TEMPLATES_DIR / "tools" / "opponent"
+    opponent_dst_dir = tools_dst / "opponent"
+    
+    if opponent_src_dir.exists():
+        opponent_dst_dir.mkdir(parents=True, exist_ok=True)
+        # 复制目录下所有文件
+        for src_file in opponent_src_dir.glob("*.html"):
+            dst_file = opponent_dst_dir / src_file.name
+            content = src_file.read_text(encoding='utf-8')
+            content = content.replace('{{GIT_HASH}}', git_hash)
+            dst_file.write_text(content, encoding='utf-8')
+            print(f"✅ 复制对手分析页面: {dst_file.name} (git:{git_hash})")
+        print(f"✅ 复制对手分析工具目录完成")
+    else:
+        print(f"⚠️ 警告: 未找到对手分析工具目录: {opponent_src_dir}")
+    
     # 复制棋谱抓取工具到站点
     fetcher_src = TEMPLATES_DIR / "tools" / "fetcher.html"
     fetcher_dst = tools_dst / "fetcher.html"
