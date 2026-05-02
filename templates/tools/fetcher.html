@@ -698,11 +698,10 @@
 
             listContainer.innerHTML = recent.map(id => {
                 const item = cache[id];
-                if (!item || !item.data) return '';
+                if (!item) return '';
 
-                const data = item.data;
-                const info = data.game_info || {};
-                const source = sourceNames[data.source] || data.source_name || '未知';
+                const info = item.game_info || {};
+                const source = sourceNames[item.source] || item.source_name || '未知';
 
                 return `
                     <div class="history-item" onclick="viewHistory('${id}')">
@@ -734,7 +733,7 @@
             const cache = getCache();
             const item = cache[id];
 
-            if (!item || !item.data) {
+            if (!item) {
                 alert('缓存数据不存在');
                 return;
             }
@@ -742,8 +741,8 @@
             // 切换到抓取标签并显示结果
             switchTab('query');
             document.getElementById('urlInput').value = item.url || '';
-            currentGameData = item.data;
-            displayResult(item.data);
+            currentGameData = item;
+            displayResult(item);
         }
 
         // 页面加载时读取剪贴板
@@ -879,7 +878,7 @@
                 currentGameData = data.data;
 
                 // 保存到缓存
-                addToCache(url, data);
+                addToCache(url, data.data);
 
                 displayResult(currentGameData);
 
