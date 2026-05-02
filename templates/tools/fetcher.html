@@ -950,7 +950,10 @@
             const match = result.match(/^([BW])\+([\d.]+)$/);
             if (match) {
                 const winner = match[1] === 'B' ? '黑' : '白';
-                const margin = match[2];
+                const margin = parseFloat(match[2]);
+                if (margin === 0) {
+                    return `${winner}胜`;
+                }
                 return `${winner}胜${margin}目`;
             }
 
