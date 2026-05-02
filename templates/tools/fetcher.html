@@ -485,7 +485,7 @@
         <!-- 最近面板 -->
         <div id="recentPanel" class="tab-content">
             <div class="card">
-                <h2>📋 最近抓取</h2>
+                <h2>📋 最近抓取 <button class="icon-btn" onclick="clearHistory()" title="清除所有记录" style="width:auto;padding:4px 8px;font-size:0.85em;margin-left:auto;">🗑️ 清除</button></h2>
                 <div id="historyList" class="history-list">
                     <!-- 历史列表将在这里渲染 -->
                 </div>
@@ -743,6 +743,14 @@
             document.getElementById('urlInput').value = item.url || '';
             currentGameData = item;
             displayResult(item);
+        }
+
+        // 清除所有历史记录
+        function clearHistory() {
+            if (!confirm('确定要清除所有抓取记录吗？')) return;
+            localStorage.removeItem(CACHE_KEY);
+            localStorage.removeItem(RECENT_KEY);
+            renderHistoryList();
         }
 
         // 页面加载时读取剪贴板
