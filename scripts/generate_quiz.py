@@ -20,7 +20,7 @@ from common import (
     batch_export_sgfs, find_sgf_file_by_id, find_original_sgf
 )
 from config import (
-    WEIQI_MOVE_SCRIPT, BASE_PATH,
+    WEIQI_MOVE_SCRIPT, BASE_PATH, get_base_path,
     SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
 )
 
@@ -142,6 +142,7 @@ def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
     """
     base_dir = ensure_dirs(test_mode)
     quiz_dir = base_dir / "quiz"
+    base_path = get_base_path(test_mode)
     
     print(f"📅 处理日期: {date_str}")
     
@@ -227,8 +228,8 @@ def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
                     generated.append({
                         "id": game_id,
                         "source": source,
-                        "path": f"{BASE_PATH}/quiz.html?data={BASE_PATH}/quiz/{date_str}/{source}/{output_name}",
-                        "game_path": f"{BASE_PATH}/games/{date_str}/{source}/game_{game_id}.html",
+                        "path": f"{base_path}/quiz.html?data={base_path}/quiz/{date_str}/{source}/{output_name}",
+                        "game_path": f"{base_path}/games/{date_str}/{source}/game_{game_id}.html",
                         "black": game.get("black", "未知"),
                         "white": game.get("white", "未知"),
                         "event": game.get("event", ""),
@@ -256,6 +257,7 @@ def generate_quiz_index(test_mode=False):
     """生成选点题列表索引页"""
     base_dir = TEST_SITE_DIR if test_mode else SITE_DIR
     data_dir = base_dir / "_data"
+    base_path = get_base_path(test_mode)
     
     date_data = {}
     all_dates = []
@@ -291,7 +293,8 @@ def generate_quiz_index(test_mode=False):
     html = template.render(
         dates=sorted_dates,
         current_date=current_date,
-        date_data=date_data
+        date_data=date_data,
+        base_path=base_path
     )
     
     output_path = base_dir / "quiz" / "index.html"

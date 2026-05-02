@@ -52,9 +52,16 @@ if not GITHUB_USERNAME or " " in GITHUB_USERNAME:
         print(f"⚠️ 警告: 无法自动获取 GitHub 用户名，请在 .env 文件中配置 GITHUB_USERNAME")
         print(f"   错误: {e}")
 
-SITE_ROOT = WORKSPACE_DIR / f"{GITHUB_USERNAME}.github.io"  # GitHub Pages 根目录
-SITE_DIR = SITE_ROOT / "weiqi-page"  # 实际部署到子目录
-TEST_SITE_DIR = WORKSPACE_DIR / "test_site" / "weiqi-page"  # 测试模式也使用相同的子目录结构
+# 生产环境部署目录：weiqi-dev/weiqi-pro
+PROD_SITE_ROOT = WORKSPACE_DIR / "weiqi-dev" / "weiqi-pro"
+PROD_SITE_DIR = PROD_SITE_ROOT / "weiqi-page"
+
+# 测试环境部署目录
+TEST_SITE_DIR = WORKSPACE_DIR / "test_site" / "weiqi-page"
+
+# 兼容旧代码（指向生产环境）
+SITE_ROOT = PROD_SITE_ROOT
+SITE_DIR = PROD_SITE_DIR
 SCRIPTS_DIR = WEIQI_PAGE_DIR / "scripts"
 TEMPLATES_DIR = WEIQI_PAGE_DIR / "templates"
 
@@ -94,7 +101,22 @@ SITE_CONFIG = {
 }
 
 # GitHub Pages 部署路径（子目录）
-BASE_PATH = "/weiqi-page"
+BASE_PATH_TEST = "/weiqi-page"  # 测试环境
+BASE_PATH_PROD = "/weiqi-pro/weiqi-page"  # 生产环境
+
+# 兼容旧代码（默认测试环境）
+BASE_PATH = BASE_PATH_TEST
+
+
+def get_base_path(test_mode=False):
+    """根据运行模式获取 base_path
+    
+    Args:
+        test_mode: True=测试环境, False=生产环境
+    Returns:
+        base_path 字符串
+    """
+    return BASE_PATH_TEST if test_mode else BASE_PATH_PROD
 
 def ensure_dirs(test_mode=False):
     """确保必要的目录存在"""

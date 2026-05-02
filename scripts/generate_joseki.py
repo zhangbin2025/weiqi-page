@@ -22,7 +22,7 @@ from common import (
     get_games_by_date, batch_export_sgfs, get_game_source
 )
 from config import (
-    WEIQI_JOSEKI_DIR, WEIQI_SGF_SCRIPT, BASE_PATH,
+    WEIQI_JOSEKI_DIR, WEIQI_SGF_SCRIPT, BASE_PATH, get_base_path,
     SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
 )
 
@@ -137,6 +137,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
     base_dir = ensure_dirs(test_mode)
     joseki_dir = base_dir / "joseki" / date_str
     joseki_dir.mkdir(parents=True, exist_ok=True)
+    base_path = get_base_path(test_mode)
     
     print(f"📅 处理日期: {date_str}")
     
@@ -253,13 +254,13 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
                    (black_name in game_black and white_name in game_white):
                     game_id = game.get("id")
                     game_source = get_game_source(game)
-                    game_path = f"{BASE_PATH}/replay.html?data={BASE_PATH}/games/{date_str}/{game_source}/game_{game_id}.json"
+                    game_path = f"{base_path}/replay.html?data={base_path}/games/{date_str}/{game_source}/game_{game_id}.json"
                     break
             
             generated.append({
                 "id": f"joseki_{idx:03d}",
                 "name": name,
-                "path": f"{BASE_PATH}/replay.html?data={BASE_PATH}/joseki/{date_str}/{output_name}",
+                "path": f"{base_path}/replay.html?data={base_path}/joseki/{date_str}/{output_name}",
                 "game_path": game_path if game_path else "",
                 "moves": moves,  # 着法序列，用于前端计算
                 "move_count": move_count,  # 总手数
@@ -289,6 +290,7 @@ def generate_joseki_index(test_mode=False):
     """生成定式列表索引页"""
     base_dir = TEST_SITE_DIR if test_mode else SITE_DIR
     data_dir = base_dir / "_data"
+    base_path = get_base_path(test_mode)
     
     date_data = {}
     all_dates = []
@@ -327,7 +329,8 @@ def generate_joseki_index(test_mode=False):
     html = template.render(
         dates=sorted_dates,
         current_date=current_date,
-        date_data=date_data
+        date_data=date_data,
+        base_path=base_path
     )
     
     output_path = base_dir / "joseki" / "index.html"

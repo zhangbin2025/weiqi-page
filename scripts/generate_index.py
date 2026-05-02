@@ -192,7 +192,8 @@ def generate_index(test_mode=False):
     template = Template(template_path.read_text(encoding="utf-8"))
     
     # 渲染
-    from config import BASE_PATH
+    from config import get_base_path
+    base_path = get_base_path(test_mode)
     html = template.render(
         games_count=games_count,
         games_events=games_events,
@@ -205,7 +206,7 @@ def generate_index(test_mode=False):
         joseki_hit=joseki_hit,
         joseki_complex=joseki_complex,
         last_update=latest_date or "暂无数据",
-        base_path=BASE_PATH
+        base_path=base_path
     )
     
     # 保存
@@ -267,6 +268,7 @@ def generate_index(test_mode=False):
         tools_dst.mkdir(parents=True, exist_ok=True)
         pq_content = player_src.read_text(encoding='utf-8')
         pq_content = pq_content.replace('{{GIT_HASH}}', git_hash)
+        pq_content = pq_content.replace('{{ base_path }}', base_path)
         player_dst.write_text(pq_content, encoding='utf-8')
         print(f"✅ 复制棋手查询工具: {player_dst} (git:{git_hash})")
     else:
@@ -283,6 +285,7 @@ def generate_index(test_mode=False):
             dst_file = yunbisai_dst_dir / src_file.name
             content = src_file.read_text(encoding='utf-8')
             content = content.replace('{{GIT_HASH}}', git_hash)
+            content = content.replace('{{ base_path }}', base_path)
             dst_file.write_text(content, encoding='utf-8')
             print(f"✅ 复制云比赛页面: {dst_file.name} (git:{git_hash})")
         print(f"✅ 复制云比赛查询工具目录完成")
@@ -300,6 +303,7 @@ def generate_index(test_mode=False):
             dst_file = opponent_dst_dir / src_file.name
             content = src_file.read_text(encoding='utf-8')
             content = content.replace('{{GIT_HASH}}', git_hash)
+            content = content.replace('{{ base_path }}', base_path)
             dst_file.write_text(content, encoding='utf-8')
             print(f"✅ 复制对手分析页面: {dst_file.name} (git:{git_hash})")
         print(f"✅ 复制对手分析工具目录完成")
@@ -314,6 +318,7 @@ def generate_index(test_mode=False):
         tools_dst.mkdir(parents=True, exist_ok=True)
         content = fetcher_src.read_text(encoding='utf-8')
         content = content.replace('{{GIT_HASH}}', git_hash)
+        content = content.replace('{{ base_path }}', base_path)
         fetcher_dst.write_text(content, encoding='utf-8')
         print(f"✅ 复制棋谱抓取工具: {fetcher_dst} (git:{git_hash})")
     else:
@@ -326,7 +331,7 @@ def generate_index(test_mode=False):
     if auth_src.exists():
         auth_content = auth_src.read_text(encoding='utf-8')
         auth_content = auth_content.replace('{{GIT_HASH}}', git_hash)
-        auth_content = auth_content.replace('{{base_path}}', BASE_PATH)
+        auth_content = auth_content.replace('{{base_path}}', base_path)
         auth_dst.write_text(auth_content, encoding='utf-8')
         print(f"✅ 复制认证页面: {auth_dst}")
     else:
@@ -353,6 +358,19 @@ def generate_index(test_mode=False):
         print(f"✅ 复制公众号二维码: {public_img_dst}")
     else:
         print(f"⚠️ 警告: 未找到公众号二维码: {public_img_src}")
+    
+    # 复制 favicon 目录到站点 (assets/favicon/)
+    favicon_src_dir = WEIQI_PAGE_DIR / "assets" / "favicon"
+    favicon_dst_dir = base_dir / "assets" / "favicon"
+    
+    if favicon_src_dir.exists():
+        favicon_dst_dir.mkdir(parents=True, exist_ok=True)
+        for favicon_file in favicon_src_dir.glob("*"):
+            if favicon_file.is_file():
+                shutil.copy2(favicon_file, favicon_dst_dir / favicon_file.name)
+        print(f"✅ 复制 favicon 目录: {favicon_dst_dir}")
+    else:
+        print(f"⚠️ 警告: 未找到 favicon 目录: {favicon_src_dir}")
     
     # 生成根目录跳转页
     from config import WORKSPACE_DIR, SITE_ROOT

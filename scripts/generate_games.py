@@ -19,7 +19,7 @@ from common import (
     batch_export_sgfs, find_sgf_file_by_id, translate_result
 )
 from config import (
-    WEIQI_SGF_SCRIPT, BASE_PATH,
+    WEIQI_SGF_SCRIPT, BASE_PATH, get_base_path,
     SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs
 )
 
@@ -54,6 +54,7 @@ def generate_games_for_date(date_str, test_mode=False, sgf_dir=None):
     """
     base_dir = ensure_dirs(test_mode)
     games_dir = base_dir / "games"
+    base_path = get_base_path(test_mode)
     
     print(f"📅 处理日期: {date_str}")
     
@@ -126,7 +127,7 @@ def generate_games_for_date(date_str, test_mode=False, sgf_dir=None):
                 "id": game_id,
                 "source": source,
                 # 路径改为 replay.html?data=xxx.json
-                "path": f"{BASE_PATH}/replay.html?data={BASE_PATH}/games/{date_str}/{source}/{output_name}",
+                "path": f"{base_path}/replay.html?data={base_path}/games/{date_str}/{source}/{output_name}",
                 "black": game.get("black", "未知"),
                 "white": game.get("white", "未知"),
                 "black_rank": game.get("black_rank", ""),
@@ -150,6 +151,7 @@ def generate_games_index(test_mode=False):
     """生成棋谱列表索引页"""
     base_dir = TEST_SITE_DIR if test_mode else SITE_DIR
     data_dir = base_dir / "_data"
+    base_path = get_base_path(test_mode)
     
     # 收集所有日期的数据
     date_data = {}
@@ -186,7 +188,8 @@ def generate_games_index(test_mode=False):
     html = template.render(
         dates=sorted_dates,
         current_date=current_date,
-        date_data=date_data
+        date_data=date_data,
+        base_path=base_path
     )
     
     output_path = base_dir / "games" / "index.html"
