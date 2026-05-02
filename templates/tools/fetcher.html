@@ -503,35 +503,23 @@
             <div class="card">
                 <h2>
                     📄 棋谱信息
-                    <span id="sourceTag" class="source-tag"></span>
                 </h2>
 
-                <div class="url-display">
-                    <strong>来源：</strong>
-                    <span id="sourceUrl">-</span>
-                </div>
+                <div class="source-tag" id="sourceTag" style="margin-bottom:12px;display:inline-block;">-</div>
 
                 <div class="game-info">
                     <div class="info-row">
                         <span class="info-label">黑方</span>
                         <span id="blackPlayer" class="info-value player-name">-</span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">段位</span>
-                        <span id="blackRank" class="info-value">-</span>
-                    </div>
                     <div class="vs-divider">VS</div>
                     <div class="info-row">
                         <span class="info-label">白方</span>
                         <span id="whitePlayer" class="info-value player-name">-</span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">段位</span>
-                        <span id="whiteRank" class="info-value">-</span>
-                    </div>
                     <div class="vs-divider">─</div>
                     <div class="info-row">
-                        <span class="info-label">结果</span>
+                        <span class="info-label">战果</span>
                         <span id="gameResult" class="info-value">-</span>
                     </div>
                     <div class="info-row">
@@ -539,16 +527,8 @@
                         <span id="moveCount" class="info-value">-</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">日期</span>
+                        <span class="info-label">对局时间</span>
                         <span id="gameDate" class="info-value">-</span>
-                    </div>
-                    <div class="info-row" id="komiRow">
-                        <span class="info-label">贴目</span>
-                        <span id="gameKomi" class="info-value">-</span>
-                    </div>
-                    <div class="info-row" id="eventRow">
-                        <span class="info-label">赛事</span>
-                        <span id="gameEvent" class="info-value">-</span>
                     </div>
                 </div>
 
@@ -703,27 +683,25 @@
                 if (!item || !item.data) return '';
 
                 const info = item.data.game_info || {};
-                const source = item.data.source_name || sourceNames[item.data.source] || '未知';
+                const source = item.data.source_name || '未知';
 
                 return `
                     <div class="history-item" onclick="viewHistory('${id}')">
                         <div class="history-header">
-                            <span class="history-time">${formatRelativeTime(item.cachedAt)}</span>
                             <span class="history-source">${source}</span>
+                            <span class="history-time">${formatRelativeTime(item.cachedAt)}</span>
                         </div>
                         <div class="history-players">
                             <div class="player-box">
                                 <div class="name">⚫ ${info.black || '黑方'}</div>
-                                <div class="rank">${info.black_rank || '-'}</div>
                             </div>
                             <div class="vs-text">VS</div>
                             <div class="player-box">
                                 <div class="name">⚪ ${info.white || '白方'}</div>
-                                <div class="rank">${info.white_rank || '-'}</div>
                             </div>
                         </div>
                         <div class="history-result">
-                            ${formatResult(info.result) || '-'} · ${info.moves ? info.moves + '手' : '-'}
+                            ${formatResult(info.result) || '-'}
                         </div>
                     </div>
                 `;
@@ -939,54 +917,44 @@
         function displayResult(data) {
             const info = data.game_info || {};
 
-            const sourceNames = {
-                'fox': '野狐围棋',
-                'ogs': 'OGS',
-                '101': '101围棋',
-                'yike': '弈客',
-                'yuanluobo': '元萝卜',
-                '1919': '19x19',
-                'izis': '弈城',
-                'eweiqi': '弈城',
-                'txwq': '腾讯围棋',
-                'xinbo': '新博',
-                'dzqzd': '大棋渣',
-                'unknown': '未知来源'
-            };
-            document.getElementById('sourceTag').textContent = data.source_name || sourceNames[data.source] || '未知';
-            document.getElementById('sourceUrl').textContent = data.url || '-';
+            document.getElementById('sourceTag').textContent = data.source_name || '未知';
 
             document.getElementById('blackPlayer').textContent = info.black || '黑方';
-            document.getElementById('blackRank').textContent = info.black_rank || '-';
             document.getElementById('whitePlayer').textContent = info.white || '白方';
-            document.getElementById('whiteRank').textContent = info.white_rank || '-';
             document.getElementById('gameResult').textContent = formatResult(info.result) || '-';
             document.getElementById('moveCount').textContent = info.moves ? `${info.moves} 手` : '-';
             document.getElementById('gameDate').textContent = info.date || '-';
 
-            const komiRow = document.getElementById('komiRow');
-            if (info.komi) {
-                document.getElementById('gameKomi').textContent = info.komi;
-                komiRow.style.display = 'flex';
-            } else {
-                komiRow.style.display = 'none';
-            }
-
-            const eventRow = document.getElementById('eventRow');
-            if (info.event) {
-                document.getElementById('gameEvent').textContent = info.event;
-                eventRow.style.display = 'flex';
-            } else {
-                eventRow.style.display = 'none';
-            }
-
             document.getElementById('result').classList.add('show');
         }
 
-        // 格式化结果
+        // 格式化结果（翻译英文结果）
         function formatResult(result) {
             if (!result) return '-';
             if (result === 'Void') return '无胜负';
+
+            // 翻译英文结果
+            const resultMap = {
+                'B+R': '黑中盘胜',
+                'W+R': '白中盘胜',
+                'B+T': '黑超时胜',
+                'W+T': '白超时胜',
+                'B+Resign': '黑中盘胜',
+                'W+Resign': '白中盘胜',
+            };
+
+            // 检查是否完全匹配
+            if (resultMap[result]) return resultMap[result];
+
+            // 检查是否包含数字的胜果（如 B+2.5, W+10.5）
+            const match = result.match(/^([BW])\+([\d.]+)$/);
+            if (match) {
+                const winner = match[1] === 'B' ? '黑' : '白';
+                const margin = match[2];
+                return `${winner}胜${margin}目`;
+            }
+
+            // 中文结果直接返回
             return result;
         }
 
