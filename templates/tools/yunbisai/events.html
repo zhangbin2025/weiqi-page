@@ -8,45 +8,48 @@
     <script>document.write('<script src="{{ base_path }}/assets/js/auth.js?v=' + Date.now() + '"><\/script>');</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
-        .container { max-width: 480px; margin: 0 auto; padding: 12px; min-height: 100vh; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; color: #333; }
+        .container { max-width: 480px; margin: 0 auto; padding: 12px; }
         
         /* 头部 */
-        header { padding: 12px 10px; color: white; text-align: center; }
-        h1 { font-size: 1.6em; margin-bottom: 4px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; margin-bottom: 12px; border-radius: 8px; }
+        h1 { font-size: 1.3em; margin-bottom: 4px; }
         .subtitle { font-size: 0.85em; opacity: 0.9; }
         
         /* 标签切换 */
-        .tabs { display: flex; background: rgba(255,255,255,0.15); border-radius: 12px; padding: 4px; margin-bottom: 12px; }
-        .tab { flex: 1; padding: 12px 8px; text-align: center; color: rgba(255,255,255,0.8); cursor: pointer; border-radius: 10px; transition: all 0.3s ease; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 4px; }
-        .tab:hover { color: white; }
-        .tab.active { background: white; color: #667eea; font-weight: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        .tab-count { font-size: 11px; opacity: 0.8; }
-        
+        .tabs { display: flex; background: white; border-radius: 8px; padding: 4px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .tab { flex: 1; padding: 10px; text-align: center; color: #666; cursor: pointer; border-radius: 6px; font-size: 14px; transition: all 0.2s; }
+        .tab:hover { background: #f5f5f5; }
+        .tab.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 500; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
-        /* 城市分组 */
-        .city-group { margin-bottom: 16px; }
-        .city-header { background: white; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .city-name { font-weight: 600; color: #333; font-size: 0.95em; }
-        .city-count { background: #667eea; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; }
+        /* 城市分组 - 参考 games_list 的 source-group 风格 */
+        .city-group { background: white; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+        .city-header { background: #f8f9fa; padding: 12px 15px; font-weight: bold; color: #555; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .city-header:hover { background: #f0f0f0; }
+        .city-toggle { font-size: 0.8em; color: #999; transition: transform 0.2s; }
+        .city-toggle.collapsed { transform: rotate(-90deg); }
         
-        /* 比赛卡片 */
-        .event-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: pointer; transition: transform 0.2s; }
-        .event-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-        .event-title { font-weight: 600; font-size: 1em; color: #333; margin-bottom: 6px; line-height: 1.4; }
-        .event-date { color: #666; font-size: 0.85em; }
+        /* 比赛列表 */
+        .event-list { padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; }
+        .event-list.collapsed { display: none; }
+        
+        /* 比赛卡片 - 参考 games_list 的 game-card 风格 */
+        .event-card { padding: 12px 14px; background: #fff; border: 1px solid #eee; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .event-card:hover { background: #fafafa; border-color: #ddd; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+        .event-title { font-weight: 600; font-size: 0.95em; color: #333; line-height: 1.4; margin-bottom: 4px; }
+        .event-date { font-size: 0.85em; color: #888; }
         
         /* 空状态 */
-        .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.8); }
-        .empty-state-icon { font-size: 3em; margin-bottom: 12px; opacity: 0.5; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #888; background: white; border-radius: 8px; }
+        .empty-state-icon { font-size: 2.5em; margin-bottom: 12px; opacity: 0.5; }
         
         /* 返回按钮 */
         .back-btn { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 25px; font-size: 14px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 100; }
         .back-btn:hover { opacity: 0.9; }
         
-        footer { text-align: center; padding: 20px; color: rgba(255,255,255,0.7); font-size: 0.8em; }
+        footer { text-align: center; padding: 20px; color: #999; font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -60,19 +63,13 @@
         <!-- 标签切换 -->
         <div class="tabs">
             <div class="tab active" data-tab="recent" onclick="switchTab('recent')">
-                <span>🔥</span>
-                <span>最近</span>
-                <span class="tab-count" id="recentCount">0</span>
+                🔥 最近 <span id="recentCount">0</span>
             </div>
             <div class="tab" data-tab="history" onclick="switchTab('history')">
-                <span>📜</span>
-                <span>历史</span>
-                <span class="tab-count" id="historyCount">0</span>
+                📜 历史 <span id="historyCount">0</span>
             </div>
             <div class="tab" data-tab="future" onclick="switchTab('future')">
-                <span>📅</span>
-                <span>未来</span>
-                <span class="tab-count" id="futureCount">0</span>
+                📅 未来 <span id="futureCount">0</span>
             </div>
         </div>
         
@@ -104,15 +101,27 @@
         
         // ========== 标签切换 ==========
         function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
             
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(tabName + 'Panel').classList.add('active');
+        }
+        
+        // ========== 城市分组折叠 ==========
+        function toggleCity(header) {
+            const list = header.nextElementSibling;
+            const toggle = header.querySelector('.city-toggle');
+            
+            if (list.classList.contains('collapsed')) {
+                list.classList.remove('collapsed');
+                toggle.classList.remove('collapsed');
+                toggle.textContent = '▼';
+            } else {
+                list.classList.add('collapsed');
+                toggle.classList.add('collapsed');
+                toggle.textContent = '▶';
+            }
         }
         
         // ========== 加载比赛数据 ==========
@@ -173,33 +182,28 @@
             const cityGroups = {};
             eventList.forEach(event => {
                 const city = event.city || '未知地区';
-                if (!cityGroups[city]) {
-                    cityGroups[city] = [];
-                }
+                if (!cityGroups[city]) cityGroups[city] = [];
                 cityGroups[city].push(event);
             });
             
             // 每个城市内按日期排序
             Object.keys(cityGroups).forEach(city => {
-                cityGroups[city].sort((a, b) => {
-                    return (b.date || '').localeCompare(a.date || '');
-                });
+                cityGroups[city].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             });
             
             // 按比赛数量排序城市
-            const sortedCities = Object.keys(cityGroups).sort((a, b) => {
-                return cityGroups[b].length - cityGroups[a].length;
-            });
+            const sortedCities = Object.keys(cityGroups).sort((a, b) => cityGroups[b].length - cityGroups[a].length);
             
             let html = '';
             sortedCities.forEach(city => {
                 const events = cityGroups[city];
                 html += `
                     <div class="city-group">
-                        <div class="city-header">
-                            <span class="city-name">📍 ${city}</span>
-                            <span class="city-count">${events.length}场</span>
+                        <div class="city-header" onclick="toggleCity(this)">
+                            <span>📍 ${city} (${events.length}场)</span>
+                            <span class="city-toggle">▼</span>
                         </div>
+                        <div class="event-list">
                 `;
                 
                 events.forEach(event => {
@@ -211,7 +215,7 @@
                     `;
                 });
                 
-                html += '</div>';
+                html += '</div></div>';
             });
             
             container.innerHTML = html;
