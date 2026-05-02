@@ -44,11 +44,10 @@
         
         /* 历史列表 */
         .history-list { display: flex; flex-direction: column; gap: 12px; }
-        .history-item { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s; }
+        .history-item { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s; position: relative; }
         .history-item:hover { transform: translateY(-2px); }
-        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .history-time { font-size: 0.8em; color: #888; }
-        .history-title { font-weight: 600; color: #333; font-size: 1em; }
+        .history-title { font-weight: 600; color: #333; font-size: 1em; line-height: 1.4; padding-right: 70px; }
+        .history-time { position: absolute; top: 16px; right: 16px; font-size: 0.75em; color: #888; white-space: nowrap; }
         
         footer { text-align: center; padding: 20px; color: rgba(255,255,255,0.7); font-size: 0.8em; }
     </style>
@@ -178,10 +177,8 @@
             
             listContainer.innerHTML = visited.map(item => `
                 <div class="history-item" onclick="quickVisit(${item.id}, '${item.title.replace(/'/g, "\\'")}')">
-                    <div class="history-header">
-                        <span class="history-title">🏆 ${item.title}</span>
-                        <span class="history-time">${formatRelativeTime(item.time)}</span>
-                    </div>
+                    <span class="history-time">${formatRelativeTime(item.time)}</span>
+                    <div class="history-title">🏆 ${item.title}</div>
                 </div>
             `).join('');
         }
