@@ -703,7 +703,7 @@
                 if (!item || !item.data) return '';
 
                 const info = item.data.game_info || {};
-                const source = sourceNames[item.data.source] || item.data.source_name || '未知';
+                const source = item.data.source_name || sourceNames[item.data.source] || '未知';
 
                 return `
                     <div class="history-item" onclick="viewHistory('${id}')">
