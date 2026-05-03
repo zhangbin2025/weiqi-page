@@ -229,7 +229,7 @@ def generate_quiz_for_date(date_str, test_mode=False, sgf_dir=None):
                         "id": game_id,
                         "source": source,
                         "path": f"{base_path}/quiz.html?data={base_path}/quiz/{date_str}/{source}/{output_name}",
-                        "game_path": f"{base_path}/games/{date_str}/{source}/game_{game_id}.html",
+                        "game_path": f"{base_path}/replay.html?data={base_path}/games/{date_str}/{source}/game_{game_id}.json",
                         "black": game.get("black", "未知"),
                         "white": game.get("white", "未知"),
                         "event": game.get("event", ""),
