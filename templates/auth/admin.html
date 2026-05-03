@@ -223,7 +223,7 @@
             </select>
         </div>
         
-        <!-- 密码输入（仅在密码失效时显示） -->
+        <!-- 密码输入（密码缓存1天，失效时显示） -->
         <div id="passwordGroup" class="form-group hidden">
             <label for="adminPassword">管理员密码</label>
             <input type="password" id="adminPassword" placeholder="输入管理员密码">
@@ -263,7 +263,7 @@
         const PASSWORD_CACHE_KEY = 'weiqi_admin_password';
         const PASSWORD_CACHE_TIME_KEY = 'weiqi_admin_password_time';
         const CACHE_MAX_AGE = 10 * 60 * 1000;
-        const PASSWORD_CACHE_AGE = 30 * 60 * 1000; // 30分钟
+        const PASSWORD_CACHE_AGE = 24 * 60 * 60 * 1000; // 1天
         
         let apiBase = '';
         let cachedPassword = '';
