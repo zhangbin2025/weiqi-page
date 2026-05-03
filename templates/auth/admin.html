@@ -118,12 +118,6 @@
             flex: 1;
         }
         
-        .divider {
-            height: 1px;
-            background: #e0e0e0;
-            margin: 20px 0;
-        }
-        
         .info-box {
             background: #f5f5f5;
             padding: 15px;
@@ -229,7 +223,7 @@
             </select>
         </div>
         
-        <!-- 密码输入（默认隐藏，密码失效时显示） -->
+        <!-- 密码输入（仅在密码失效时显示） -->
         <div id="passwordGroup" class="form-group hidden">
             <label for="adminPassword">管理员密码</label>
             <input type="password" id="adminPassword" placeholder="输入管理员密码">
@@ -237,8 +231,8 @@
         
         <!-- 操作按钮 -->
         <div class="btn-group">
-            <button class="btn btn-approve" onclick="approveApply()">✅ 同意</button>
-            <button class="btn btn-reject" onclick="rejectApply()">❌ 拒绝</button>
+            <button class="btn btn-approve" id="approveBtn" onclick="approveApply()">✅ 同意</button>
+            <button class="btn btn-reject" id="rejectBtn" onclick="rejectApply()">❌ 拒绝</button>
         </div>
         
         <!-- 申请信息（点击同意/拒绝后显示） -->
@@ -273,6 +267,7 @@
         
         let apiBase = '';
         let cachedPassword = '';
+        let needPassword = false; // 是否需要用户输入密码
         
         async function getApiBase() {
             if (window.API_BASE) return window.API_BASE;
@@ -349,27 +344,33 @@
             document.getElementById('infoBox').classList.add('show');
         }
         
-        // 获取密码（缓存或输入）
+        // 获取密码
         function getPassword() {
-            // 先检查缓存
-            const cached = localStorage.getItem(PASSWORD_CACHE_KEY);
-            const cachedTime = parseInt(localStorage.getItem(PASSWORD_CACHE_TIME_KEY) || '0');
-            const now = Date.now();
-            
-            if (cached && (now - cachedTime) < PASSWORD_CACHE_AGE) {
-                cachedPassword = cached;
-                return cached;
+            // 如果已经标记需要密码，从输入框获取
+            if (needPassword) {
+                return document.getElementById('adminPassword').value;
             }
             
-            // 缓存失效，显示密码输入框
-            document.getElementById('passwordGroup').classList.remove('hidden');
-            return document.getElementById('adminPassword').value;
+            // 否则使用缓存密码
+            return cachedPassword;
         }
         
         // 缓存密码
         function cachePassword(password) {
             localStorage.setItem(PASSWORD_CACHE_KEY, password);
             localStorage.setItem(PASSWORD_CACHE_TIME_KEY, Date.now().toString());
+            cachedPassword = password;
+            needPassword = false;
+        }
+        
+        // 清除密码缓存
+        function clearPasswordCache() {
+            localStorage.removeItem(PASSWORD_CACHE_KEY);
+            localStorage.removeItem(PASSWORD_CACHE_TIME_KEY);
+            cachedPassword = '';
+            needPassword = true;
+            document.getElementById('passwordGroup').classList.remove('hidden');
+            document.getElementById('adminPassword').focus();
         }
         
         // 页面加载
@@ -382,12 +383,19 @@
                 const cachedTime = parseInt(localStorage.getItem(PASSWORD_CACHE_TIME_KEY) || '0');
                 const now = Date.now();
                 
-                // 如果密码缓存有效，不显示密码输入框
                 if (cached && (now - cachedTime) < PASSWORD_CACHE_AGE) {
+                    // 密码缓存有效，记住密码
                     cachedPassword = cached;
+                    needPassword = false;
+                    // 不显示密码输入框
                     document.getElementById('passwordGroup').classList.add('hidden');
                 } else {
-                    // 密码缓存失效，显示密码输入框
+                    // 密码缓存失效，清空
+                    localStorage.removeItem(PASSWORD_CACHE_KEY);
+                    localStorage.removeItem(PASSWORD_CACHE_TIME_KEY);
+                    cachedPassword = '';
+                    needPassword = true;
+                    // 显示密码输入框
                     document.getElementById('passwordGroup').classList.remove('hidden');
                 }
             } catch (e) {
@@ -408,10 +416,15 @@
             
             if (!password) {
                 showMessage('请输入管理员密码', 'error');
+                clearPasswordCache();
                 return;
             }
             
             const expireDays = parseFloat(document.getElementById('expireDays').value);
+            
+            // 禁用按钮
+            document.getElementById('approveBtn').disabled = true;
+            document.getElementById('rejectBtn').disabled = true;
             
             try {
                 const res = await fetch(`${apiBase}/api/admin/apply/approve`, {
@@ -425,6 +438,8 @@
                 if (data.success) {
                     // 缓存密码
                     cachePassword(password);
+                    
+                    // 隐藏密码输入框
                     document.getElementById('passwordGroup').classList.add('hidden');
                     
                     // 显示申请信息
@@ -436,17 +451,19 @@
                     
                     showMessage('✅ 已批准，用户可正常访问', 'success');
                 } else {
-                    // 密码错误，显示密码输入框
+                    // 密码错误，清除缓存，显示密码输入框
                     if (data.error.message.includes('密码')) {
-                        document.getElementById('passwordGroup').classList.remove('hidden');
-                        localStorage.removeItem(PASSWORD_CACHE_KEY);
-                        localStorage.removeItem(PASSWORD_CACHE_TIME_KEY);
+                        clearPasswordCache();
                     }
                     
                     showMessage(data.error.message, 'error');
                 }
             } catch (e) {
                 showMessage('网络错误: ' + e.message, 'error');
+            } finally {
+                // 恢复按钮
+                document.getElementById('approveBtn').disabled = false;
+                document.getElementById('rejectBtn').disabled = false;
             }
         }
         
@@ -463,8 +480,13 @@
             
             if (!password) {
                 showMessage('请输入管理员密码', 'error');
+                clearPasswordCache();
                 return;
             }
+            
+            // 禁用按钮
+            document.getElementById('approveBtn').disabled = true;
+            document.getElementById('rejectBtn').disabled = true;
             
             try {
                 const res = await fetch(`${apiBase}/api/admin/apply/reject`, {
@@ -478,6 +500,8 @@
                 if (data.success) {
                     // 缓存密码
                     cachePassword(password);
+                    
+                    // 隐藏密码输入框
                     document.getElementById('passwordGroup').classList.add('hidden');
                     
                     // 显示申请信息
@@ -489,17 +513,19 @@
                     
                     showMessage('已拒绝', 'info');
                 } else {
-                    // 密码错误，显示密码输入框
+                    // 密码错误，清除缓存，显示密码输入框
                     if (data.error.message.includes('密码')) {
-                        document.getElementById('passwordGroup').classList.remove('hidden');
-                        localStorage.removeItem(PASSWORD_CACHE_KEY);
-                        localStorage.removeItem(PASSWORD_CACHE_TIME_KEY);
+                        clearPasswordCache();
                     }
                     
                     showMessage(data.error.message, 'error');
                 }
             } catch (e) {
                 showMessage('网络错误: ' + e.message, 'error');
+            } finally {
+                // 恢复按钮
+                document.getElementById('approveBtn').disabled = false;
+                document.getElementById('rejectBtn').disabled = false;
             }
         }
     </script>
