@@ -337,6 +337,20 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到认证页面: {auth_src}")
     
+    # 复制认证管理页面到站点
+    admin_src = TEMPLATES_DIR / "auth" / "admin.html"
+    admin_dst = base_dir / "auth" / "admin.html"
+    
+    if admin_src.exists():
+        admin_content = admin_src.read_text(encoding='utf-8')
+        admin_content = admin_content.replace('{{GIT_HASH}}', git_hash)
+        admin_content = admin_content.replace('{{base_path}}', base_path)
+        admin_dst.parent.mkdir(parents=True, exist_ok=True)
+        admin_dst.write_text(admin_content, encoding='utf-8')
+        print(f"✅ 复制认证管理页面: {admin_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到认证管理页面: {admin_src}")
+    
     # 复制认证工具 JS 到站点 (assets/js/)
     assets_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "auth.js"
     assets_js_dst = base_dir / "assets" / "js" / "auth.js"
