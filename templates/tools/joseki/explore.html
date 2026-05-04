@@ -64,7 +64,7 @@
 
                 <!-- 提示 -->
                 <div class="joseki-message info" id="exploreTip">
-                    点击棋盘选择首着开始探索
+                    正在加载数据...
                 </div>
             </div>
 
@@ -124,30 +124,82 @@
 
         // 加载索引
         async function loadIndex() {
+            console.log('[JosekiExplore] 开始加载索引:', `${DATA_PATH}/trie-index.json.gz`);
             try {
                 const response = await fetch(`${DATA_PATH}/trie-index.json.gz`);
+                console.log('[JosekiExplore] 索引响应状态:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const compressed = await response.arrayBuffer();
+                console.log('[JosekiExplore] 索引文件大小:', compressed.byteLength, 'bytes');
+                
                 const decompressed = pako.ungzip(compressed, { to: 'string' });
                 trieIndex = JSON.parse(decompressed);
+                
                 console.log('[JosekiExplore] 索引加载完成');
+                console.log('[JosekiExplore] 首着列表:', Object.keys(trieIndex.firstMoves));
+                console.log('[JosekiExplore] 分桶数:', Object.keys(trieIndex.bucketIndex).length);
+                
+                // 显示首着选点
+                showFirstMoveBranches();
+                document.getElementById('exploreTip').textContent = '点击选点开始探索';
+                
             } catch (e) {
                 console.error('[JosekiExplore] 索引加载失败:', e);
-                document.getElementById('exploreTip').textContent = '数据加载失败，请刷新页面';
+                document.getElementById('exploreTip').textContent = '数据加载失败: ' + e.message;
+                document.getElementById('exploreTip').classList.remove('info');
+                document.getElementById('exploreTip').classList.add('error');
             }
+        }
+
+        // 显示首着选点
+        function showFirstMoveBranches() {
+            if (!trieIndex || !trieIndex.firstMoves) return;
+            
+            const firstMoves = Object.keys(trieIndex.firstMoves);
+            console.log('[JosekiExplore] 首着数量:', firstMoves.length);
+            
+            const branches = firstMoves.map(sgf => ({
+                ...JosekiUtils.sgfToCoord(sgf),
+                color: 'black',  // 首着都是黑棋
+                sgf: sgf
+            })).filter(b => !b.isPass);  // 过滤掉脱先
+            
+            console.log('[JosekiExplore] 首着分支:', branches.map(b => b.sgf));
+            board.setBranches(branches);
         }
 
         // 加载分桶
         async function loadBucket(bucketKey) {
+            console.log('[JosekiExplore] 加载分桶:', bucketKey);
             try {
                 const bucketInfo = trieIndex.bucketIndex[bucketKey];
-                if (!bucketInfo) return null;
+                if (!bucketInfo) {
+                    console.error('[JosekiExplore] 分桶不存在:', bucketKey);
+                    return null;
+                }
                 
-                const response = await fetch(`${DATA_PATH}/buckets/${bucketInfo.file}`);
+                const url = `${DATA_PATH}/buckets/${bucketInfo.file}`;
+                console.log('[JosekiExplore] 分桶URL:', url);
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
                 const compressed = await response.arrayBuffer();
+                console.log('[JosekiExplore] 分桶文件大小:', compressed.byteLength, 'bytes');
+                
                 const decompressed = pako.ungzip(compressed, { to: 'string' });
-                return JSON.parse(decompressed);
+                const data = JSON.parse(decompressed);
+                console.log('[JosekiExplore] 分桶加载完成:', data.prefix, '节点数:', Object.keys(data.nodes).length);
+                
+                return data;
             } catch (e) {
-                console.error('[JosekiExplore] 分桶加载失败:', e);
+                console.error('[JosekiExplore] 分桶加载失败:', bucketKey, e);
                 return null;
             }
         }
@@ -169,6 +221,7 @@
         }
 
         function handleBoardClick(e) {
+            e.preventDefault();
             const rect = e.target.getBoundingClientRect();
             let clientX, clientY;
             
@@ -185,6 +238,8 @@
             const canvasY = (clientY - rect.top) * (e.target.height / rect.height);
             
             const coord = board.canvasToSgf(canvasX, canvasY);
+            console.log('[JosekiExplore] 点击坐标:', coord);
+            
             if (!coord) return;
             
             handleMove(coord.sgf);
@@ -192,60 +247,65 @@
 
         // ========== 着法处理 ==========
         async function handleMove(coord) {
+            console.log('[JosekiExplore] 处理着法:', coord);
+            
             if (!trieIndex) {
                 document.getElementById('exploreTip').textContent = '数据未加载完成';
                 return;
             }
 
-            // 首着：加载对应分桶
+            // 首着
             if (currentNodePath.length === 0) {
                 const firstMoveBuckets = trieIndex.firstMoves[coord];
+                console.log('[JosekiExplore] 首着分桶:', coord, firstMoveBuckets);
+                
                 if (!firstMoveBuckets || firstMoveBuckets.length === 0) {
                     document.getElementById('exploreTip').textContent = '该位置没有定式';
                     return;
                 }
 
-                // 找出所有以该首着开始的桶，合并分支
-                const branches = [];
-                const bucketPromises = firstMoveBuckets.map(key => loadBucket(key));
-                const buckets = await Promise.all(bucketPromises);
+                // 加载第一个分桶获取后续分支
+                const bucketKey = firstMoveBuckets[0];
+                currentBucket = await loadBucket(bucketKey);
                 
-                // 统计该首着下所有可能的二着
-                const secondMoves = {};
-                for (const bk of buckets) {
-                    if (!bk) continue;
-                    for (const leaf of bk.leaves) {
-                        const pathParts = leaf.path.split('-');
-                        if (pathParts.length > 1) {
-                            const second = pathParts[1];
-                            if (!secondMoves[second]) {
-                                secondMoves[second] = { coord: second, freq: 0 };
-                            }
-                            secondMoves[second].freq += leaf.freq;
-                        }
-                    }
+                if (!currentBucket) {
+                    document.getElementById('exploreTip').textContent = '数据加载失败';
+                    return;
                 }
 
                 // 添加首着
+                const coordData = JosekiUtils.sgfToCoord(coord);
                 currentMoves = [{ 
-                    x: JosekiUtils.sgfToCoord(coord).x, 
-                    y: JosekiUtils.sgfToCoord(coord).y, 
+                    x: coordData.x, 
+                    y: coordData.y, 
                     color: 'black', 
                     num: 1 
                 }];
                 currentIndex = 1;
                 currentNodePath = [coord];
 
-                // 设置分支
-                const branchCoords = Object.values(secondMoves).map(sm => ({
-                    ...JosekiUtils.sgfToCoord(sm.coord),
-                    color: 'white',
-                    freq: sm.freq
-                }));
-                board.setMoves(currentMoves, currentIndex);
-                board.setBranches(branchCoords);
+                // 获取二着分支
+                const nodeData = currentBucket.nodes['root'];
+                console.log('[JosekiExplore] 根节点children:', nodeData ? nodeData.children : 'null');
+                
+                if (nodeData && nodeData.children) {
+                    const branches = nodeData.children.map(c => {
+                        const cdata = JosekiUtils.sgfToCoord(c);
+                        return {
+                            ...cdata,
+                            color: 'white',
+                            sgf: c
+                        };
+                    });
+                    board.setBranches(branches);
+                    
+                    // 检查是否有脱先分支
+                    const hasPass = nodeData.children.includes('tt');
+                    document.getElementById('passBtn').disabled = !hasPass;
+                }
 
-                updateStats({ moves: 1, freq: branchCoords.reduce((s, b) => s + b.freq, 0) });
+                board.setMoves(currentMoves, currentIndex);
+                updateStats({ moves: 1 });
                 updateControls();
                 document.getElementById('exploreTip').textContent = '选择二着继续探索';
 
@@ -253,11 +313,7 @@
             }
 
             // 后续着法
-            const nodeKey = currentNodePath.join('-');
-            
-            // 查找当前节点的children
-            let nextPath = nodeKey + '-' + coord;
-            let bucketKey = currentNodePath.slice(0, 2).join('-');
+            const bucketKey = currentNodePath.slice(0, 2).join('-');
             
             if (!currentBucket || currentBucket.prefix !== bucketKey) {
                 currentBucket = await loadBucket(bucketKey);
@@ -268,12 +324,13 @@
                 return;
             }
 
-            // 检查是否是有效分支
-            const fullNodeKey = currentNodePath.length > 0 ? 
-                currentNodePath.slice(2).join('-') : '';
-            const nodeData = currentBucket.nodes[fullNodeKey] || currentBucket.nodes['root'];
+            // 获取当前节点key
+            const nodeKey = currentNodePath.slice(2).join('-') || 'root';
+            const nodeData = currentBucket.nodes[nodeKey];
             
-            if (!nodeData || !nodeData.children.includes(coord)) {
+            console.log('[JosekiExplore] 当前节点:', nodeKey, 'children:', nodeData ? nodeData.children : 'null');
+            
+            if (!nodeData || !nodeData.children || !nodeData.children.includes(coord)) {
                 document.getElementById('exploreTip').textContent = '不是有效选点';
                 return;
             }
@@ -296,15 +353,22 @@
             const nextNodeKey = currentNodePath.slice(2).join('-');
             const nextNodeData = currentBucket.nodes[nextNodeKey];
             
-            if (nextNodeData && nextNodeData.children) {
+            console.log('[JosekiExplore] 下一节点:', nextNodeKey, 'data:', nextNodeData);
+            
+            if (nextNodeData && nextNodeData.children && !nextNodeData.leaf) {
                 const branches = nextNodeData.children.map(c => ({
                     ...JosekiUtils.sgfToCoord(c),
                     color: currentNodePath.length % 2 === 0 ? 'black' : 'white',
-                    isPass: c === 'tt'
+                    isPass: c === 'tt',
+                    sgf: c
                 }));
                 board.setBranches(branches);
+                
+                const hasPass = nextNodeData.children.includes('tt');
+                document.getElementById('passBtn').disabled = !hasPass;
             } else {
                 board.setBranches([]);
+                document.getElementById('passBtn').disabled = true;
             }
 
             board.setMoves(currentMoves, currentIndex);
@@ -334,12 +398,6 @@
         function updateControls() {
             document.getElementById('prevBtn').disabled = currentIndex <= 0;
             document.getElementById('nextBtn').disabled = currentIndex >= currentMoves.length;
-            
-            // 脱先按钮
-            const hasPassBranch = board.branches.some(b => b.isPass);
-            document.getElementById('passBtn').disabled = !hasPassBranch;
-            
-            // 收藏按钮
             document.getElementById('favBtn').disabled = currentIndex < 2;
         }
 
@@ -374,7 +432,6 @@
                 return String.fromCharCode(97 + m.x, 97 + m.y);
             }).join('-');
 
-            // 检查是否已收藏
             if (favorites.some(f => f.path === path)) {
                 document.getElementById('exploreTip').textContent = '已收藏';
                 return;
@@ -430,7 +487,6 @@
                     </div>
                 `;
                 
-                // 绘制缩略图
                 const canvas = div.querySelector('canvas');
                 const moves = JosekiUtils.parseMoves(item.path.split('-'));
                 BoardThumbnail.render(canvas, moves);
@@ -438,7 +494,6 @@
                 grid.appendChild(div);
             });
 
-            // 分页
             if (totalPages > 1) {
                 document.getElementById('favoritesPagination').style.display = 'flex';
                 document.getElementById('favPageInfo').textContent = `${favPage + 1}/${totalPages}`;
@@ -510,10 +565,11 @@
             currentNodePath = [];
             currentBucket = null;
             board.setMoves([]);
-            board.setBranches([]);
+            showFirstMoveBranches();
             updateStats({});
             updateControls();
-            document.getElementById('exploreTip').textContent = '点击棋盘选择首着开始探索';
+            document.getElementById('exploreTip').textContent = '点击选点开始探索';
+            document.getElementById('passBtn').disabled = true;
         });
 
         document.getElementById('favPrevPage').addEventListener('click', () => { favPage--; renderFavorites(); });
@@ -528,20 +584,29 @@
         document.getElementById('importConfirm').addEventListener('click', importFavorites);
 
         // ========== 初始化 ==========
+        function init() {
+            console.log('[JosekiExplore] 初始化开始');
+            initBoard();
+            loadFavorites();
+            loadIndex();
+        }
+
         // 加载 pako（gzip解压）
         if (!window.pako) {
+            console.log('[JosekiExplore] 加载 pako 库');
             const script = document.createElement('script');
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js';
             script.onload = () => {
-                initBoard();
-                loadIndex();
-                loadFavorites();
+                console.log('[JosekiExplore] pako 加载完成');
+                init();
+            };
+            script.onerror = () => {
+                console.error('[JosekiExplore] pako 加载失败');
+                document.getElementById('exploreTip').textContent = '依赖库加载失败';
             };
             document.head.appendChild(script);
         } else {
-            initBoard();
-            loadIndex();
-            loadFavorites();
+            init();
         }
     </script>
 </body>

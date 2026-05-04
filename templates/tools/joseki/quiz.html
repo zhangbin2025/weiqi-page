@@ -139,23 +139,39 @@
 
         // 加载题目数据
         async function loadQuizData() {
+            console.log('[JosekiQuiz] 开始加载题目数据');
             try {
                 for (const diff of ['easy', 'medium', 'hard']) {
-                    const response = await fetch(`${DATA_PATH}/quiz-${diff}.json.gz`);
+                    const url = `${DATA_PATH}/quiz-${diff}.json.gz`;
+                    console.log('[JosekiQuiz] 加载:', url);
+                    
+                    const response = await fetch(url);
+                    console.log('[JosekiQuiz] 响应状态:', response.status);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
                     const compressed = await response.arrayBuffer();
+                    console.log('[JosekiQuiz] 文件大小:', compressed.byteLength, 'bytes');
+                    
                     const decompressed = pako.ungzip(compressed, { to: 'string' });
                     quizData[diff] = JSON.parse(decompressed).leaves || [];
+                    console.log('[JosekiQuiz] 难度', diff, '题目数:', quizData[diff].length);
                 }
                 console.log('[JosekiQuiz] 题目数据加载完成');
                 loadNextQuiz();
             } catch (e) {
                 console.error('[JosekiQuiz] 数据加载失败:', e);
-                document.getElementById('quizStatus').textContent = '数据加载失败，请刷新页面';
+                document.getElementById('quizStatus').textContent = '数据加载失败: ' + e.message;
+                document.getElementById('quizStatus').classList.remove('info');
+                document.getElementById('quizStatus').classList.add('error');
             }
         }
 
         // 加载下一个题目
         async function loadNextQuiz() {
+            console.log('[JosekiQuiz] 加载下一题');
             const list = quizData[currentDifficulty];
             if (!list || list.length === 0) {
                 document.getElementById('quizStatus').textContent = '没有题目';
@@ -165,14 +181,25 @@
             // 随机选择
             const randomIndex = Math.floor(Math.random() * list.length);
             currentQuiz = list[randomIndex];
+            console.log('[JosekiQuiz] 随机题目:', currentQuiz);
 
             // 加载对应的分桶获取完整路径
             const bucketKey = currentQuiz.bucket;
+            console.log('[JosekiQuiz] 加载分桶:', bucketKey);
+            
             try {
-                const response = await fetch(`${DATA_PATH}/buckets/${bucketKey}.json.gz`);
+                const url = `${DATA_PATH}/buckets/${bucketKey}.json.gz`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
                 const compressed = await response.arrayBuffer();
                 const decompressed = pako.ungzip(compressed, { to: 'string' });
                 const bucket = JSON.parse(decompressed);
+                
+                console.log('[JosekiQuiz] 分桶加载完成:', bucket.prefix, '节点数:', Object.keys(bucket.nodes).length);
                 
                 // 从path重建完整着法
                 const pathParts = currentQuiz.path.split('-');
@@ -185,6 +212,7 @@
                 updateControls();
             } catch (e) {
                 console.error('[JosekiQuiz] 题目加载失败:', e);
+                document.getElementById('quizStatus').textContent = '题目加载失败';
             }
         }
 
