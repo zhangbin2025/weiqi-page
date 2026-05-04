@@ -36,7 +36,7 @@ def call_weiqi_joseki_export(output_path):
     cmd = [
         sys.executable, '-m', 'src.cli.commands', 'export',
         '--format', 'json',
-        '--prefix', 'pd qc pc qd qe re rf',
+        '--prefix', 'pd qc',
         '-o', str(output_path)
     ]
     
@@ -272,8 +272,8 @@ def export_bucket_files(buckets, output_dir):
             'movesRange': bucket_data['stats']['movesRange']
         }
         
-        # 收集二着信息（仅深度2的分桶）
-        if bucket_depth == 2 and len(bucket_parts) >= 2:
+        # 收集二着信息（深度 >= 2 的分桶）
+        if bucket_depth >= 2 and len(bucket_parts) >= 2:
             second_move = bucket_parts[1]
             for j in items:
                 first_move_second_moves[first_move][second_move] += 1

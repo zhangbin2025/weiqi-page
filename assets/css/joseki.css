@@ -6,34 +6,34 @@
 .joseki-container {
     max-width: 480px;
     margin: 0 auto;
-    padding: 12px;
+    padding: 2px;
     min-height: 100vh;
 }
 
 .joseki-header {
-    padding: 12px 10px;
+    padding: 2px;
     color: white;
     text-align: center;
 }
 
 .joseki-header h1 {
-    font-size: 1.6em;
-    margin-bottom: 4px;
+    font-size: 1.4em;
+    margin-bottom: 2px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
 }
 
 /* ========== 卡片 ========== */
 .joseki-card {
     background: white;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 2px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .joseki-card h2 {
-    font-size: 1.1em;
-    margin-bottom: 12px;
+    font-size: 1em;
+    margin-bottom: 4px;
     color: #333;
 }
 
@@ -45,11 +45,11 @@
     justify-content: center;
     background: white;
     border: none;
-    border-radius: 16px;
-    padding: 32px 24px;
-    margin-bottom: 16px;
+    border-radius: 12px;
+    padding: 24px 16px;
+    margin-bottom: 8px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     transition: transform 0.2s, box-shadow 0.2s;
     text-decoration: none;
     color: #333;
@@ -57,22 +57,22 @@
 
 .joseki-index-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .joseki-index-btn .icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-}
-
-.joseki-index-btn .title {
-    font-size: 1.4em;
-    font-weight: bold;
+    font-size: 36px;
     margin-bottom: 8px;
 }
 
+.joseki-index-btn .title {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
 .joseki-index-btn .desc {
-    font-size: 0.9em;
+    font-size: 0.85em;
     color: #666;
     text-align: center;
 }
@@ -81,12 +81,12 @@
 .joseki-tabs {
     display: flex;
     border-bottom: 2px solid #e0e0e0;
-    margin-bottom: 16px;
+    margin-bottom: 4px;
 }
 
 .joseki-tab {
     flex: 1;
-    padding: 12px;
+    padding: 8px;
     border: none;
     background: none;
     cursor: pointer;
@@ -107,27 +107,28 @@
 .joseki-board-wrapper {
     display: flex;
     justify-content: center;
-    margin-bottom: 12px;
+    margin-bottom: 2px;
+    width: 100%;
 }
 
 .joseki-board {
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    max-width: 100%;
-    width: 100%;
-    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     touch-action: none;
+    display: block;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 /* ========== 指标数据 ========== */
 .joseki-stats {
     display: flex;
     justify-content: space-around;
-    padding: 8px 0;
-    margin-bottom: 12px;
+    padding: 4px 0;
+    margin-bottom: 2px;
     background: #f8f9fa;
-    border-radius: 8px;
-    font-size: 0.85em;
+    border-radius: 6px;
+    font-size: 0.8em;
     color: #666;
 }
 
@@ -136,41 +137,45 @@
 }
 
 .joseki-stats .stat-value {
-    font-size: 1.1em;
+    font-size: 1em;
     font-weight: bold;
     color: #333;
     display: block;
 }
 
 .joseki-stats .stat-label {
-    font-size: 0.85em;
+    font-size: 0.75em;
     color: #888;
 }
 
 /* ========== 功能按钮栏 ========== */
 .joseki-controls {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-wrap: nowrap;
+    gap: 4px;
     justify-content: center;
+    align-items: center;
 }
 
 .joseki-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 16px;
     cursor: pointer;
     transition: opacity 0.2s;
-    flex: 1;
-    min-width: 80px;
-    max-width: 120px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.joseki-btn:hover {
-    opacity: 0.9;
+.joseki-btn.secondary {
+    background: #f0f0f0;
+    color: #333;
 }
 
 .joseki-btn:disabled {
@@ -179,26 +184,21 @@
     opacity: 0.6;
 }
 
-.joseki-btn.secondary {
-    background: #f0f0f0;
-    color: #333;
-}
-
-.joseki-btn.danger {
-    background: #dc3545;
+.joseki-btn:hover {
+    opacity: 0.9;
 }
 
 /* ========== 难度选择 ========== */
 .joseki-difficulty {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
 }
 
 .joseki-difficulty select {
     width: 100%;
-    padding: 12px 16px;
+    padding: 8px 12px;
     border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 16px;
+    border-radius: 6px;
+    font-size: 14px;
     background: white;
 }
 
@@ -213,7 +213,7 @@
     background: #e0e0e0;
     border-radius: 2px;
     overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: 4px;
 }
 
 .joseki-progress-bar {
@@ -226,7 +226,7 @@
 .joseki-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 8px;
 }
 
 @media (max-width: 400px) {
@@ -237,8 +237,8 @@
 
 .joseki-item {
     background: #f8f9fa;
-    border-radius: 8px;
-    padding: 8px;
+    border-radius: 6px;
+    padding: 4px;
     text-align: center;
 }
 
@@ -247,11 +247,11 @@
     aspect-ratio: 1 / 1;
     border-radius: 4px;
     background: #DCB35C;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .joseki-item .item-info {
-    font-size: 0.75em;
+    font-size: 0.7em;
     color: #666;
 }
 
@@ -261,12 +261,12 @@
 }
 
 .joseki-item .item-actions {
-    margin-top: 6px;
+    margin-top: 4px;
 }
 
 .joseki-item .item-actions button {
-    font-size: 0.75em;
-    padding: 4px 8px;
+    font-size: 0.7em;
+    padding: 2px 6px;
 }
 
 /* ========== 弹框 ========== */
@@ -289,22 +289,22 @@
 
 .joseki-modal-content {
     background: white;
-    border-radius: 12px;
-    padding: 24px;
-    max-width: 300px;
+    border-radius: 8px;
+    padding: 16px;
+    max-width: 280px;
     width: 90%;
     text-align: center;
 }
 
 .joseki-modal h3 {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
 }
 
 .joseki-modal-buttons {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     justify-content: center;
-    margin-top: 16px;
+    margin-top: 8px;
 }
 
 .joseki-modal-buttons button {
@@ -314,10 +314,10 @@
 /* ========== 提示信息 ========== */
 .joseki-message {
     text-align: center;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    font-size: 0.9em;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-size: 0.85em;
 }
 
 .joseki-message.success {
@@ -340,49 +340,49 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 8px;
-    margin-top: 16px;
+    gap: 4px;
+    margin-top: 8px;
 }
 
 .joseki-pagination button {
-    padding: 8px 16px;
+    padding: 6px 12px;
     min-width: auto;
 }
 
 .joseki-pagination span {
     color: #666;
-    font-size: 0.9em;
+    font-size: 0.85em;
 }
 
 /* ========== 空状态 ========== */
 .joseki-empty {
     text-align: center;
-    padding: 32px;
+    padding: 24px;
     color: #888;
 }
 
 .joseki-empty .icon {
-    font-size: 48px;
-    margin-bottom: 12px;
+    font-size: 36px;
+    margin-bottom: 8px;
 }
 
 /* ========== 加载状态 ========== */
 .joseki-loading {
     text-align: center;
-    padding: 24px;
+    padding: 16px;
     color: #666;
 }
 
 .joseki-loading::after {
     content: '';
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border: 2px solid #e0e0e0;
     border-top-color: #667eea;
     border-radius: 50%;
     animation: joseki-spin 1s linear infinite;
-    margin-left: 8px;
+    margin-left: 6px;
     vertical-align: middle;
 }
 
@@ -394,7 +394,7 @@
 @media (min-width: 600px) {
     .joseki-container {
         max-width: 500px;
-        padding: 20px;
+        padding: 4px;
     }
     
     .joseki-grid {

@@ -104,6 +104,7 @@
         constructor(canvas, options = {}) {
             this.canvas = canvas;
             this.ctx = canvas.getContext('2d');
+            this.dpr = options.dpr || 1;
             this.options = {
                 bgColor: options.bgColor || '#DCB35C',
                 lineColor: options.lineColor || '#8B7355',
@@ -120,6 +121,13 @@
             this.startX = BOARD_SIZE - DISPLAY_SIZE; // 6
             this.startY = 0;
 
+            this.render();
+        }
+
+        resize(canvas, dpr) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.dpr = dpr || 1;
             this.render();
         }
 
@@ -174,8 +182,11 @@
 
         render() {
             const ctx = this.ctx;
-            const canvasSize = this.canvas.width;
+            const canvasSize = this.canvas.width / this.dpr;
 
+            ctx.save();
+            ctx.scale(this.dpr, this.dpr);
+            
             ctx.clearRect(0, 0, canvasSize, canvasSize);
 
             // 背景
@@ -237,37 +248,32 @@
 
             // 可选分支标记
             ctx.save();
-            console.log('[JosekiBoard] 渲染分支，数量:', this.branches.length, 'startX:', this.startX, 'startY:', this.startY);
-            let renderedCount = 0;
             for (const branch of this.branches) {
                 if (branch.isPass) continue; // 脱先不在棋盘上标记
                 const displayX = branch.x - this.startX;
                 const displayY = branch.y - this.startY;
-                console.log('[JosekiBoard] 分支:', branch.sgf || branch.coord, 'x:', branch.x, 'y:', branch.y, 'displayX:', displayX, 'displayY:', displayY);
                 if (displayX >= 0 && displayX < DISPLAY_SIZE && displayY >= 0 && displayY < DISPLAY_SIZE) {
                     const cx = padding + displayX * gridSize;
                     const cy = padding + displayY * gridSize;
 
                     // 半透明圆形标记
                     ctx.beginPath();
-                    ctx.arc(cx, cy, gridSize * 0.35, 0, Math.PI * 2);
+                    ctx.arc(cx, cy, gridSize * 0.38, 0, Math.PI * 2);
                     
                     if (branch.color === 'black') {
-                        // 黑棋位置：绿色半透明
-                        ctx.fillStyle = 'rgba(76, 175, 80, 0.4)';
-                        ctx.strokeStyle = '#4CAF50';
+                        // 黑棋位置：橙色半透明（更明显）
+                        ctx.fillStyle = 'rgba(255, 152, 0, 0.5)';
+                        ctx.strokeStyle = '#FF9800';
                     } else {
                         // 白棋位置：蓝色半透明
-                        ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
+                        ctx.fillStyle = 'rgba(33, 150, 243, 0.5)';
                         ctx.strokeStyle = '#2196F3';
                     }
                     ctx.fill();
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 3;
                     ctx.stroke();
-                    renderedCount++;
                 }
             }
-            console.log('[JosekiBoard] 实际渲染分支数:', renderedCount);
             ctx.restore();
 
             // 正确/错误标记
@@ -308,6 +314,8 @@
                     ctx.fillText(this.currentIndex.toString(), cx, cy);
                 }
             }
+            
+            ctx.restore();
         }
 
         _drawStone(cx, cy, radius, color) {
@@ -338,7 +346,8 @@
 
         // 坐标转换：画布坐标 -> SGF坐标
         canvasToSgf(canvasX, canvasY) {
-            const canvasSize = this.canvas.width;
+            // canvasX/Y 已经是实际像素坐标
+            const canvasSize = this.canvas.width; // 使用实际像素尺寸
             const padding = canvasSize * 0.05;
             const gridSize = (canvasSize - padding * 2) / (DISPLAY_SIZE - 1);
 
@@ -378,13 +387,12 @@
     }
 
     function formatFreq(freq) {
-        if (freq >= 10000) return (freq / 1000).toFixed(1) + 'K';
-        if (freq >= 1000) return (freq / 1000).toFixed(1) + 'K';
         return freq.toString();
     }
 
     function formatProb(prob) {
-        return (prob * 100).toFixed(2) + '%';
+        if (prob === undefined || prob === null) return '-';
+        return prob.toFixed(4);
     }
 
     // ==================== 导出 ====================
