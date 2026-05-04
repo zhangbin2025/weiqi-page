@@ -161,6 +161,7 @@
             
             const firstMoves = Object.keys(trieIndex.firstMoves);
             console.log('[JosekiExplore] 首着数量:', firstMoves.length);
+            console.log('[JosekiExplore] 首着列表:', firstMoves);
             
             const branches = firstMoves.map(sgf => ({
                 ...JosekiUtils.sgfToCoord(sgf),
@@ -170,6 +171,15 @@
             
             console.log('[JosekiExplore] 首着分支:', branches.map(b => b.sgf));
             board.setBranches(branches);
+            board.setMoves([]);  // 清空棋盘
+        }
+        
+        // 获取首着对应的二着列表
+        function getSecondMoves(firstMove) {
+            if (!trieIndex || !trieIndex.secondMoves || !trieIndex.secondMoves[firstMove]) {
+                return [];
+            }
+            return trieIndex.secondMoves[firstMove];
         }
 
         // 加载分桶
@@ -247,14 +257,14 @@
 
         // ========== 着法处理 ==========
         async function handleMove(coord) {
-            console.log('[JosekiExplore] 处理着法:', coord);
+            console.log('[JosekiExplore] 处理着法:', coord, '当前路径:', currentNodePath);
             
             if (!trieIndex) {
                 document.getElementById('exploreTip').textContent = '数据未加载完成';
                 return;
             }
 
-            // 首着
+            // === 首着选择 ===
             if (currentNodePath.length === 0) {
                 const firstMoveBuckets = trieIndex.firstMoves[coord];
                 console.log('[JosekiExplore] 首着分桶:', coord, firstMoveBuckets);
@@ -264,15 +274,10 @@
                     return;
                 }
 
-                // 加载第一个分桶获取后续分支
-                const bucketKey = firstMoveBuckets[0];
-                currentBucket = await loadBucket(bucketKey);
+                // 从 secondMoves 获取二着选点
+                const secondMovesData = trieIndex.secondMoves[coord] || [];
+                console.log('[JosekiExplore] 二着列表:', secondMovesData.slice(0, 10));
                 
-                if (!currentBucket) {
-                    document.getElementById('exploreTip').textContent = '数据加载失败';
-                    return;
-                }
-
                 // 添加首着
                 const coordData = JosekiUtils.sgfToCoord(coord);
                 currentMoves = [{ 
@@ -284,24 +289,22 @@
                 currentIndex = 1;
                 currentNodePath = [coord];
 
-                // 获取二着分支
-                const nodeData = currentBucket.nodes['root'];
-                console.log('[JosekiExplore] 根节点children:', nodeData ? nodeData.children : 'null');
-                
-                if (nodeData && nodeData.children) {
-                    const branches = nodeData.children.map(c => {
-                        const cdata = JosekiUtils.sgfToCoord(c);
+                // 显示二着选点
+                if (secondMovesData.length > 0) {
+                    const branches = secondMovesData.slice(0, 20).map(sm => {
+                        const smData = JosekiUtils.sgfToCoord(sm.coord);
                         return {
-                            ...cdata,
+                            ...smData,
                             color: 'white',
-                            sgf: c
+                            sgf: sm.coord,
+                            count: sm.count
                         };
                     });
                     board.setBranches(branches);
-                    
-                    // 检查是否有脱先分支
-                    const hasPass = nodeData.children.includes('tt');
-                    document.getElementById('passBtn').disabled = !hasPass;
+                    document.getElementById('passBtn').disabled = !secondMovesData.some(sm => sm.coord === 'tt');
+                } else {
+                    board.setBranches([]);
+                    document.getElementById('passBtn').disabled = true;
                 }
 
                 board.setMoves(currentMoves, currentIndex);
@@ -309,6 +312,68 @@
                 updateControls();
                 document.getElementById('exploreTip').textContent = '选择二着继续探索';
 
+                return;
+            }
+
+            // === 二着选择 ===
+            if (currentNodePath.length === 1) {
+                const bucketKey = currentNodePath[0] + '-' + coord;
+                console.log('[JosekiExplore] 二着，加载分桶:', bucketKey);
+                
+                const bucketInfo = trieIndex.bucketIndex[bucketKey];
+                if (!bucketInfo) {
+                    document.getElementById('exploreTip').textContent = '该组合没有定式';
+                    return;
+                }
+                
+                currentBucket = await loadBucket(bucketKey);
+                if (!currentBucket) {
+                    document.getElementById('exploreTip').textContent = '数据加载失败';
+                    return;
+                }
+                
+                // 添加二着
+                const coordData = JosekiUtils.sgfToCoord(coord);
+                currentMoves.push({
+                    x: coordData.x,
+                    y: coordData.y,
+                    isPass: coordData.isPass,
+                    color: 'white',
+                    num: 2
+                });
+                currentIndex = 2;
+                currentNodePath.push(coord);
+                
+                // 从分桶根节点获取三着选点
+                const rootNode = currentBucket.nodes['root'];
+                console.log('[JosekiExplore] 分桶根节点children:', rootNode ? rootNode.children : 'null');
+                
+                if (rootNode && rootNode.children && rootNode.children.length > 0) {
+                    const branches = rootNode.children.map(c => {
+                        const cData = JosekiUtils.sgfToCoord(c);
+                        return {
+                            ...cData,
+                            color: 'black',
+                            sgf: c,
+                            isPass: c === 'tt'
+                        };
+                    });
+                    board.setBranches(branches);
+                    document.getElementById('passBtn').disabled = !rootNode.children.includes('tt');
+                } else {
+                    board.setBranches([]);
+                    document.getElementById('passBtn').disabled = true;
+                    if (rootNode && rootNode.leaf) {
+                        updateStats({ moves: rootNode.moves, freq: rootNode.total_freq });
+                        document.getElementById('exploreTip').textContent = '定式完成！';
+                    }
+                }
+                
+                board.setMoves(currentMoves, currentIndex);
+                updateStats({ moves: 2 });
+                updateControls();
+                document.getElementById('exploreTip').textContent = '选择三着继续探索';
+                
                 return;
             }
 

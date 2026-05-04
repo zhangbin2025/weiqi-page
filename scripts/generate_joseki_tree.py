@@ -76,8 +76,13 @@ def build_dynamic_buckets(joseki_list, max_bucket_size=MAX_BUCKET_SIZE, max_dept
     return final_buckets
 
 
-def build_trie(joseki_list):
-    """从定式列表构建trie树"""
+def build_trie(joseki_list, prefix_depth=0):
+    """从定式列表构建trie树
+    
+    prefix_depth: 分桶的前缀深度
+    例如 pd-kb 的 prefix_depth=2，表示定式路径前2着已经固定
+    trie 从第3着开始构建
+    """
     root = {'coord': None, 'children': {}, 'freq': 0}
     
     for j in joseki_list:
@@ -86,7 +91,8 @@ def build_trie(joseki_list):
         prob = j.get('probability', 0)
         node = root
         
-        for i, coord in enumerate(moves):
+        # 从 prefix_depth 开始构建 trie
+        for i, coord in enumerate(moves[prefix_depth:], start=prefix_depth):
             if coord not in node['children']:
                 color = 'black' if i % 2 == 0 else 'white'
                 is_pass = coord == 'tt'
@@ -95,7 +101,8 @@ def build_trie(joseki_list):
                     'color': color,
                     'isPass': is_pass,
                     'children': {},
-                    'freq': 0
+                    'freq': 0,
+                    'depth': i + 1  # 第几手
                 }
             
             node['children'][coord]['freq'] += freq
@@ -165,14 +172,21 @@ def export_bucket_files(buckets, output_dir):
     # 索引
     index = {
         'firstMoves': defaultdict(list),
-        'bucketIndex': {}
+        'bucketIndex': {},
+        'secondMoves': {}  # 新增：每个首着的二着列表
     }
     
     # 按难度收集叶子
     leaves_by_difficulty = {'easy': [], 'medium': [], 'hard': []}
     
+    # 收集每个首着的二着信息
+    first_move_second_moves = defaultdict(lambda: defaultdict(int))
+    
     for bucket_key, items in sorted(buckets.items()):
-        trie = build_trie(items)
+        # 计算分桶深度
+        prefix_depth = len(bucket_key.split('-'))
+        
+        trie = build_trie(items, prefix_depth)
         flat_nodes = flatten_trie(trie)
         
         # 提取叶子节点
@@ -198,6 +212,7 @@ def export_bucket_files(buckets, output_dir):
         # 桶数据
         bucket_data = {
             'prefix': bucket_key,
+            'prefixDepth': prefix_depth,
             'nodes': flat_nodes,
             'leaves': leaves,
             'stats': {
@@ -224,7 +239,8 @@ def export_bucket_files(buckets, output_dir):
         index['bucketIndex'][bucket_key] = {
             'file': filename,
             'count': len(leaves),
-            'movesRange': bucket_data['stats']['movesRange']
+            'movesRange': bucket_data['stats']['movesRange'],
+            'prefixDepth': prefix_depth
         }
         
         meta['bucketFiles'][bucket_key] = {
@@ -232,6 +248,20 @@ def export_bucket_files(buckets, output_dir):
             'count': len(leaves),
             'movesRange': bucket_data['stats']['movesRange']
         }
+        
+        # 收集二着信息（仅深度2的分桶）
+        if prefix_depth == 2 and len(parts) >= 2:
+            second_move = parts[1]
+            # 统计该二着出现的定式数和频率
+            for j in items:
+                first_move_second_moves[first_move][second_move] += 1
+    
+    # 合并二着信息到索引
+    for first_move, second_dict in first_move_second_moves.items():
+        index['secondMoves'][first_move] = [
+            {'coord': sm, 'count': count}
+            for sm, count in sorted(second_dict.items(), key=lambda x: x[1], reverse=True)
+        ]
     
     # 导出做题模式文件
     for difficulty, leaves in leaves_by_difficulty.items():
