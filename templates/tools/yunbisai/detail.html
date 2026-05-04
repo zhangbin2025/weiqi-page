@@ -133,17 +133,22 @@
         // ========== 名字处理工具函数 ==========
         /**
          * 清理棋手名字：移除ID、竖线等后缀
-         * 常见格式：张三|12345、张三[12345]、张三(12345)、张三_ID:12345
+         * 常见格式：张三|12345、张三[12345]、张三(12345)、张三_ID:12345、张三-男-12345
          */
         function cleanPlayerName(name) {
             if (!name) return '';
-            // 移除常见后缀格式
+            // 方法1：尝试提取中文姓名（2-4个连续中文字符）
+            const chineseMatch = name.match(/[\u4e00-\u9fa5]{2,4}/);
+            if (chineseMatch) {
+                return chineseMatch[0];
+            }
+            // 方法2：移除常见后缀格式
             return name
-                .replace(/\|[\d\w]+$/, '')      // 移除 |12345
-                .replace(/\[[\d\w:]+\]$/, '')   // 移除 [12345] 或 [ID:12345]
-                .replace(/\([\d\w:]+\)$/, '')   // 移除 (12345) 或 (ID:12345)
-                .replace(/_ID:[\d\w]+$/, '')    // 移除 _ID:12345
-                .replace(/_\d+$/, '')            // 移除 _12345
+                .replace(/\|[\d\w:_-]+$/, '')      // 移除 |12345 或 |ID:12345
+                .replace(/\[[\d\w:_-]+\]$/, '')   // 移除 [12345] 或 [ID:12345]
+                .replace(/\([\d\w:_-]+\)$/, '')   // 移除 (12345) 或 (ID:12345)
+                .replace(/_[\d\w:_-]+$/, '')       // 移除 _12345 或 _ID:12345
+                .replace(/-[\d\w:_-]+$/, '')       // 移除 -12345 或 -男-12345
                 .trim();
         }
         
@@ -183,10 +188,11 @@
         
         /**
          * 生成棋手查询链接
+         * 查询使用清理后的名字，显示也使用清理后的名字
          */
         function playerLink(name, needsOriginal) {
             const displayName = getDisplayName(name, needsOriginal);
-            const queryName = encodeURIComponent(name); // 查询用原始名字
+            const queryName = encodeURIComponent(displayName); // 查询也用清理后的名字
             return `<a href="../player.html?name=${queryName}" class="player-link">${displayName}</a>`;
         }
         
