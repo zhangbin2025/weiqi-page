@@ -225,21 +225,6 @@
                 '定段': 150, '定段组': 150
             };
             
-            // 级位优先级（权重10）
-            // 数字越大优先级越低：1级=90, 10级=5
-            const kyuLevels = {
-                '1级': 90, '一级': 90,
-                '2级': 80, '二级': 80,
-                '3级': 70, '三级': 70,
-                '4级': 60, '四级': 60,
-                '5级': 50, '五级': 50,
-                '6级': 40, '六级': 40,
-                '7级': 30, '七级': 30,
-                '8级': 20, '八级': 20,
-                '9级': 10, '九级': 10,
-                '10级': 5, '十级': 5
-            };
-            
             // 计算优先级分数
             let score = 0;
             
@@ -258,22 +243,14 @@
             }
             
             // 匹配级位（动态匹配任意数字+级）
-            // 先尝试预定义的级位
-            for (const [key, value] of Object.entries(kyuLevels)) {
-                if (name.includes(key)) {
-                    score += value;
-                    break;
-                }
-            }
-            
-            // 如果没有匹配到预定义级位，动态匹配数字+级
-            if (score === 0) {
-                const kyuMatch = name.match(/(\d+)级/);
-                if (kyuMatch) {
-                    const kyuNum = parseInt(kyuMatch[1]);
-                    // 数字越大优先级越低：1级=90, 20级=0
-                    score += Math.max(0, 100 - kyuNum * 9);
-                }
+            // 数字越大优先级越低：1级=99, 25级=75, 无级=0
+            const kyuMatch = name.match(/(\d+)级/);
+            if (kyuMatch) {
+                const kyuNum = parseInt(kyuMatch[1]);
+                score += Math.max(1, 100 - kyuNum); // 1级=99, 25级=75, 保证>0
+            } else if (name.includes('无级')) {
+                // 无级排在所有级位之后
+                score += 0;
             }
             
             // 如果没有匹配到任何类型，排在最后
