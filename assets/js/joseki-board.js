@@ -236,24 +236,39 @@
             }
 
             // 可选分支标记
+            ctx.save();
+            console.log('[JosekiBoard] 渲染分支，数量:', this.branches.length, 'startX:', this.startX, 'startY:', this.startY);
+            let renderedCount = 0;
             for (const branch of this.branches) {
                 if (branch.isPass) continue; // 脱先不在棋盘上标记
-                if (branch.x >= this.startX && branch.x < BOARD_SIZE && branch.y >= this.startY && branch.y < this.startY + DISPLAY_SIZE) {
-                    const localX = branch.x - this.startX;
-                    const localY = branch.y - this.startY;
-                    const cx = padding + localX * gridSize;
-                    const cy = padding + localY * gridSize;
+                const displayX = branch.x - this.startX;
+                const displayY = branch.y - this.startY;
+                console.log('[JosekiBoard] 分支:', branch.sgf || branch.coord, 'x:', branch.x, 'y:', branch.y, 'displayX:', displayX, 'displayY:', displayY);
+                if (displayX >= 0 && displayX < DISPLAY_SIZE && displayY >= 0 && displayY < DISPLAY_SIZE) {
+                    const cx = padding + displayX * gridSize;
+                    const cy = padding + displayY * gridSize;
 
-                    // 小圆点标记
+                    // 半透明圆形标记
                     ctx.beginPath();
-                    ctx.arc(cx, cy, gridSize * 0.15, 0, Math.PI * 2);
-                    ctx.fillStyle = branch.color === 'black' ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)';
+                    ctx.arc(cx, cy, gridSize * 0.35, 0, Math.PI * 2);
+                    
+                    if (branch.color === 'black') {
+                        // 黑棋位置：绿色半透明
+                        ctx.fillStyle = 'rgba(76, 175, 80, 0.4)';
+                        ctx.strokeStyle = '#4CAF50';
+                    } else {
+                        // 白棋位置：蓝色半透明
+                        ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
+                        ctx.strokeStyle = '#2196F3';
+                    }
                     ctx.fill();
-                    ctx.strokeStyle = branch.color === 'black' ? '#000' : '#666';
-                    ctx.lineWidth = 1;
+                    ctx.lineWidth = 2;
                     ctx.stroke();
+                    renderedCount++;
                 }
             }
+            console.log('[JosekiBoard] 实际渲染分支数:', renderedCount);
+            ctx.restore();
 
             // 正确/错误标记
             for (const mark of this.marks) {

@@ -157,21 +157,37 @@
 
         // 显示首着选点
         function showFirstMoveBranches() {
-            if (!trieIndex || !trieIndex.firstMoves) return;
+            if (!trieIndex || !trieIndex.firstMoves) {
+                console.log('[JosekiExplore] showFirstMoveBranches: 无索引数据');
+                return;
+            }
             
             const firstMoves = Object.keys(trieIndex.firstMoves);
             console.log('[JosekiExplore] 首着数量:', firstMoves.length);
-            console.log('[JosekiExplore] 首着列表:', firstMoves);
+            console.log('[JosekiExplore] 首着列表:', firstMoves.slice(0, 10));
+            
+            if (!board) {
+                console.error('[JosekiExplore] board 未初始化！');
+                return;
+            }
             
             const branches = firstMoves.map(sgf => ({
                 ...JosekiUtils.sgfToCoord(sgf),
                 color: 'black',  // 首着都是黑棋
                 sgf: sgf
-            })).filter(b => !b.isPass);  // 过滤掉脱先
+            })).filter(b => !b.isPass);
             
-            console.log('[JosekiExplore] 首着分支:', branches.map(b => b.sgf));
-            board.setBranches(branches);
+            console.log('[JosekiExplore] branches 数量:', branches.length);
+            console.log('[JosekiExplore] branches 前5个:', branches.slice(0, 5));
+            console.log('[JosekiExplore] board 状态:', board ? '已初始化' : '未初始化');
+            
+            // 注意顺序：先 setMoves 清空棋盘，再 setBranches 设置选点
+            // 因为 setMoves 会清空 branches
             board.setMoves([]);  // 清空棋盘
+            console.log('[JosekiExplore] 调用 board.setBranches');
+            board.setBranches(branches);
+            
+            console.log('[JosekiExplore] setBranches 完成，board.branches:', board.branches.length);
         }
         
         // 获取首着对应的二着列表
@@ -289,7 +305,9 @@
                 currentIndex = 1;
                 currentNodePath = [coord];
 
-                // 显示二着选点
+                // 显示二着选点（注意：先 setMoves 再 setBranches，因为 setMoves 会清空 branches）
+                board.setMoves(currentMoves, currentIndex);
+                
                 if (secondMovesData.length > 0) {
                     const branches = secondMovesData.slice(0, 20).map(sm => {
                         const smData = JosekiUtils.sgfToCoord(sm.coord);
@@ -306,8 +324,6 @@
                     board.setBranches([]);
                     document.getElementById('passBtn').disabled = true;
                 }
-
-                board.setMoves(currentMoves, currentIndex);
                 updateStats({ moves: 1 });
                 updateControls();
                 document.getElementById('exploreTip').textContent = '选择二着继续探索';
@@ -344,7 +360,9 @@
                 currentIndex = 2;
                 currentNodePath.push(coord);
                 
-                // 从分桶根节点获取三着选点
+                // 从分桶根节点获取三着选点（先 setMoves 再 setBranches）
+                board.setMoves(currentMoves, currentIndex);
+                
                 const rootNode = currentBucket.nodes['root'];
                 console.log('[JosekiExplore] 分桶根节点children:', rootNode ? rootNode.children : 'null');
                 
@@ -368,8 +386,6 @@
                         document.getElementById('exploreTip').textContent = '定式完成！';
                     }
                 }
-                
-                board.setMoves(currentMoves, currentIndex);
                 updateStats({ moves: 2 });
                 updateControls();
                 document.getElementById('exploreTip').textContent = '选择三着继续探索';
@@ -414,7 +430,9 @@
             });
             currentIndex = currentMoves.length;
 
-            // 获取下一个节点的分支
+            // 获取下一个节点的分支（先 setMoves 再 setBranches）
+            board.setMoves(currentMoves, currentIndex);
+            
             const nextNodeKey = currentNodePath.slice(2).join('-');
             const nextNodeData = currentBucket.nodes[nextNodeKey];
             
@@ -435,8 +453,6 @@
                 board.setBranches([]);
                 document.getElementById('passBtn').disabled = true;
             }
-
-            board.setMoves(currentMoves, currentIndex);
 
             // 更新统计
             if (nextNodeData && nextNodeData.leaf) {
