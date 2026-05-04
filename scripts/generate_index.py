@@ -362,6 +362,17 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到认证工具 JS: {assets_js_src}")
     
+    # 复制缩略图绘制 JS 到站点 (assets/js/)
+    thumbnail_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "board-thumbnail.js"
+    thumbnail_js_dst = base_dir / "assets" / "js" / "board-thumbnail.js"
+    
+    if thumbnail_js_src.exists():
+        thumbnail_js_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(thumbnail_js_src, thumbnail_js_dst)
+        print(f"✅ 复制缩略图 JS: {thumbnail_js_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到缩略图 JS: {thumbnail_js_src}")
+    
     # 复制公众号二维码图片到站点 (assets/images/)
     public_img_src = WEIQI_PAGE_DIR / "assets" / "images" / "public.jpg"
     public_img_dst = base_dir / "assets" / "images" / "public.jpg"
