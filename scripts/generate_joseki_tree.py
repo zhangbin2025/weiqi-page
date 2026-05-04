@@ -4,7 +4,7 @@
 调用 weiqi-joseki 技能包的 export 接口导出定式数据
 
 用法:
-    python3 scripts/generate_joseki_tree.py [--test] [--prefix "pd qc"]
+    python3 scripts/generate_joseki_tree.py [--test]
 
 输出到生产或测试目录:
     - trie-meta.json      元信息
@@ -31,18 +31,13 @@ MAX_BUCKET_SIZE = 2000  # 每桶最大定式数
 MAX_DEPTH = 10          # 最大细分深度
 
 
-def call_weiqi_joseki_export(prefix=None, output_path=None):
+def call_weiqi_joseki_export(output_path):
     """调用 weiqi-joseki 的 export 接口"""
     cmd = [
         sys.executable, '-m', 'src.cli.commands', 'export',
-        '--format', 'json'
+        '--format', 'json',
+        '-o', str(output_path)
     ]
-    
-    if prefix:
-        cmd.extend(['--prefix', prefix])
-    
-    if output_path:
-        cmd.extend(['-o', str(output_path)])
     
     result = subprocess.run(
         cmd,
@@ -53,24 +48,23 @@ def call_weiqi_joseki_export(prefix=None, output_path=None):
     
     if result.returncode != 0:
         print(f"❌ weiqi-joseki export 失败: {result.stderr}")
-        return None
+        return False
     
-    return output_path
+    return True
 
 
-def build_dynamic_buckets(joseki_list, prefix_filter=None):
+def build_dynamic_buckets(joseki_list):
     """动态分桶：迭代方式细分大桶"""
     final_buckets = {}
-    prefix_depth = len(prefix_filter) if prefix_filter else 0
     
-    # 初始按下一着分桶
+    # 初始按前两着分桶
     pending = defaultdict(list)
     for j in joseki_list:
         moves = j['moves']
-        if len(moves) > prefix_depth:
-            key = '-'.join(moves[:prefix_depth + 1])
-        elif len(moves) == prefix_depth:
-            key = '-'.join(moves) + '-end'
+        if len(moves) >= 2:
+            key = f"{moves[0]}-{moves[1]}"
+        elif len(moves) == 1:
+            key = moves[0]
         else:
             key = 'unknown'
         pending[key].append(j)
@@ -106,7 +100,12 @@ def build_dynamic_buckets(joseki_list, prefix_filter=None):
 
 
 def build_trie(joseki_list, prefix_depth=0):
-    """从定式列表构建trie树"""
+    """从定式列表构建trie树
+    
+    prefix_depth: 分桶的前缀深度
+    例如 pd-kb 的 prefix_depth=2，表示定式路径前2着已经固定
+    trie 从第3着开始构建
+    """
     root = {'coord': None, 'children': {}, 'freq': 0}
     
     for j in joseki_list:
@@ -178,17 +177,14 @@ def flatten_trie(root):
     return nodes
 
 
-def export_bucket_files(buckets, output_dir, prefix_filter=None):
+def export_bucket_files(buckets, output_dir):
     """导出分桶文件"""
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(os.path.join(output_dir, 'buckets'), exist_ok=True)
     
-    prefix_depth = len(prefix_filter) if prefix_filter else 0
-    
     # 元信息
     meta = {
         'version': '1.0',
-        'prefix': prefix_filter,
         'total': sum(len(v) for v in buckets.values()),
         'buckets': len(buckets),
         'maxBucketSize': MAX_BUCKET_SIZE,
@@ -198,7 +194,6 @@ def export_bucket_files(buckets, output_dir, prefix_filter=None):
     
     # 索引
     index = {
-        'prefix': prefix_filter,
         'firstMoves': defaultdict(list),
         'bucketIndex': {},
         'secondMoves': {}
@@ -260,10 +255,7 @@ def export_bucket_files(buckets, output_dir, prefix_filter=None):
             json.dump(bucket_data, f, ensure_ascii=False)
         
         # 更新索引
-        if prefix_filter:
-            first_move = bucket_parts[prefix_depth] if len(bucket_parts) > prefix_depth else 'end'
-        else:
-            first_move = bucket_parts[0]
+        first_move = bucket_parts[0]
         
         index['firstMoves'][first_move].append(bucket_key)
         index['bucketIndex'][bucket_key] = {
@@ -312,24 +304,22 @@ def export_bucket_files(buckets, output_dir, prefix_filter=None):
     return meta
 
 
-def generate_joseki_tree(test_mode=False, prefix_filter=None):
-    """生成定式Trie树数据
-    
-    prefix_filter: 只导出指定前缀的定式，如 ['pd', 'qc', 'pc']
-    """
+def generate_joseki_tree(test_mode=False):
+    """生成定式Trie树数据"""
     # 确定输出目录
     base_dir = TEST_SITE_DIR if test_mode else SITE_DIR
     output_dir = base_dir / "assets" / "data" / "joseki"
     
     # 调用 weiqi-joseki export 接口
     temp_output = Path('/tmp/joseki-export.json')
-    prefix_str = ' '.join(prefix_filter) if prefix_filter else None
     
     print(f"调用 weiqi-joseki export...")
-    result = call_weiqi_joseki_export(prefix_str, temp_output)
-    
-    if not result or not temp_output.exists():
+    if not call_weiqi_joseki_export(temp_output):
         print("❌ 导出失败")
+        return False
+    
+    if not temp_output.exists():
+        print("❌ 导出文件不存在")
         return False
     
     # 加载导出的数据
@@ -344,7 +334,7 @@ def generate_joseki_tree(test_mode=False, prefix_filter=None):
         return False
     
     print("\n开始动态分桶...")
-    buckets = build_dynamic_buckets(joseki_list, prefix_filter)
+    buckets = build_dynamic_buckets(joseki_list)
     
     # 统计
     sizes = [len(v) for v in buckets.values()]
@@ -353,7 +343,7 @@ def generate_joseki_tree(test_mode=False, prefix_filter=None):
         print(f"最大桶: {max(sizes)}, 最小桶: {min(sizes)}, 平均: {sum(sizes)/len(sizes):.1f}")
     
     print(f"\n导出到: {output_dir}")
-    meta = export_bucket_files(buckets, str(output_dir), prefix_filter)
+    meta = export_bucket_files(buckets, str(output_dir))
     
     print(f"\n导出完成:")
     print(f"  总定式: {meta['total']}")
@@ -378,21 +368,13 @@ def generate_joseki_tree(test_mode=False, prefix_filter=None):
 def main():
     parser = argparse.ArgumentParser(description='生成定式Trie树数据')
     parser.add_argument('--test', action='store_true', help='测试模式')
-    parser.add_argument('--prefix', type=str, default=None, help='只导出指定前缀的定式，空格分隔（如：pd qc）')
     args = parser.parse_args()
-    
-    # 解析前缀
-    prefix_filter = None
-    if args.prefix:
-        prefix_filter = args.prefix.strip().split()
     
     print("=" * 60)
     print("🎯 定式Trie树数据生成")
-    if prefix_filter:
-        print(f"前缀过滤: {prefix_filter}")
     print("=" * 60)
     
-    success = generate_joseki_tree(args.test, prefix_filter)
+    success = generate_joseki_tree(args.test)
     return 0 if success else 1
 
 
