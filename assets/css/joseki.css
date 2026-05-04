@@ -1,0 +1,403 @@
+/**
+ * 围棋定式工具公共样式
+ */
+
+/* ========== 基础布局 ========== */
+.joseki-container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 12px;
+    min-height: 100vh;
+}
+
+.joseki-header {
+    padding: 12px 10px;
+    color: white;
+    text-align: center;
+}
+
+.joseki-header h1 {
+    font-size: 1.6em;
+    margin-bottom: 4px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+/* ========== 卡片 ========== */
+.joseki-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.joseki-card h2 {
+    font-size: 1.1em;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+/* ========== 索引页面大按钮 ========== */
+.joseki-index-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: none;
+    border-radius: 16px;
+    padding: 32px 24px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    color: #333;
+}
+
+.joseki-index-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.joseki-index-btn .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.joseki-index-btn .title {
+    font-size: 1.4em;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.joseki-index-btn .desc {
+    font-size: 0.9em;
+    color: #666;
+    text-align: center;
+}
+
+/* ========== 标签页 ========== */
+.joseki-tabs {
+    display: flex;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 16px;
+}
+
+.joseki-tab {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1em;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.joseki-tab.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    font-weight: bold;
+}
+
+/* ========== 棋盘区域 ========== */
+.joseki-board-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.joseki-board {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    max-width: 100%;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    touch-action: none;
+}
+
+/* ========== 指标数据 ========== */
+.joseki-stats {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    margin-bottom: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    font-size: 0.85em;
+    color: #666;
+}
+
+.joseki-stats .stat {
+    text-align: center;
+}
+
+.joseki-stats .stat-value {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+    display: block;
+}
+
+.joseki-stats .stat-label {
+    font-size: 0.85em;
+    color: #888;
+}
+
+/* ========== 功能按钮栏 ========== */
+.joseki-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.joseki-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    flex: 1;
+    min-width: 80px;
+    max-width: 120px;
+}
+
+.joseki-btn:hover {
+    opacity: 0.9;
+}
+
+.joseki-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.joseki-btn.secondary {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.joseki-btn.danger {
+    background: #dc3545;
+}
+
+/* ========== 难度选择 ========== */
+.joseki-difficulty {
+    margin-bottom: 16px;
+}
+
+.joseki-difficulty select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+}
+
+.joseki-difficulty select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* ========== 进度条 ========== */
+.joseki-progress {
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.joseki-progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    transition: width 0.3s;
+}
+
+/* ========== 卡片网格（收藏/历史） ========== */
+.joseki-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 400px) {
+    .joseki-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.joseki-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+}
+
+.joseki-item canvas {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 4px;
+    background: #DCB35C;
+    margin-bottom: 6px;
+}
+
+.joseki-item .item-info {
+    font-size: 0.75em;
+    color: #666;
+}
+
+.joseki-item .item-moves {
+    font-weight: bold;
+    color: #333;
+}
+
+.joseki-item .item-actions {
+    margin-top: 6px;
+}
+
+.joseki-item .item-actions button {
+    font-size: 0.75em;
+    padding: 4px 8px;
+}
+
+/* ========== 弹框 ========== */
+.joseki-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.joseki-modal.show {
+    display: flex;
+}
+
+.joseki-modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 300px;
+    width: 90%;
+    text-align: center;
+}
+
+.joseki-modal h3 {
+    margin-bottom: 16px;
+}
+
+.joseki-modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.joseki-modal-buttons button {
+    flex: 1;
+}
+
+/* ========== 提示信息 ========== */
+.joseki-message {
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 0.9em;
+}
+
+.joseki-message.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.joseki-message.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.joseki-message.info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+/* ========== 分页 ========== */
+.joseki-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.joseki-pagination button {
+    padding: 8px 16px;
+    min-width: auto;
+}
+
+.joseki-pagination span {
+    color: #666;
+    font-size: 0.9em;
+}
+
+/* ========== 空状态 ========== */
+.joseki-empty {
+    text-align: center;
+    padding: 32px;
+    color: #888;
+}
+
+.joseki-empty .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+/* ========== 加载状态 ========== */
+.joseki-loading {
+    text-align: center;
+    padding: 24px;
+    color: #666;
+}
+
+.joseki-loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e0e0e0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: joseki-spin 1s linear infinite;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+@keyframes joseki-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========== 响应式 ========== */
+@media (min-width: 600px) {
+    .joseki-container {
+        max-width: 500px;
+        padding: 20px;
+    }
+    
+    .joseki-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}

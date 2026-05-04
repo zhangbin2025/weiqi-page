@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>定式探索 - 围棋定式工具</title>
+    <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
+    <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260504">
+    <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260504"></script>
+    <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260504"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="joseki-container">
+        <header class="joseki-header">
+            <h1>📚 定式探索</h1>
+        </header>
+
+        <!-- 标签页 -->
+        <div class="joseki-card">
+            <div class="joseki-tabs">
+                <button class="joseki-tab active" data-tab="explore">探索</button>
+                <button class="joseki-tab" data-tab="favorites">收藏</button>
+            </div>
+
+            <!-- 探索标签 -->
+            <div id="exploreTab" class="joseki-tab-content active">
+                <!-- 棋盘 -->
+                <div class="joseki-board-wrapper">
+                    <canvas id="exploreBoard" class="joseki-board"></canvas>
+                </div>
+
+                <!-- 指标数据 -->
+                <div class="joseki-stats" id="exploreStats">
+                    <div class="stat">
+                        <span class="stat-value" id="statMoves">0</span>
+                        <span class="stat-label">手数</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="statFreq">-</span>
+                        <span class="stat-label">出现次数</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="statProb">-</span>
+                        <span class="stat-label">出现概率</span>
+                    </div>
+                </div>
+
+                <!-- 功能按钮 -->
+                <div class="joseki-controls" id="exploreControls">
+                    <button class="joseki-btn" id="prevBtn" disabled>◀ 上一步</button>
+                    <button class="joseki-btn" id="nextBtn" disabled>▶ 下一步</button>
+                    <button class="joseki-btn secondary" id="passBtn" disabled>脱先</button>
+                    <button class="joseki-btn secondary" id="favBtn">⭐ 收藏</button>
+                    <button class="joseki-btn secondary" id="resetBtn">重置</button>
+                </div>
+
+                <!-- 提示 -->
+                <div class="joseki-message info" id="exploreTip">
+                    点击棋盘选择首着开始探索
+                </div>
+            </div>
+
+            <!-- 收藏标签 -->
+            <div id="favoritesTab" class="joseki-tab-content" style="display:none;">
+                <div class="joseki-controls" style="justify-content:flex-end; margin-bottom:12px;">
+                    <button class="joseki-btn secondary" id="importFavBtn">导入</button>
+                    <button class="joseki-btn secondary" id="exportFavBtn">导出</button>
+                </div>
+
+                <div id="favoritesCount" style="text-align:center; color:#666; margin-bottom:12px;">
+                    已收藏: <strong>0</strong> 条定式
+                </div>
+
+                <div id="favoritesGrid" class="joseki-grid">
+                    <!-- 动态填充 -->
+                </div>
+
+                <div id="favoritesPagination" class="joseki-pagination" style="display:none;">
+                    <button class="joseki-btn secondary" id="favPrevPage">◀</button>
+                    <span id="favPageInfo">1/1</span>
+                    <button class="joseki-btn secondary" id="favNextPage">▶</button>
+                </div>
+
+                <div id="favoritesEmpty" class="joseki-empty">
+                    <div class="icon">📭</div>
+                    <p>暂无收藏</p>
+                    <p style="font-size:0.85em;">探索定式时点击收藏按钮添加</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入弹框 -->
+    <div id="importModal" class="joseki-modal">
+        <div class="joseki-modal-content">
+            <h3>导入收藏</h3>
+            <p style="margin-bottom:16px; color:#666;">粘贴导出的JSON数据</p>
+            <textarea id="importData" style="width:100%; height:120px; border:2px solid #e0e0e0; border-radius:8px; padding:8px; font-size:12px;"></textarea>
+            <div class="joseki-modal-buttons">
+                <button class="joseki-btn secondary" id="importCancel">取消</button>
+                <button class="joseki-btn" id="importConfirm">导入</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 数据加载 ==========
+        const DATA_PATH = '{{ base_path }}/assets/data/joseki';
+        
+        let trieIndex = null;
+        let currentBucket = null;
+        let currentNodePath = [];
+        let currentMoves = [];
+        let currentIndex = 0;
+        let favorites = [];
+
+        // 加载索引
+        async function loadIndex() {
+            try {
+                const response = await fetch(`${DATA_PATH}/trie-index.json.gz`);
+                const compressed = await response.arrayBuffer();
+                const decompressed = pako.ungzip(compressed, { to: 'string' });
+                trieIndex = JSON.parse(decompressed);
+                console.log('[JosekiExplore] 索引加载完成');
+            } catch (e) {
+                console.error('[JosekiExplore] 索引加载失败:', e);
+                document.getElementById('exploreTip').textContent = '数据加载失败，请刷新页面';
+            }
+        }
+
+        // 加载分桶
+        async function loadBucket(bucketKey) {
+            try {
+                const bucketInfo = trieIndex.bucketIndex[bucketKey];
+                if (!bucketInfo) return null;
+                
+                const response = await fetch(`${DATA_PATH}/buckets/${bucketInfo.file}`);
+                const compressed = await response.arrayBuffer();
+                const decompressed = pako.ungzip(compressed, { to: 'string' });
+                return JSON.parse(decompressed);
+            } catch (e) {
+                console.error('[JosekiExplore] 分桶加载失败:', e);
+                return null;
+            }
+        }
+
+        // ========== 棋盘初始化 ==========
+        let board = null;
+        
+        function initBoard() {
+            const canvas = document.getElementById('exploreBoard');
+            const size = Math.min(canvas.parentElement.clientWidth, 400);
+            canvas.width = size;
+            canvas.height = size;
+            
+            board = new JosekiBoard(canvas);
+            
+            // 点击事件
+            canvas.addEventListener('click', handleBoardClick);
+            canvas.addEventListener('touchend', handleBoardClick);
+        }
+
+        function handleBoardClick(e) {
+            const rect = e.target.getBoundingClientRect();
+            let clientX, clientY;
+            
+            if (e.type === 'touchend') {
+                const touch = e.changedTouches[0];
+                clientX = touch.clientX;
+                clientY = touch.clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            const canvasX = (clientX - rect.left) * (e.target.width / rect.width);
+            const canvasY = (clientY - rect.top) * (e.target.height / rect.height);
+            
+            const coord = board.canvasToSgf(canvasX, canvasY);
+            if (!coord) return;
+            
+            handleMove(coord.sgf);
+        }
+
+        // ========== 着法处理 ==========
+        async function handleMove(coord) {
+            if (!trieIndex) {
+                document.getElementById('exploreTip').textContent = '数据未加载完成';
+                return;
+            }
+
+            // 首着：加载对应分桶
+            if (currentNodePath.length === 0) {
+                const firstMoveBuckets = trieIndex.firstMoves[coord];
+                if (!firstMoveBuckets || firstMoveBuckets.length === 0) {
+                    document.getElementById('exploreTip').textContent = '该位置没有定式';
+                    return;
+                }
+
+                // 找出所有以该首着开始的桶，合并分支
+                const branches = [];
+                const bucketPromises = firstMoveBuckets.map(key => loadBucket(key));
+                const buckets = await Promise.all(bucketPromises);
+                
+                // 统计该首着下所有可能的二着
+                const secondMoves = {};
+                for (const bk of buckets) {
+                    if (!bk) continue;
+                    for (const leaf of bk.leaves) {
+                        const pathParts = leaf.path.split('-');
+                        if (pathParts.length > 1) {
+                            const second = pathParts[1];
+                            if (!secondMoves[second]) {
+                                secondMoves[second] = { coord: second, freq: 0 };
+                            }
+                            secondMoves[second].freq += leaf.freq;
+                        }
+                    }
+                }
+
+                // 添加首着
+                currentMoves = [{ 
+                    x: JosekiUtils.sgfToCoord(coord).x, 
+                    y: JosekiUtils.sgfToCoord(coord).y, 
+                    color: 'black', 
+                    num: 1 
+                }];
+                currentIndex = 1;
+                currentNodePath = [coord];
+
+                // 设置分支
+                const branchCoords = Object.values(secondMoves).map(sm => ({
+                    ...JosekiUtils.sgfToCoord(sm.coord),
+                    color: 'white',
+                    freq: sm.freq
+                }));
+                board.setMoves(currentMoves, currentIndex);
+                board.setBranches(branchCoords);
+
+                updateStats({ moves: 1, freq: branchCoords.reduce((s, b) => s + b.freq, 0) });
+                updateControls();
+                document.getElementById('exploreTip').textContent = '选择二着继续探索';
+
+                return;
+            }
+
+            // 后续着法
+            const nodeKey = currentNodePath.join('-');
+            
+            // 查找当前节点的children
+            let nextPath = nodeKey + '-' + coord;
+            let bucketKey = currentNodePath.slice(0, 2).join('-');
+            
+            if (!currentBucket || currentBucket.prefix !== bucketKey) {
+                currentBucket = await loadBucket(bucketKey);
+            }
+
+            if (!currentBucket) {
+                document.getElementById('exploreTip').textContent = '数据加载失败';
+                return;
+            }
+
+            // 检查是否是有效分支
+            const fullNodeKey = currentNodePath.length > 0 ? 
+                currentNodePath.slice(2).join('-') : '';
+            const nodeData = currentBucket.nodes[fullNodeKey] || currentBucket.nodes['root'];
+            
+            if (!nodeData || !nodeData.children.includes(coord)) {
+                document.getElementById('exploreTip').textContent = '不是有效选点';
+                return;
+            }
+
+            // 更新路径和棋盘
+            currentNodePath.push(coord);
+            const nextColor = currentNodePath.length % 2 === 1 ? 'black' : 'white';
+            const coordData = JosekiUtils.sgfToCoord(coord);
+            
+            currentMoves.push({
+                x: coordData.x,
+                y: coordData.y,
+                isPass: coordData.isPass,
+                color: nextColor,
+                num: currentNodePath.length
+            });
+            currentIndex = currentMoves.length;
+
+            // 获取下一个节点的分支
+            const nextNodeKey = currentNodePath.slice(2).join('-');
+            const nextNodeData = currentBucket.nodes[nextNodeKey];
+            
+            if (nextNodeData && nextNodeData.children) {
+                const branches = nextNodeData.children.map(c => ({
+                    ...JosekiUtils.sgfToCoord(c),
+                    color: currentNodePath.length % 2 === 0 ? 'black' : 'white',
+                    isPass: c === 'tt'
+                }));
+                board.setBranches(branches);
+            } else {
+                board.setBranches([]);
+            }
+
+            board.setMoves(currentMoves, currentIndex);
+
+            // 更新统计
+            if (nextNodeData && nextNodeData.leaf) {
+                updateStats({
+                    moves: nextNodeData.moves,
+                    freq: nextNodeData.total_freq || nextNodeData.freq
+                });
+                document.getElementById('exploreTip').textContent = '定式完成！';
+            } else {
+                updateStats({ moves: currentIndex });
+                document.getElementById('exploreTip').textContent = `第 ${currentIndex} 手`;
+            }
+
+            updateControls();
+        }
+
+        // ========== UI更新 ==========
+        function updateStats(data) {
+            document.getElementById('statMoves').textContent = data.moves || 0;
+            document.getElementById('statFreq').textContent = data.freq ? JosekiUtils.formatFreq(data.freq) : '-';
+            document.getElementById('statProb').textContent = data.prob ? JosekiUtils.formatProb(data.prob) : '-';
+        }
+
+        function updateControls() {
+            document.getElementById('prevBtn').disabled = currentIndex <= 0;
+            document.getElementById('nextBtn').disabled = currentIndex >= currentMoves.length;
+            
+            // 脱先按钮
+            const hasPassBranch = board.branches.some(b => b.isPass);
+            document.getElementById('passBtn').disabled = !hasPassBranch;
+            
+            // 收藏按钮
+            document.getElementById('favBtn').disabled = currentIndex < 2;
+        }
+
+        function goTo(index) {
+            if (index < 0 || index > currentMoves.length) return;
+            currentIndex = index;
+            board.goTo(index);
+            updateControls();
+            updateStats({ moves: index });
+        }
+
+        // ========== 收藏功能 ==========
+        function loadFavorites() {
+            try {
+                const saved = localStorage.getItem('joseki_favorites');
+                favorites = saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                favorites = [];
+            }
+            renderFavorites();
+        }
+
+        function saveFavorites() {
+            localStorage.setItem('joseki_favorites', JSON.stringify(favorites));
+        }
+
+        function addFavorite() {
+            if (currentMoves.length < 2) return;
+            
+            const path = currentMoves.map(m => {
+                if (m.isPass) return 'tt';
+                return String.fromCharCode(97 + m.x, 97 + m.y);
+            }).join('-');
+
+            // 检查是否已收藏
+            if (favorites.some(f => f.path === path)) {
+                document.getElementById('exploreTip').textContent = '已收藏';
+                return;
+            }
+
+            favorites.push({
+                path: path,
+                moves: currentMoves.length,
+                freq: parseInt(document.getElementById('statFreq').textContent.replace('K', '000')) || 0,
+                date: new Date().toISOString().split('T')[0]
+            });
+
+            saveFavorites();
+            document.getElementById('exploreTip').textContent = '已收藏 ⭐';
+        }
+
+        let favPage = 0;
+        const FAV_PER_PAGE = 12;
+
+        function renderFavorites() {
+            const count = favorites.length;
+            document.getElementById('favoritesCount').innerHTML = `已收藏: <strong>${count}</strong> 条定式`;
+            
+            if (count === 0) {
+                document.getElementById('favoritesGrid').innerHTML = '';
+                document.getElementById('favoritesEmpty').style.display = 'block';
+                document.getElementById('favoritesPagination').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('favoritesEmpty').style.display = 'none';
+
+            const totalPages = Math.ceil(count / FAV_PER_PAGE);
+            favPage = Math.min(favPage, totalPages - 1);
+
+            const start = favPage * FAV_PER_PAGE;
+            const items = favorites.slice(start, start + FAV_PER_PAGE);
+
+            const grid = document.getElementById('favoritesGrid');
+            grid.innerHTML = '';
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'joseki-item';
+                div.innerHTML = `
+                    <canvas width="100" height="100"></canvas>
+                    <div class="item-info">
+                        <div class="item-moves">${item.moves}手</div>
+                        <div>${JosekiUtils.formatFreq(item.freq)}次</div>
+                        <div class="item-actions">
+                            <button class="joseki-btn secondary" onclick="deleteFavorite('${item.path}')">删除</button>
+                        </div>
+                    </div>
+                `;
+                
+                // 绘制缩略图
+                const canvas = div.querySelector('canvas');
+                const moves = JosekiUtils.parseMoves(item.path.split('-'));
+                BoardThumbnail.render(canvas, moves);
+                
+                grid.appendChild(div);
+            });
+
+            // 分页
+            if (totalPages > 1) {
+                document.getElementById('favoritesPagination').style.display = 'flex';
+                document.getElementById('favPageInfo').textContent = `${favPage + 1}/${totalPages}`;
+                document.getElementById('favPrevPage').disabled = favPage === 0;
+                document.getElementById('favNextPage').disabled = favPage >= totalPages - 1;
+            } else {
+                document.getElementById('favoritesPagination').style.display = 'none';
+            }
+        }
+
+        function deleteFavorite(path) {
+            favorites = favorites.filter(f => f.path !== path);
+            saveFavorites();
+            renderFavorites();
+        }
+
+        function exportFavorites() {
+            const data = JSON.stringify(favorites, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `joseki-favorites-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importFavorites() {
+            const data = document.getElementById('importData').value;
+            try {
+                const imported = JSON.parse(data);
+                if (Array.isArray(imported)) {
+                    favorites = [...favorites, ...imported];
+                    saveFavorites();
+                    renderFavorites();
+                    document.getElementById('importModal').classList.remove('show');
+                    document.getElementById('importData').value = '';
+                }
+            } catch (e) {
+                alert('导入失败：数据格式错误');
+            }
+        }
+
+        // ========== 标签切换 ==========
+        function switchTab(tabName) {
+            document.querySelectorAll('.joseki-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            document.getElementById('exploreTab').style.display = tabName === 'explore' ? 'block' : 'none';
+            document.getElementById('favoritesTab').style.display = tabName === 'favorites' ? 'block' : 'none';
+            
+            if (tabName === 'favorites') {
+                renderFavorites();
+            }
+        }
+
+        // ========== 事件绑定 ==========
+        document.querySelectorAll('.joseki-tab').forEach(tab => {
+            tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+        });
+
+        document.getElementById('prevBtn').addEventListener('click', () => goTo(currentIndex - 1));
+        document.getElementById('nextBtn').addEventListener('click', () => goTo(currentIndex + 1));
+        document.getElementById('passBtn').addEventListener('click', () => handleMove('tt'));
+        document.getElementById('favBtn').addEventListener('click', addFavorite);
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            currentMoves = [];
+            currentIndex = 0;
+            currentNodePath = [];
+            currentBucket = null;
+            board.setMoves([]);
+            board.setBranches([]);
+            updateStats({});
+            updateControls();
+            document.getElementById('exploreTip').textContent = '点击棋盘选择首着开始探索';
+        });
+
+        document.getElementById('favPrevPage').addEventListener('click', () => { favPage--; renderFavorites(); });
+        document.getElementById('favNextPage').addEventListener('click', () => { favPage++; renderFavorites(); });
+        document.getElementById('exportFavBtn').addEventListener('click', exportFavorites);
+        document.getElementById('importFavBtn').addEventListener('click', () => {
+            document.getElementById('importModal').classList.add('show');
+        });
+        document.getElementById('importCancel').addEventListener('click', () => {
+            document.getElementById('importModal').classList.remove('show');
+        });
+        document.getElementById('importConfirm').addEventListener('click', importFavorites);
+
+        // ========== 初始化 ==========
+        // 加载 pako（gzip解压）
+        if (!window.pako) {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js';
+            script.onload = () => {
+                initBoard();
+                loadIndex();
+                loadFavorites();
+            };
+            document.head.appendChild(script);
+        } else {
+            initBoard();
+            loadIndex();
+            loadFavorites();
+        }
+    </script>
+</body>
+</html>
