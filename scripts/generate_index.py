@@ -324,6 +324,23 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到棋谱抓取工具: {fetcher_src}")
     
+    # 复制定式工具目录到站点
+    joseki_src_dir = TEMPLATES_DIR / "tools" / "joseki"
+    joseki_dst_dir = tools_dst / "joseki"
+    
+    if joseki_src_dir.exists():
+        joseki_dst_dir.mkdir(parents=True, exist_ok=True)
+        for src_file in joseki_src_dir.glob("*.html"):
+            dst_file = joseki_dst_dir / src_file.name
+            content = src_file.read_text(encoding='utf-8')
+            content = content.replace('{{GIT_HASH}}', git_hash)
+            content = content.replace('{{ base_path }}', base_path)
+            dst_file.write_text(content, encoding='utf-8')
+            print(f"✅ 复制定式工具页面: {dst_file.name} (git:{git_hash})")
+        print(f"✅ 复制定式工具目录完成")
+    else:
+        print(f"⚠️ 警告: 未找到定式工具目录: {joseki_src_dir}")
+    
     # 复制认证页面到站点
     auth_src = TEMPLATES_DIR / "auth.html"
     auth_dst = base_dir / "auth.html"
@@ -372,6 +389,32 @@ def generate_index(test_mode=False):
         print(f"✅ 复制缩略图 JS: {thumbnail_js_dst}")
     else:
         print(f"⚠️ 警告: 未找到缩略图 JS: {thumbnail_js_src}")
+    
+    # 复制定式棋盘 JS 到站点 (assets/js/)
+    joseki_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "joseki-board.js"
+    joseki_js_dst = base_dir / "assets" / "js" / "joseki-board.js"
+    
+    if joseki_js_src.exists():
+        joseki_js_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(joseki_js_src, joseki_js_dst)
+        print(f"✅ 复制定式棋盘 JS: {joseki_js_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到定式棋盘 JS: {joseki_js_src}")
+    
+    # 复制定式样式 CSS 到站点 (assets/css/)
+    joseki_css_src = WEIQI_PAGE_DIR / "assets" / "css" / "joseki.css"
+    joseki_css_dst = base_dir / "assets" / "css" / "joseki.css"
+    
+    if joseki_css_src.exists():
+        joseki_css_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(joseki_css_src, joseki_css_dst)
+        print(f"✅ 复制定式样式 CSS: {joseki_css_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到定式样式 CSS: {joseki_css_src}")
+    
+    # 生成定式Trie树数据
+    from generate_joseki_tree import generate_joseki_tree
+    generate_joseki_tree(test_mode)
     
     # 复制公众号二维码图片到站点 (assets/images/)
     public_img_src = WEIQI_PAGE_DIR / "assets" / "images" / "public.jpg"

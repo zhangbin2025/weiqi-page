@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 """
-定式数据导出脚本
+定式Trie树数据生成脚本
 从 weiqi-joseki 数据库导出定式并生成分桶trie结构
 
 用法:
-    python3 scripts/export-joseki-data.py --output assets/data/joseki/
+    python3 scripts/generate_joseki_tree.py [--test]
 
-输出:
+输出到生产或测试目录:
     - trie-meta.json      元信息
     - trie-index.json.gz  索引（gzip压缩）
     - quiz-*.json.gz      做题模式数据（gzip压缩）
-    - buckets/*.json.gz  分桶数据（gzip压缩）
+    - buckets/*.json.gz   分桶数据（gzip压缩）
 """
 
+import sys
 import json
 import os
 import gzip
 import argparse
 from collections import defaultdict
+from pathlib import Path
+
+# 添加脚本目录到路径
+sys.path.insert(0, str(Path(__file__).parent))
+from config import SITE_DIR, TEST_SITE_DIR, WEIQI_JOSEKI_DB_PATH
 
 # 默认配置
 MAX_BUCKET_SIZE = 2000  # 每桶最大定式数
@@ -247,17 +253,27 @@ def export_bucket_files(buckets, output_dir):
     return meta
 
 
-def main():
-    parser = argparse.ArgumentParser(description='导出定式数据')
-    parser.add_argument('--output', '-o', default='assets/data/joseki/', help='输出目录')
-    parser.add_argument('--db', default=os.path.expanduser('~/.weiqi-joseki/database.json'), help='数据库路径')
-    args = parser.parse_args()
+def generate_joseki_tree(test_mode=False):
+    """生成定式Trie树数据"""
+    # 确定输出目录
+    base_dir = TEST_SITE_DIR if test_mode else SITE_DIR
+    output_dir = base_dir / "assets" / "data" / "joseki"
     
-    print(f"加载数据库: {args.db}")
-    with open(args.db) as f:
-        joseki_list = json.load(f).get('joseki_list', [])
+    print(f"加载数据库: {WEIQI_JOSEKI_DB_PATH}")
     
+    if not WEIQI_JOSEKI_DB_PATH.exists():
+        print(f"❌ 数据库不存在: {WEIQI_JOSEKI_DB_PATH}")
+        return False
+    
+    with open(WEIQI_JOSEKI_DB_PATH) as f:
+        db = json.load(f)
+    
+    joseki_list = db.get('joseki_list', [])
     print(f"总定式数: {len(joseki_list)}")
+    
+    if len(joseki_list) == 0:
+        print("❌ 定式库为空")
+        return False
     
     print("\n开始动态分桶...")
     buckets = build_dynamic_buckets(joseki_list)
@@ -267,8 +283,8 @@ def main():
     print(f"分桶数: {len(buckets)}")
     print(f"最大桶: {max(sizes)}, 最小桶: {min(sizes)}, 平均: {sum(sizes)/len(sizes):.1f}")
     
-    print(f"\n导出到: {args.output}")
-    meta = export_bucket_files(buckets, args.output)
+    print(f"\n导出到: {output_dir}")
+    meta = export_bucket_files(buckets, str(output_dir))
     
     print(f"\n导出完成:")
     print(f"  总定式: {meta['total']}")
@@ -279,11 +295,26 @@ def main():
     
     # 文件大小统计
     total_size = 0
-    for root, dirs, files in os.walk(args.output):
+    for root, dirs, files in os.walk(output_dir):
         for f in files:
             total_size += os.path.getsize(os.path.join(root, f))
     print(f"  总存储: {total_size//1024}KB")
+    
+    return True
+
+
+def main():
+    parser = argparse.ArgumentParser(description='生成定式Trie树数据')
+    parser.add_argument('--test', action='store_true', help='测试模式')
+    args = parser.parse_args()
+    
+    print("=" * 60)
+    print("🎯 定式Trie树数据生成")
+    print("=" * 60)
+    
+    success = generate_joseki_tree(args.test)
+    return 0 if success else 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
