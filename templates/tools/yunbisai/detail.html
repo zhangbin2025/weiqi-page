@@ -46,6 +46,36 @@
         .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         footer { text-align: center; padding: 20px; color: #999; font-size: 0.8em; }
+        
+        /* 对手分可点击样式 */
+        .opponent-score { cursor: pointer; color: #667eea; text-decoration: underline; transition: all 0.2s; }
+        .opponent-score:hover { color: #764ba2; background: #f0f0ff; border-radius: 4px; }
+        
+        /* 模态框样式 */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 12px; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: white; border-radius: 16px; width: 100%; max-width: 420px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-size: 1.1em; margin: 0; }
+        .modal-close { background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1.2em; line-height: 1; }
+        .modal-close:hover { background: rgba(255,255,255,0.3); }
+        .modal-body { padding: 0; overflow-y: auto; flex: 1; }
+        .opponent-list { display: flex; flex-direction: column; }
+        .opponent-item { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+        .opponent-item:last-child { border-bottom: none; }
+        .opponent-item:hover { background: #fafafa; }
+        .opponent-info { flex: 1; }
+        .opponent-round { font-size: 0.75em; color: #999; margin-bottom: 2px; }
+        .opponent-name { font-weight: 600; color: #333; }
+        .opponent-rank { font-size: 0.8em; color: #888; margin-top: 2px; }
+        .game-result { display: flex; align-items: center; gap: 8px; }
+        .game-color { font-size: 0.9em; }
+        .result-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600; }
+        .result-badge.win { background: #e8f5e9; color: #2e7d32; }
+        .result-badge.lose { background: #ffebee; color: #c62828; }
+        .result-badge.draw { background: #fff3e0; color: #e65100; }
+        .result-badge.pending { background: #f5f5f5; color: #999; }
+        .modal-footer { padding: 12px 16px; background: #f9f9f9; border-top: 1px solid #eee; text-align: center; font-size: 0.85em; color: #888; }
     </style>
 </head>
 <body>
@@ -77,6 +107,20 @@
         </div>
         
         <footer><p>围棋智能助手 &copy; 2026</p></footer>
+    </div>
+    
+    <!-- 对手详情模态框 -->
+    <div class="modal-overlay" id="opponentModal" onclick="if(event.target===this)closeModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="modalTitle">对手列表</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="opponent-list" id="opponentList"></div>
+            </div>
+            <div class="modal-footer" id="modalSummary">加载中...</div>
+        </div>
     </div>
     <script>
         let event = null, groups = [], selectedGroup = null, totalRounds = 1, currentRound = 1, rankingsMap = {};
@@ -219,7 +263,7 @@
             html += '</tr></thead><tbody>';
             data.rankings.forEach((player, index) => {
                 const rankClass = index < 3 ? 'top3' : '';
-                html += `<tr><td class="rank-num ${rankClass}">${player.rank}</td><td class="rank-name">${player.name}</td><td class="rank-score">${player.score}</td><td>${player.opponent_score || 0}</td>`;
+                html += `<tr><td class="rank-num ${rankClass}">${player.rank}</td><td class="rank-name">${player.name}</td><td class="rank-score">${player.score}</td><td class="opponent-score" onclick="showOpponents('${player.name.replace(/'/g, "\\'")}', ${index})">${player.opponent_score || 0}</td>`;
                 if (isFinal) html += `<td>${player.progressive_score || 0}</td><td>${player.opponent_score_reverse_minus || '-'}</td>`;
                 html += '</tr>';
             });
@@ -312,6 +356,116 @@
             document.getElementById('matchesContent').style.display = tab === 'matches' ? 'block' : 'none';
             if (tab === 'matches') loadMatches(currentRound);
         }
+        
+        // ========== 对手详情模态框 ==========
+        let currentRankingData = null;
+        
+        function showOpponents(playerName, playerIndex) {
+            if (!currentRankingData || !currentRankingData.rankings) {
+                alert('排名数据未加载');
+                return;
+            }
+            
+            const player = currentRankingData.rankings.find(p => p.name === playerName);
+            if (!player) {
+                alert('未找到该棋手数据');
+                return;
+            }
+            
+            // 构建对手信息映射（用于显示对手排名）
+            const rankMap = {};
+            currentRankingData.rankings.forEach((p, idx) => {
+                rankMap[p.name] = { rank: idx + 1, score: p.score };
+            });
+            
+            // 渲染模态框内容
+            const modal = document.getElementById('opponentModal');
+            const title = document.getElementById('modalTitle');
+            const list = document.getElementById('opponentList');
+            const summary = document.getElementById('modalSummary');
+            
+            title.textContent = `🎯 ${playerName} 的对手`;
+            
+            // 统计胜负
+            let wins = 0, losses = 0, draws = 0;
+            
+            if (!player.games || player.games.length === 0) {
+                list.innerHTML = '<div style="text-align:center;padding:30px;color:#888;">暂无对局数据</div>';
+                summary.textContent = '暂无对局数据';
+            } else {
+                let html = '';
+                player.games.forEach(game => {
+                    const opponent = game.opponent || '轮空';
+                    const result = game.result || '';
+                    const round = game.round || '?';
+                    const opponentInfo = rankMap[opponent] || {};
+                    
+                    // 解析结果
+                    let resultClass = 'pending';
+                    let resultText = '待定';
+                    let colorText = '';
+                    
+                    if (result.includes('胜') || result.includes('赢')) {
+                        resultClass = 'win';
+                        resultText = '胜';
+                        wins++;
+                    } else if (result.includes('负') || result.includes('输')) {
+                        resultClass = 'lose';
+                        resultText = '负';
+                        losses++;
+                    } else if (result.includes('和') || result.includes('平')) {
+                        resultClass = 'draw';
+                        resultText = '和';
+                        draws++;
+                    } else if (result === '轮空') {
+                        resultClass = 'win';
+                        resultText = '轮空胜';
+                        wins++;
+                    }
+                    
+                    // 推断执黑执白（从对阵数据中获取）
+                    const colorIcon = colorText || (round % 2 === 0 ? '⚫' : '⚪');
+                    
+                    html += `
+                        <div class="opponent-item">
+                            <div class="opponent-info">
+                                <div class="opponent-round">第${round}轮</div>
+                                <div class="opponent-name">${opponent}</div>
+                                <div class="opponent-rank">排名: ${opponentInfo.rank || '-'} · 积分: ${opponentInfo.score !== undefined ? opponentInfo.score : '-'}</div>
+                            </div>
+                            <div class="game-result">
+                                <span class="game-color">${colorIcon}</span>
+                                <span class="result-badge ${resultClass}">${resultText}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                list.innerHTML = html;
+                summary.textContent = `${wins}胜 ${losses}负${draws > 0 ? ' ' + draws + '和' : ''} · 对手分: ${player.opponent_score || 0}`;
+            }
+            
+            // 显示模态框
+            modal.classList.add('show');
+        }
+        
+        function closeModal() {
+            document.getElementById('opponentModal').classList.remove('show');
+        }
+        
+        // 点击模态框背景关闭
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeModal();
+            }
+        });
+        
+        // 修改 renderRanking 保存数据引用
+        const originalRenderRanking = renderRanking;
+        renderRanking = function(data) {
+            currentRankingData = data;
+            originalRenderRanking(data);
+        };
         
         init();
     </script>
