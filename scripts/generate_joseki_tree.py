@@ -36,6 +36,7 @@ def call_weiqi_joseki_export(output_path):
     cmd = [
         sys.executable, '-m', 'src.cli.commands', 'export',
         '--format', 'json',
+        '--prefix', 'pd qc pc qd qe re rf',
         '-o', str(output_path)
     ]
     
