@@ -128,7 +128,6 @@
     </div>
     <script>
         let event = null, groups = [], selectedGroup = null, totalRounds = 1, currentRound = 1, rankingsMap = {};
-        const LAST_GROUP_KEY = 'yunbisai_last_group';
         
         // ========== 名字处理工具函数 ==========
         /**
@@ -196,6 +195,93 @@
             return `<a href="../player.html?name=${queryName}" class="player-link">${displayName}</a>`;
         }
         
+        // ========== 分组优先级排序 ==========
+        /**
+         * 计算分组优先级分数（越高越靠前）
+         * 优先级：公开 > 精英 > 中学 > 少年 > 儿童
+         * 段级位：5段 > 4段 > ... > 1级 > 2级 > ...
+         */
+        function getGroupPriority(groupName) {
+            if (!groupName) return 0;
+            const name = groupName.toLowerCase();
+            
+            // 组别优先级（权重10000）
+            const groupTypes = {
+                '公开': 50000, 'open': 50000,
+                '精英': 40000, 'elite': 40000,
+                '中学': 30000, 'middle': 30000, '高中': 30000,
+                '少年': 20000, 'youth': 20000, '青少年': 20000,
+                '儿童': 10000, 'child': 10000, '少儿': 10000, '幼儿': 5000
+            };
+            
+            // 段位优先级（权重100）
+            const danLevels = {
+                '9段': 990, '8段': 890, '7段': 790, '6段': 690,
+                '5段': 590, '五段': 590, '业余5段': 590,
+                '4段': 490, '四段': 490, '业余4段': 490,
+                '3段': 390, '三段': 390, '业余3段': 390,
+                '2段': 290, '二段': 290, '业余2段': 290,
+                '1段': 190, '初段': 190, '业余1段': 190
+            };
+            
+            // 级位优先级（权重10）
+            const kyuLevels = {
+                '1级': 90, '一级': 90,
+                '2级': 80, '二级': 80,
+                '3级': 70, '三级': 70,
+                '4级': 60, '四级': 60,
+                '5级': 50, '五级': 50,
+                '6级': 40, '六级': 40,
+                '7级': 30, '七级': 30,
+                '8级': 20, '八级': 20,
+                '9级': 10, '九级': 10,
+                '10级': 5, '十级': 5
+            };
+            
+            // 计算优先级分数
+            let score = 0;
+            
+            // 匹配组别类型
+            for (const [key, value] of Object.entries(groupTypes)) {
+                if (name.includes(key)) {
+                    score = Math.max(score, value);
+                }
+            }
+            
+            // 匹配段位
+            for (const [key, value] of Object.entries(danLevels)) {
+                if (name.includes(key)) {
+                    score += value;
+                }
+            }
+            
+            // 匹配级位
+            for (const [key, value] of Object.entries(kyuLevels)) {
+                if (name.includes(key)) {
+                    score += value;
+                }
+            }
+            
+            // 如果没有匹配到任何类型，给予默认分数
+            if (score === 0) {
+                score = 1000; // 默认排在中间
+            }
+            
+            return score;
+        }
+        
+        /**
+         * 按优先级排序分组列表
+         */
+        function sortGroupsByPriority(groupsList) {
+            return groupsList.slice().sort((a, b) => {
+                const priorityA = getGroupPriority(a.name);
+                const priorityB = getGroupPriority(b.name);
+                // 优先级高的排前面（降序）
+                return priorityB - priorityA;
+            });
+        }
+        
         // ========== 页面初始化 ==========
         
         async function init() {
@@ -215,10 +301,19 @@
                 const data = await response.json();
                 if (!data.success) throw new Error(data.error?.message);
                 groups = data.data.groups || [];
+                
+                // 按优先级排序
+                groups = sortGroupsByPriority(groups);
+                
                 renderGroupSelect();
                 
-                // 尝试恢复最近访问的分组
-                restoreLastGroup();
+                // 尝试恢复该比赛最近访问的分组
+                const restored = restoreLastGroup();
+                
+                // 如果没有恢复，则默认选中最高优先级的分组
+                if (!restored && groups.length > 0) {
+                    selectGroup(groups[0]);
+                }
             } catch (error) {
                 document.getElementById('groupSelect').innerHTML = `<option>${error.message}</option>`;
             }
@@ -227,6 +322,7 @@
         function renderGroupSelect() {
             const select = document.getElementById('groupSelect');
             let html = '<option value="">选择分组</option>';
+            // groups 已按优先级排序
             groups.forEach(g => {
                 const playerCount = g.players ?? g.playernum ?? g.participant_count;
                 const label = playerCount !== undefined ? `${g.name} (${playerCount}人)` : g.name;
@@ -235,41 +331,59 @@
             select.innerHTML = html;
         }
         
+        // ========== 本地存储（按比赛分开） ==========
+        const LAST_GROUPS_KEY = 'yunbisai_last_groups'; // 存储所有比赛的最后分组
+        
+        // 获取所有比赛的最后分组记录
+        function getLastGroupsMap() {
+            try {
+                const data = localStorage.getItem(LAST_GROUPS_KEY);
+                return data ? JSON.parse(data) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+        
         // 保存最近访问的分组到 localStorage
         function saveLastGroup(group) {
             if (!group || !event) return;
-            const data = {
-                eventId: event.id,
+            const map = getLastGroupsMap();
+            map[event.id] = {
                 groupId: group.id,
                 groupName: group.name,
                 timestamp: Date.now()
             };
-            localStorage.setItem(LAST_GROUP_KEY, JSON.stringify(data));
+            localStorage.setItem(LAST_GROUPS_KEY, JSON.stringify(map));
         }
         
         // 从 localStorage 恢复最近访问的分组
+        // 返回 true 表示成功恢复，false 表示没有记录
         function restoreLastGroup() {
             try {
-                const saved = localStorage.getItem(LAST_GROUP_KEY);
-                if (!saved) return;
-                
-                const data = JSON.parse(saved);
-                // 检查是否是当前比赛的分组
-                if (data.eventId !== event.id) return;
+                const map = getLastGroupsMap();
+                const record = map[event.id];
+                if (!record) return false;
                 
                 // 检查该分组是否存在于当前分组列表中
-                const group = groups.find(g => g.id == data.groupId);
-                if (!group) return;
+                const group = groups.find(g => g.id == record.groupId);
+                if (!group) return false;
                 
                 // 自动选择该分组
-                document.getElementById('groupSelect').value = data.groupId;
-                selectedGroup = group;
-                
-                // 加载数据
-                loadGroupData();
+                selectGroup(group);
+                return true;
             } catch (e) {
                 console.error('恢复分组失败:', e);
+                return false;
             }
+        }
+        
+        // 选择分组并更新界面
+        function selectGroup(group) {
+            if (!group) return;
+            selectedGroup = group;
+            document.getElementById('groupSelect').value = group.id;
+            saveLastGroup(group);
+            loadGroupData();
         }
         
         // 加载分组数据（排名和对阵）
@@ -288,13 +402,10 @@
                 selectedGroup = null;
                 return;
             }
-            selectedGroup = groups.find(g => g.id == groupId);
-            if (!selectedGroup) return;
+            const group = groups.find(g => g.id == groupId);
+            if (!group) return;
             
-            // 保存到 localStorage
-            saveLastGroup(selectedGroup);
-            
-            await loadGroupData();
+            selectGroup(group);
         }
         
         async function loadRanking() {
