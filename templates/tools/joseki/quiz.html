@@ -213,8 +213,7 @@
             // 检查当前是否是脱先
             const target = targetMoves[currentIndex];
             if (target.isPass) {
-                // AI自动下脱先，显示提示
-                userMoves.push(target);
+                // AI自动下脱先，显示提示（不存入 userMoves）
                 currentIndex++;
                 updateProgress();
                 board.setMoves(userMoves, userMoves.length);
@@ -294,12 +293,11 @@
                 document.getElementById('quizStatus').textContent = `${target.color === 'black' ? '黑' : '白'}方落子...`;
 
                 setTimeout(() => {
-                    // 如果是脱先，显示提示
+                    // 如果是脱先，显示提示（不存入 userMoves）
                     if (target.isPass) {
                         document.getElementById('quizStatus').textContent = `⏭ ${target.color === 'black' ? '黑' : '白'}方脱先！`;
                     }
                     
-                    userMoves.push(target);
                     currentIndex++;
                     board.setMoves(userMoves, userMoves.length);
                     updateProgress();
@@ -402,8 +400,15 @@
         function undo() {
             if (mode !== 'explore' || currentIndex <= 0) return;
 
+            // 撤销一步
             currentIndex--;
             userMoves.pop();
+            
+            // 跳过脱先手（脱先不存入 userMoves，只增加 currentIndex）
+            while (currentIndex > 0 && targetMoves[currentIndex] && targetMoves[currentIndex].isPass) {
+                currentIndex--;
+            }
+
             updateProgress();
             showExploreState();
         }
