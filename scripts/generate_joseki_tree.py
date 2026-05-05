@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 定式Trie树数据生成脚本 v2.0
-按前缀裁剪，生成索引和子树文件
+按前缀裁剪,生成索引和子树文件
 
 用法:
     python3 scripts/generate_joseki_tree.py [--test] [--threshold 1000]
@@ -29,11 +29,11 @@ def load_joseki_list():
     if not db_path.exists():
         print(f"数据库不存在: {db_path}")
         return []
-    
+
     print(f"加载数据库: {db_path}")
     with open(db_path) as f:
         data = json.load(f)
-    
+
     joseki_list = data.get('joseki_list', [])
     print(f"定式数量: {len(joseki_list)}")
     return joseki_list
@@ -42,15 +42,15 @@ def load_joseki_list():
 def build_trie(joseki_list):
     """构建完整 trie 树"""
     root = {'coord': None, 'children': {}, 'freq': 0}
-    
+
     for j in joseki_list:
         moves = j['moves']
         if not moves:
             continue
-        
+
         freq = j.get('frequency', 0)
         node = root
-        
+
         for i, coord in enumerate(moves):
             if coord not in node['children']:
                 color = 'black' if i % 2 == 0 else 'white'
@@ -60,16 +60,16 @@ def build_trie(joseki_list):
                     'children': {},
                     'freq': 0
                 }
-            
+
             node['children'][coord]['freq'] += freq
             node = node['children'][coord]
-        
+
         node['leaf'] = True
         node['moves'] = len(moves)
         node['name'] = j.get('id', '')
         node['total_freq'] = freq
         node['prob'] = j.get('probability', 0)
-    
+
     root['freq'] = sum(j.get('frequency', 0) for j in joseki_list)
     return root
 
@@ -79,12 +79,12 @@ def count_joseki_nodes(node):
     count = 0
     if node.get('leaf'):
         count += 1
-    
+
     children = node.get('children')
     if children:
         for child in children.values():
             count += count_joseki_nodes(child)
-    
+
     return count
 
 
@@ -95,16 +95,16 @@ def serialize_trie(node):
         'color': node.get('color'),
         'freq': node.get('freq', 0),
     }
-    
+
     if node.get('leaf'):
         result['leaf'] = True
         result['moves'] = node.get('moves')
         result['total_freq'] = node.get('total_freq')
         result['prob'] = node.get('prob')
-    
+
     if node.get('subtree'):
         result['subtree'] = node['subtree']
-    
+
     children = node.get('children')
     if children:
         result['children'] = {
@@ -113,7 +113,7 @@ def serialize_trie(node):
         }
     elif node.get('subtree'):
         result['children'] = None
-    
+
     return result
 
 
@@ -125,23 +125,23 @@ def prune_trie(node, prefix, threshold, output_dir):
     children = node.get('children', {})
     if not children:
         return
-    
+
     for coord, child in list(children.items()):
         new_prefix = f'{prefix}-{coord}' if prefix else coord
         prune_trie(child, new_prefix, threshold, output_dir)
-    
+
     for coord, child in list(children.items()):
         if child.get('subtree'):
             continue
-        
+
         joseki_count = count_joseki_nodes(child)
-        
+
         if joseki_count >= threshold:
             new_prefix = f'{prefix}-{coord}' if prefix else coord
             filename = f'trie-{new_prefix}.json.gz'
-            
+
             export_subtree(child, filename, threshold, output_dir)
-            
+
             child['subtree'] = {'file': filename, 'josekiCount': joseki_count}
             child['children'] = None
 
@@ -150,11 +150,11 @@ def export_subtree(node, filename, threshold, output_dir):
     """导出子树文件"""
     prune_trie(node, '', threshold, output_dir)
     collect_difficulty(node)
-    
+
     filepath = output_dir / filename
     with gzip.open(filepath, 'wt', encoding='utf-8') as f:
         json.dump(serialize_trie(node), f, ensure_ascii=False, separators=(',', ':'))
-    
+
     file_size = filepath.stat().st_size
     joseki_count = count_joseki_nodes(node)
     stats['subtree_files'].append({
@@ -175,7 +175,7 @@ def collect_difficulty(node):
             stats['difficulty']['medium'] += 1
         else:
             stats['difficulty']['hard'] += 1
-    
+
     children = node.get('children')
     if children:
         for child in children.values():
@@ -186,36 +186,36 @@ def build(output_dir, threshold):
     """构建索引和子树"""
     global stats
     stats = {'subtree_files': [], 'difficulty': {'easy': 0, 'medium': 0, 'hard': 0}}
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # 清理旧文件
     for f in output_dir.glob('*.gz'):
         f.unlink()
-    
+
     joseki_list = load_joseki_list()
     if not joseki_list:
         return False
-    
+
     print("\n构建 trie 树...")
     trie = build_trie(joseki_list)
-    
+
     total = count_joseki_nodes(trie)
     print(f"总定式节点: {total}")
-    
+
     print("\n开始裁剪...")
     prune_trie(trie, '', threshold, output_dir)
-    
+
     collect_difficulty(trie)
-    
+
     print("\n导出索引...")
     index_file = output_dir / 'trie-index.json.gz'
     with gzip.open(index_file, 'wt', encoding='utf-8') as f:
         json.dump(serialize_trie(trie), f, ensure_ascii=False, separators=(',', ':'))
-    
+
     index_size = index_file.stat().st_size
     print(f"  索引大小: {index_size//1024}KB")
-    
+
     # 导出元信息
     meta = {
         'version': '2.0',
@@ -225,23 +225,30 @@ def build(output_dir, threshold):
         'difficulty': stats['difficulty'],
         'indexSize': index_size
     }
-    
+
     with open(output_dir / 'trie-meta.json', 'w', encoding='utf-8') as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
-    
+
     # 统计
     print("\n结果统计:")
     print(f"  索引: {index_size//1024}KB")
     print(f"  子树: {len(stats['subtree_files'])}个")
-    
+
     if stats['subtree_files']:
         sizes = [s['size'] for s in stats['subtree_files']]
         print(f"  子树大小: {min(sizes)//1024}KB - {max(sizes)//1024}KB")
         print(f"  总存储: {(index_size + sum(sizes))//1024//1024}MB")
-    
+
     print(f"  难度: 初{stats['difficulty']['easy']} 中{stats['difficulty']['medium']} 高{stats['difficulty']['hard']}")
-    
+
     return True
+
+
+def generate_joseki_tree(test_mode=False, threshold=DEFAULT_THRESHOLD):
+    """生成定式 Trie 树数据（供其他模块调用）"""
+    base_dir = TEST_SITE_DIR if test_mode else SITE_DIR
+    output_dir = base_dir / "assets" / "data" / "joseki"
+    return build(output_dir, threshold)
 
 
 def main():
@@ -249,18 +256,13 @@ def main():
     parser.add_argument('--test', action='store_true', help='测试模式')
     parser.add_argument('--threshold', type=int, default=DEFAULT_THRESHOLD)
     args = parser.parse_args()
-    
+
     print("=" * 50)
     print("定式Trie树数据生成 v2.0")
     print(f"阈值: {args.threshold}")
     print("=" * 50)
-    
-    base_dir = TEST_SITE_DIR if args.test else SITE_DIR
-    output_dir = base_dir / "assets" / "data" / "joseki"
-    
-    success = build(output_dir, args.threshold)
-    print(f"\n输出目录: {output_dir}")
-    
+
+    success = generate_joseki_tree(args.test, args.threshold)
     return 0 if success else 1
 
 
