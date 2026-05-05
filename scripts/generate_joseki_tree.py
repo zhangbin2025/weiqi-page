@@ -225,6 +225,8 @@ def build(output_dir, threshold):
     # 清理旧文件
     for f in output_dir.glob('*.gz'):
         f.unlink()
+    for f in output_dir.glob('*.json'):
+        f.unlink()
 
     joseki_list = load_joseki_list()
     if not joseki_list:
