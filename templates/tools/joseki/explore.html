@@ -360,7 +360,8 @@
 
         function updateControls() {
             document.getElementById('undoBtn').disabled = currentNodePath.length <= 0;
-            document.getElementById('favBtn').disabled = currentNodePath.length < 2;
+            // 只有有指标数据（freq）时才能收藏
+            document.getElementById('favBtn').disabled = !currentNode.freq && !currentNode.leaf;
         }
 
         async function undo() {
@@ -439,7 +440,8 @@
         }
 
         function addFavorite() {
-            if (currentMoves.length < 2) return;
+            // 检查是否有指标数据
+            if (!currentNode.freq && !currentNode.leaf) return;
             
             const path = currentMoves.map(m => {
                 if (m.isPass) return 'tt';
