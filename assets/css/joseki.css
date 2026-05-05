@@ -188,6 +188,15 @@
     opacity: 0.9;
 }
 
+.joseki-btn.danger {
+    background: #f44336;
+    color: white;
+}
+
+.joseki-btn.danger:hover {
+    background: #d32f2f;
+}
+
 /* ========== 难度选择 ========== */
 .joseki-difficulty {
     margin-bottom: 8px;

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>定式探索 - 围棋定式工具</title>
     <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
-    <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505">
+    <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505b">
     <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260505"></script>
     <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260505"></script>
     <style>
@@ -82,6 +82,7 @@
                 <div class="joseki-controls" style="justify-content:flex-end; margin-bottom:12px;">
                     <button class="joseki-btn secondary" id="importFavBtn" title="导入">📥</button>
                     <button class="joseki-btn secondary" id="exportFavBtn" title="导出">📤</button>
+                    <button class="joseki-btn secondary danger" id="clearFavBtn" title="清空">🗑</button>
                 </div>
 
                 <div id="favoritesCount" style="text-align:center; color:#666; margin-bottom:12px;">
@@ -537,6 +538,15 @@
             URL.revokeObjectURL(url);
         }
 
+        function clearFavorites() {
+            if (favorites.length === 0) return;
+            if (confirm('确定清空所有收藏？')) {
+                favorites = [];
+                saveFavorites();
+                renderFavorites();
+            }
+        }
+
         function importFavorites() {
             const data = document.getElementById('importData').value;
             try {
@@ -662,6 +672,7 @@
         document.getElementById('favPrevPage').addEventListener('click', () => { favPage--; renderFavorites(); });
         document.getElementById('favNextPage').addEventListener('click', () => { favPage++; renderFavorites(); });
         document.getElementById('exportFavBtn').addEventListener('click', exportFavorites);
+        document.getElementById('clearFavBtn').addEventListener('click', clearFavorites);
         document.getElementById('importFavBtn').addEventListener('click', () => {
             document.getElementById('importModal').classList.add('show');
         });
