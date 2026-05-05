@@ -218,12 +218,10 @@
                 currentIndex++;
                 updateProgress();
                 board.setMoves(userMoves, userMoves.length);
-                board.setMarks([{ x: 0, y: 0, type: 'text', text: '脱先' }]);
-                document.getElementById('quizStatus').textContent = `${target.color === 'black' ? '黑' : '白'}方脱先，轮到${target.color === 'black' ? '白' : '黑'}方`;
+                document.getElementById('quizStatus').textContent = `⏭ ${target.color === 'black' ? '黑' : '白'}方脱先！`;
                 
-                // 1秒后清除标记，继续
+                // 800ms后继续
                 setTimeout(() => {
-                    board.setMarks([]);
                     showExploreState();
                 }, 800);
                 return;
@@ -298,15 +296,15 @@
                 setTimeout(() => {
                     // 如果是脱先，显示提示
                     if (target.isPass) {
-                        board.setMarks([{ x: 0, y: 0, type: 'text', text: '脱先' }]);
-                        setTimeout(() => board.setMarks([]), 600);
+                        document.getElementById('quizStatus').textContent = `⏭ ${target.color === 'black' ? '黑' : '白'}方脱先！`;
                     }
                     
                     userMoves.push(target);
                     currentIndex++;
                     board.setMoves(userMoves, userMoves.length);
                     updateProgress();
-                    showChallengeState();
+                    
+                    setTimeout(() => showChallengeState(), target.isPass ? 600 : 0);
                 }, 500);
             }
 
@@ -345,14 +343,14 @@
             if (!target || target.color !== userColor) return;
 
             if (target.isPass) {
-                // 正确！显示脱先标记
-                board.setMarks([{ x: 0, y: 0, type: 'text', text: '脱先' }]);
-                setTimeout(() => board.setMarks([]), 600);
+                // 正确！
+                document.getElementById('quizStatus').textContent = '⏭ 脱先！';
                 
                 userMoves.push(target);
                 currentIndex++;
                 updateProgress();
-                showChallengeState();
+                
+                setTimeout(() => showChallengeState(), 600);
             } else {
                 // 错误！
                 showChallengeFail('正确答案不是脱先！');
