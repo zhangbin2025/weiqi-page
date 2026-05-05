@@ -208,7 +208,6 @@
 
         // ========== 数据加载 ==========
         async function loadQuizData() {
-            console.log('[JosekiQuiz] 加载题目数据');
             try {
                 for (const diff of ['easy', 'medium', 'hard']) {
                     const url = `${DATA_PATH}/quiz-${diff}.json.gz`;
@@ -218,7 +217,6 @@
                     const compressed = await response.arrayBuffer();
                     const decompressed = pako.ungzip(compressed, { to: 'string' });
                     quizData[diff] = JSON.parse(decompressed).leaves || [];
-                    console.log('[JosekiQuiz] 难度', diff, '题目数:', quizData[diff].length);
                 }
                 loadNextQuiz();
             } catch (e) {
@@ -239,7 +237,6 @@
 
             const idx = Math.floor(Math.random() * list.length);
             currentQuiz = list[idx];
-            console.log('[JosekiQuiz] 随机题目:', currentQuiz);
 
             // 解析目标着法
             const pathParts = currentQuiz.path.split('-');

@@ -143,11 +143,9 @@
 
         // 加载索引
         async function loadIndex() {
-            console.log('[JosekiExplore] 加载索引...');
             try {
                 trieRoot = await loadGzipJson(`${DATA_PATH}/trie-index.json.gz`);
                 currentNode = trieRoot;
-                console.log('[JosekiExplore] 索引加载完成，首着数:', Object.keys(trieRoot.children || {}).length);
                 showFirstMoveBranches();
             } catch (e) {
                 console.error('[JosekiExplore] 索引加载失败:', e);
@@ -160,11 +158,9 @@
                 return; // 不是裁剪点或已加载
             }
             
-            console.log('[JosekiExplore] 加载子树:', node.subtree.file);
             try {
                 const subtree = await loadGzipJson(`${DATA_PATH}/${node.subtree.file}`);
                 node.children = subtree.children;
-                console.log('[JosekiExplore] 子树加载完成');
             } catch (e) {
                 console.error('[JosekiExplore] 子树加载失败:', e);
             }
@@ -194,7 +190,6 @@
         // 显示首着选点
         function showFirstMoveBranches() {
             if (!trieRoot || !trieRoot.children) {
-                console.log('[JosekiExplore] 无索引数据');
                 return;
             }
             
@@ -213,7 +208,6 @@
                 }
             }
             
-            console.log('[JosekiExplore] 首着数量:', branches.length);
             board.setMoves([]);
             board.setBranches(branches);
         }
@@ -269,7 +263,6 @@
 
         // ========== 着法处理 ==========
         async function handleMove(coord) {
-            console.log('[JosekiExplore] 处理着法:', coord, '路径:', currentNodePath);
             
             if (!currentNode) return;
 
@@ -279,7 +272,6 @@
             }
 
             if (!currentNode.children || !currentNode.children[coord]) {
-                console.log('[JosekiExplore] 无效着法:', coord);
                 return;
             }
 
@@ -693,7 +685,6 @@
 
         // ========== 初始化 ==========
         function init() {
-            console.log('[JosekiExplore] 初始化开始');
             initBoard();
             loadFavorites();
             loadIndex();
@@ -701,11 +692,9 @@
 
         // 加载 pako（gzip解压）
         if (!window.pako) {
-            console.log('[JosekiExplore] 加载 pako 库');
             const script = document.createElement('script');
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js';
             script.onload = () => {
-                console.log('[JosekiExplore] pako 加载完成');
                 init();
             };
             script.onerror = () => {
