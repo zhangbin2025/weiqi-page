@@ -217,25 +217,55 @@
                     const decompressed = pako.ungzip(compressed, { to: 'string' });
                     quizData[diff] = JSON.parse(decompressed).leaves || [];
                 }
+                // 恢复上次选择的难度
+                const savedDiff = localStorage.getItem('joseki_quiz_difficulty');
+                if (savedDiff && quizData[savedDiff] && quizData[savedDiff].length > 0) {
+                    currentDifficulty = savedDiff;
+                    document.getElementById('difficultySelect').value = savedDiff;
+                }
                 loadNextQuiz();
             } catch (e) {
                 console.error('[JosekiQuiz] 加载失败:', e);
             }
         }
 
-        // 加载下一题
+        // 加载下一题（智能选题：优先高频定式，避免重复）
         function loadNextQuiz() {
             mode = 'explore';
             updateModeBadge();
-            document.getElementById('passBtn').style.display = 'none';  // 探索模式隐藏脱先按钮
+            document.getElementById('passBtn').style.display = 'none';
 
             const list = quizData[currentDifficulty];
             if (!list || list.length === 0) {
                 return;
             }
 
-            const idx = Math.floor(Math.random() * list.length);
-            currentQuiz = list[idx];
+            // 获取已挑战过的定式路径集合
+            const challengedPaths = new Set(historyList.map(h => h.path));
+            // 筛选未挑战过的定式
+            const unchallenged = list.filter(q => !challengedPaths.has(q.path));
+            // 如果全部都挑战过，则从全部中选
+            const candidatePool = unchallenged.length > 0 ? unchallenged : list;
+
+            // 按出现次数加权选择（freq越高，选中概率越大）
+            const weightedPool = candidatePool.filter(q => q.freq && q.freq > 0);
+            currentQuiz = null;
+            
+            if (weightedPool.length > 0) {
+                const totalWeight = weightedPool.reduce((sum, q) => sum + q.freq, 0);
+                let random = Math.random() * totalWeight;
+                for (const q of weightedPool) {
+                    random -= q.freq;
+                    if (random <= 0) {
+                        currentQuiz = q;
+                        break;
+                    }
+                }
+                if (!currentQuiz) currentQuiz = weightedPool[0];
+            } else {
+                const idx = Math.floor(Math.random() * candidatePool.length);
+                currentQuiz = candidatePool[idx];
+            }
 
             // 解析目标着法
             const pathParts = currentQuiz.path.split('-');
@@ -706,6 +736,7 @@
         // ========== 事件绑定 ==========
         document.getElementById('difficultySelect').addEventListener('change', (e) => {
             currentDifficulty = e.target.value;
+            localStorage.setItem('joseki_quiz_difficulty', currentDifficulty);
             loadNextQuiz();
         });
 
