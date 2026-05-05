@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>定式探索 - 围棋定式</title>
     <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
-    <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505b">
+    <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505c">
     <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260505"></script>
     <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260505"></script>
     <style>
@@ -79,14 +79,13 @@
 
             <!-- 收藏标签 -->
             <div id="favoritesTab" class="joseki-tab-content" style="display:none;">
-                <div class="joseki-controls" style="justify-content:flex-end; margin-bottom:12px;">
-                    <button class="joseki-btn secondary" id="importFavBtn" title="导入">📥</button>
-                    <button class="joseki-btn secondary" id="exportFavBtn" title="导出">📤</button>
-                    <button class="joseki-btn secondary danger" id="clearFavBtn" title="清空">🗑</button>
-                </div>
-
-                <div id="favoritesCount" style="text-align:center; color:#666; margin-bottom:12px;">
-                    已收藏: <strong>0</strong> 条定式
+                <div class="joseki-controls fav-toolbar">
+                    <span id="favoritesCount" class="fav-count">已收藏 0 条</span>
+                    <div class="fav-actions">
+                        <button class="joseki-btn secondary" id="importFavBtn" title="导入">📥</button>
+                        <button class="joseki-btn secondary" id="exportFavBtn" title="导出">📤</button>
+                        <button class="joseki-btn secondary" id="clearFavBtn" title="清空">🗑</button>
+                    </div>
                 </div>
 
                 <div id="favoritesGrid" class="joseki-grid"></div>
@@ -353,8 +352,8 @@
 
         function updateControls() {
             document.getElementById('undoBtn').disabled = currentNodePath.length <= 0;
-            // 只有有指标数据（freq）时才能收藏
-            document.getElementById('favBtn').disabled = !currentNode.freq && !currentNode.leaf;
+            // 只要有棋子就可以收藏
+            document.getElementById('favBtn').disabled = currentMoves.length === 0;
         }
 
         async function undo() {
@@ -433,27 +432,17 @@
         }
 
         function addFavorite() {
-            // 检查是否有指标数据
-            if (!currentNode.freq && !currentNode.leaf) return;
-            
             const path = currentMoves.map(m => {
                 if (m.isPass) return 'tt';
                 return String.fromCharCode(97 + m.x, 97 + m.y);
             }).join('-');
 
-            if (favorites.some(f => f.path === path)) {
+            if (favorites.some(f => f === path)) {
                 alert('已经收藏过这个定式了');
                 return;
             }
 
-            favorites.push({
-                path: path,
-                moves: currentMoves.length,
-                freq: currentNode.total_freq || currentNode.freq || 0,
-                prob: currentNode.prob || 0,
-                date: new Date().toISOString().split('T')[0]
-            });
-
+            favorites.push(path);
             saveFavorites();
             alert('收藏成功！');
         }
@@ -463,7 +452,7 @@
 
         function renderFavorites() {
             const count = favorites.length;
-            document.getElementById('favoritesCount').innerHTML = `已收藏: <strong>${count}</strong> 条定式`;
+            document.getElementById('favoritesCount').textContent = `已收藏 ${count} 条`;
             
             if (count === 0) {
                 document.getElementById('favoritesGrid').innerHTML = '';
@@ -483,26 +472,51 @@
             const grid = document.getElementById('favoritesGrid');
             grid.innerHTML = '';
 
-            items.forEach(item => {
+            items.forEach(path => {
                 const div = document.createElement('div');
                 div.className = 'joseki-item';
+                div.dataset.path = path;
+                
+                const moves = JosekiUtils.parseMoves(path.split('-')).filter(m => m.x !== undefined && m.y !== undefined);
+                
                 div.innerHTML = `
-                    <canvas width="100" height="100" style="cursor: pointer;"></canvas>
-                    <div class="item-info">
-                        <div class="item-moves">${item.moves}手</div>
-                        <div>${JosekiUtils.formatFreq(item.freq)}次</div>
-                        <div class="item-actions">
-                            <button class="joseki-btn secondary" onclick="deleteFavorite('${item.path}'); event.stopPropagation();" title="删除">🗑</button>
-                        </div>
+                    <div class="fav-thumb-wrapper">
+                        <canvas width="100" height="100"></canvas>
+                        <button class="fav-delete-btn" title="删除">✕</button>
                     </div>
+                    <div class="item-moves">${moves.length}手</div>
                 `;
 
                 const canvas = div.querySelector('canvas');
-                const moves = JosekiUtils.parseMoves(item.path.split('-')).filter(m => m.x !== undefined && m.y !== undefined);
                 BoardThumbnail.render(canvas, moves);
                 
                 // 点击缩略图加载探索
-                div.addEventListener('click', () => loadFavoriteToExplore(item));
+                div.addEventListener('click', () => loadFavoriteToExplore(path));
+                
+                // 删除按钮事件
+                const deleteBtn = div.querySelector('.fav-delete-btn');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm('删除此收藏？')) {
+                        deleteFavorite(path);
+                    }
+                });
+                
+                // 移动端长按删除
+                let longPressTimer = null;
+                div.addEventListener('touchstart', (e) => {
+                    longPressTimer = setTimeout(() => {
+                        if (confirm('删除此收藏？')) {
+                            deleteFavorite(path);
+                        }
+                    }, 500);
+                });
+                div.addEventListener('touchend', () => {
+                    clearTimeout(longPressTimer);
+                });
+                div.addEventListener('touchmove', () => {
+                    clearTimeout(longPressTimer);
+                });
 
                 grid.appendChild(div);
             });
@@ -518,7 +532,7 @@
         }
 
         function deleteFavorite(path) {
-            favorites = favorites.filter(f => f.path !== path);
+            favorites = favorites.filter(f => f !== path);
             saveFavorites();
             renderFavorites();
         }
@@ -532,6 +546,7 @@
             a.download = `joseki-favorites-${new Date().toISOString().split('T')[0]}.json`;
             a.click();
             URL.revokeObjectURL(url);
+            alert(`已导出 ${favorites.length} 条收藏`);
         }
 
         function clearFavorites() {
@@ -548,11 +563,14 @@
             try {
                 const imported = JSON.parse(data);
                 if (Array.isArray(imported)) {
-                    favorites = [...favorites, ...imported];
+                    // 去重
+                    const newItems = imported.filter(item => !favorites.includes(item));
+                    favorites = [...favorites, ...newItems];
                     saveFavorites();
                     renderFavorites();
                     document.getElementById('importModal').classList.remove('show');
                     document.getElementById('importData').value = '';
+                    alert(`成功导入 ${newItems.length} 条收藏`);
                 }
             } catch (e) {
                 alert('导入失败：数据格式错误');
@@ -573,7 +591,7 @@
         }
 
         // 从收藏加载到探索
-        async function loadFavoriteToExplore(item) {
+        async function loadFavoriteToExplore(path) {
             // 切换到探索标签
             switchTab('explore');
             
@@ -583,7 +601,7 @@
             currentNode = trieRoot;
             
             // 模拟点击路径上的每一步
-            const pathCoords = item.path.split('-');
+            const pathCoords = path.split('-');
             for (const coord of pathCoords) {
                 // 检查是否需要加载子树
                 if (currentNode.subtree && !currentNode.children) {
