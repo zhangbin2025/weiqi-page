@@ -34,6 +34,14 @@
         </header>
 
         <div class="joseki-card">
+            <!-- 标签页 -->
+            <div class="joseki-tabs">
+                <button class="joseki-tab active" data-tab="challenge">挑战</button>
+                <button class="joseki-tab" data-tab="history">历史</button>
+            </div>
+
+            <!-- 挑战标签 -->
+            <div id="challengeTab" class="joseki-tab-content active">
             <!-- 难度选择 -->
             <div class="joseki-difficulty">
                 <select id="difficultySelect">
@@ -80,6 +88,33 @@
                 <button class="joseki-btn secondary" id="passBtn" style="display:none" title="脱先">⊘</button>
                 <button class="joseki-btn" id="challengeBtn" disabled title="开始挑战">⚔</button>
                 <button class="joseki-btn secondary" id="nextBtn" title="下一题">⏭</button>
+            </div>
+            </div>
+
+            <!-- 历史标签 -->
+            <div id="historyTab" class="joseki-tab-content" style="display:none;">
+                <div class="joseki-controls" style="justify-content:flex-end; margin-bottom:12px;">
+                    <button class="joseki-btn secondary" id="exportHistoryBtn" title="导出">📤</button>
+                    <button class="joseki-btn secondary danger" id="clearHistoryBtn" title="清空">🗑</button>
+                </div>
+
+                <div id="historyCount" style="text-align:center; color:#666; margin-bottom:12px;">
+                    已完成: <strong>0</strong> 个定式
+                </div>
+
+                <div id="historyGrid" class="joseki-grid"></div>
+
+                <div id="historyPagination" class="joseki-pagination" style="display:none;">
+                    <button class="joseki-btn secondary" id="historyPrevPage">◀</button>
+                    <span id="historyPageInfo">1/1</span>
+                    <button class="joseki-btn secondary" id="historyNextPage">▶</button>
+                </div>
+
+                <div id="historyEmpty" class="joseki-empty">
+                    <div class="icon">📭</div>
+                    <p>暂无记录</p>
+                    <p style="font-size:0.85em;">完成定式挑战后会自动记录</p>
+                </div>
             </div>
         </div>
     </div>
@@ -369,6 +404,160 @@
 
         function challengeSuccess() {
             document.getElementById('successModal').classList.add('show');
+            
+            // 记录历史
+            history.push({
+                path: currentQuiz.path,
+                moves: currentQuiz.moves,
+                freq: currentQuiz.freq,
+                difficulty: currentDifficulty,
+                color: userColor,
+                date: new Date().toISOString()
+            });
+            saveHistory();
+        }
+
+        // ========== 历史记录 ==========
+        let historyList = [];
+        let historyPage = 0;
+        const HISTORY_PER_PAGE = 12;
+
+        function loadHistory() {
+            try {
+                const saved = localStorage.getItem('joseki_quiz_history');
+                historyList = saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                historyList = [];
+            }
+            renderHistory();
+        }
+
+        function saveHistory() {
+            localStorage.setItem('joseki_quiz_history', JSON.stringify(historyList));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const count = historyList.length;
+            document.getElementById('historyCount').innerHTML = `已完成: <strong>${count}</strong> 个定式`;
+
+            if (count === 0) {
+                document.getElementById('historyGrid').innerHTML = '';
+                document.getElementById('historyEmpty').style.display = 'block';
+                document.getElementById('historyPagination').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('historyEmpty').style.display = 'none';
+
+            const totalPages = Math.ceil(count / HISTORY_PER_PAGE);
+            historyPage = Math.min(historyPage, totalPages - 1);
+
+            const start = historyPage * HISTORY_PER_PAGE;
+            const items = historyList.slice(start, start + HISTORY_PER_PAGE);
+
+            const grid = document.getElementById('historyGrid');
+            grid.innerHTML = '';
+
+            items.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'joseki-item';
+                div.innerHTML = `
+                    <canvas width="100" height="100"></canvas>
+                    <div class="item-info">
+                        <div class="item-moves">${item.moves}手</div>
+                        <div>${item.color === 'black' ? '执黑' : '执白'}</div>
+                    </div>
+                `;
+
+                const canvas = div.querySelector('canvas');
+                const moves = JosekiUtils.parseMoves(item.path.split('-'));
+                BoardThumbnail.render(canvas, moves);
+
+                // 点击回到探索学习
+                div.addEventListener('click', () => {
+                    // 切换到挑战标签
+                    document.querySelectorAll('.joseki-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelector('[data-tab="challenge"]').classList.add('active');
+                    document.getElementById('challengeTab').style.display = 'block';
+                    document.getElementById('historyTab').style.display = 'none';
+
+                    // 加载这个定式进行探索学习
+                    loadQuizByPath(item.path, item.moves, item.freq);
+                });
+
+                grid.appendChild(div);
+            });
+
+            if (totalPages > 1) {
+                document.getElementById('historyPagination').style.display = 'flex';
+                document.getElementById('historyPageInfo').textContent = `${historyPage + 1}/${totalPages}`;
+                document.getElementById('historyPrevPage').disabled = historyPage === 0;
+                document.getElementById('historyNextPage').disabled = historyPage >= totalPages - 1;
+            } else {
+                document.getElementById('historyPagination').style.display = 'none';
+            }
+        }
+
+        function loadQuizByPath(path, moves, freq) {
+            // 解析目标着法
+            const pathParts = path.split('-');
+            targetMoves = [];
+            for (let i = 0; i < pathParts.length; i++) {
+                const coordData = JosekiUtils.sgfToCoord(pathParts[i]);
+                if (coordData) {
+                    targetMoves.push({
+                        x: coordData.x,
+                        y: coordData.y,
+                        isPass: coordData.isPass,
+                        color: i % 2 === 0 ? 'black' : 'white',
+                        num: i + 1
+                    });
+                }
+            }
+
+            currentIndex = 0;
+            userMoves = [];
+            mode = 'explore';
+            updateModeBadge();
+            document.getElementById('passBtn').style.display = 'none';
+
+            currentQuiz = { path, moves, freq };
+            updateStats();
+            updateProgress();
+            showExploreState();
+            document.getElementById('quizStatus').textContent = '点击选点，探索定式路径';
+        }
+
+        function exportHistory() {
+            const data = JSON.stringify(historyList, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `joseki-quiz-history-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearHistory() {
+            if (confirm('确定清空所有历史记录？')) {
+                historyList = [];
+                saveHistory();
+            }
+        }
+
+        // ========== 标签切换 ==========
+        function switchTab(tabName) {
+            document.querySelectorAll('.joseki-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            document.getElementById('challengeTab').style.display = tabName === 'challenge' ? 'block' : 'none';
+            document.getElementById('historyTab').style.display = tabName === 'history' ? 'block' : 'none';
+
+            if (tabName === 'history') {
+                renderHistory();
+            }
         }
 
         // ========== 事件处理 ==========
@@ -506,9 +695,21 @@
             loadNextQuiz();
         });
 
+        // 标签切换
+        document.querySelectorAll('.joseki-tab').forEach(tab => {
+            tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+        });
+
+        // 历史记录
+        document.getElementById('historyPrevPage').addEventListener('click', () => { historyPage--; renderHistory(); });
+        document.getElementById('historyNextPage').addEventListener('click', () => { historyPage++; renderHistory(); });
+        document.getElementById('exportHistoryBtn').addEventListener('click', exportHistory);
+        document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+
         // ========== 初始化 ==========
         function init() {
             initBoard();
+            loadHistory();
             loadQuizData();
         }
 
