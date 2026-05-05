@@ -58,7 +58,7 @@
 
                 <!-- 功能按钮 -->
                 <div class="joseki-controls" id="quizControls">
-                    <button class="joseki-btn" id="playBtn" title="播放">▶</button>
+                    <button class="joseki-btn" id="playBtn" title="播放">播</button>
                     <button class="joseki-btn secondary" id="quizPrevBtn" disabled title="上一步">◀</button>
                     <button class="joseki-btn secondary" id="quizNextBtn" disabled title="下一步">▶</button>
                     <button class="joseki-btn" id="startChallengeBtn" title="开始挑战">⚔</button>
@@ -264,7 +264,7 @@
             }
             
             isPlaying = true;
-            document.getElementById('playBtn').textContent = '⏸';
+            document.getElementById('playBtn').textContent = '停';
             
             playInterval = setInterval(() => {
                 if (currentIndex < currentMoves.length) {
@@ -279,7 +279,7 @@
 
         function stopPlay() {
             isPlaying = false;
-            document.getElementById('playBtn').textContent = '▶';
+            document.getElementById('playBtn').textContent = '播';
             if (playInterval) {
                 clearInterval(playInterval);
                 playInterval = null;
