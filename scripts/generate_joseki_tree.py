@@ -182,6 +182,39 @@ def collect_difficulty(node):
             collect_difficulty(child)
 
 
+def collect_leaves(node, path='', leaves=None):
+    """收集所有定式叶子节点"""
+    if leaves is None:
+        leaves = {'easy': [], 'medium': [], 'hard': []}
+    
+    if node.get('leaf'):
+        moves = node.get('moves', 0)
+        if moves <= 10:
+            difficulty = 'easy'
+        elif moves <= 20:
+            difficulty = 'medium'
+        else:
+            difficulty = 'hard'
+        
+        leaves[difficulty].append({
+            'path': path,
+            'moves': moves,
+            'freq': node.get('total_freq', 0),
+            'prob': node.get('prob', 0)
+        })
+    
+    children = node.get('children')
+    if children:
+        for coord, child in children.items():
+            child_path = f'{path}-{coord}' if path else coord
+            collect_leaves(child, child_path, leaves)
+    
+    return leaves
+
+
+
+
+
 def build(output_dir, threshold):
     """构建索引和子树"""
     global stats
@@ -203,6 +236,12 @@ def build(output_dir, threshold):
     total = count_joseki_nodes(trie)
     print(f"总定式节点: {total}")
 
+    # 先收集做题数据（在裁剪前，确保遍历所有节点）
+    print("\n收集做题数据...")
+    quiz_leaves = collect_leaves(trie)
+    for difficulty, items in quiz_leaves.items():
+        print(f"  {difficulty}: {len(items)}题")
+
     print("\n开始裁剪...")
     prune_trie(trie, '', threshold, output_dir)
 
@@ -215,6 +254,22 @@ def build(output_dir, threshold):
 
     index_size = index_file.stat().st_size
     print(f"  索引大小: {index_size//1024}KB")
+
+    # 导出做题数据
+    print("\n导出做题数据...")
+    for difficulty, items in quiz_leaves.items():
+        if not items:
+            continue
+        
+        items.sort(key=lambda x: x['freq'], reverse=True)
+        filename = f'quiz-{difficulty}.json.gz'
+        filepath = output_dir / filename
+        
+        with gzip.open(filepath, 'wt', encoding='utf-8') as f:
+            json.dump({'leaves': items, 'count': len(items)}, f, ensure_ascii=False, separators=(',', ':'))
+        
+        file_size = filepath.stat().st_size
+        print(f"  导出: {filename} ({file_size//1024}KB, {len(items)}题)")
 
     # 导出元信息
     meta = {
