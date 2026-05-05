@@ -183,37 +183,29 @@
             currentQuiz = list[randomIndex];
             console.log('[JosekiQuiz] 随机题目:', currentQuiz);
 
-            // 加载对应的分桶获取完整路径
-            const bucketKey = currentQuiz.bucket;
-            console.log('[JosekiQuiz] 加载分桶:', bucketKey);
+            // 直接从 path 解析着法
+            const pathParts = currentQuiz.path.split('-');
+            currentMoves = [];
             
-            try {
-                const url = `${DATA_PATH}/buckets/${bucketKey}.json.gz`;
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+            for (let i = 0; i < pathParts.length; i++) {
+                const coord = pathParts[i];
+                const coordData = JosekiUtils.sgfToCoord(coord);
+                if (coordData) {
+                    currentMoves.push({
+                        x: coordData.x,
+                        y: coordData.y,
+                        isPass: coordData.isPass,
+                        color: i % 2 === 0 ? 'black' : 'white',
+                        num: i + 1
+                    });
                 }
-                
-                const compressed = await response.arrayBuffer();
-                const decompressed = pako.ungzip(compressed, { to: 'string' });
-                const bucket = JSON.parse(decompressed);
-                
-                console.log('[JosekiQuiz] 分桶加载完成:', bucket.prefix, '节点数:', Object.keys(bucket.nodes).length);
-                
-                // 从path重建完整着法
-                const pathParts = currentQuiz.path.split('-');
-                currentMoves = JosekiUtils.parseMoves(pathParts);
-                currentIndex = 0;
-
-                board.setMoves(currentMoves, 0);
-                updateProgress();
-                document.getElementById('quizStatus').textContent = `共 ${currentQuiz.moves} 手，准备好了吗？`;
-                updateControls();
-            } catch (e) {
-                console.error('[JosekiQuiz] 题目加载失败:', e);
-                document.getElementById('quizStatus').textContent = '题目加载失败';
             }
+            
+            currentIndex = 0;
+            board.setMoves(currentMoves, 0);
+            updateProgress();
+            document.getElementById('quizStatus').textContent = `共 ${currentQuiz.moves} 手，准备好了吗？`;
+            updateControls();
         }
 
         // ========== 棋盘初始化 ==========
