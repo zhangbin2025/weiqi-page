@@ -140,8 +140,25 @@
         </div>
 
         <div class="stats-bar">
-            收录 <strong>99,710</strong> 条定式
+            收录 <strong id="josekiCount">--</strong> 条定式
         </div>
     </div>
+
+    <script>
+        // 加载定式数量
+        async function loadStats() {
+            try {
+                const metaUrl = '{{ base_path }}/assets/data/joseki/trie-meta.json';
+                const response = await fetch(metaUrl);
+                if (response.ok) {
+                    const meta = await response.json();
+                    document.getElementById('josekiCount').textContent = meta.total.toLocaleString();
+                }
+            } catch (e) {
+                console.error('加载定式数量失败:', e);
+            }
+        }
+        loadStats();
+    </script>
 </body>
 </html>
