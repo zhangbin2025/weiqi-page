@@ -15,6 +15,20 @@
             min-height: 100vh;
             color: #333;
         }
+        /* 脱先提示覆盖层 */
+        .pass-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 152, 0, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
@@ -33,8 +47,9 @@
             <!-- 探索标签 -->
             <div id="exploreTab" class="joseki-tab-content active">
                 <!-- 棋盘 -->
-                <div class="joseki-board-wrapper">
+                <div class="joseki-board-wrapper" style="position: relative;">
                     <canvas id="exploreBoard" class="joseki-board"></canvas>
+                    <div id="passOverlay" class="pass-overlay" style="display: none;">脱先</div>
                 </div>
 
                 <!-- 指标数据 -->
@@ -275,6 +290,14 @@
             // 更新棋盘
             const coordData = JosekiUtils.sgfToCoord(coord);
             const nextColor = currentNodePath.length % 2 === 1 ? 'black' : 'white';
+            
+            // 如果是脱先，显示 overlay 提示
+            if (coordData.isPass) {
+                const overlay = document.getElementById('passOverlay');
+                overlay.textContent = `${nextColor === 'black' ? '黑' : '白'}方脱先`;
+                overlay.style.display = 'block';
+                setTimeout(() => overlay.style.display = 'none', 800);
+            }
             
             currentMoves.push({
                 x: coordData.x,
