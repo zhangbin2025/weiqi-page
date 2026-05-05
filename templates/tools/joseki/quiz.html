@@ -25,6 +25,31 @@
         }
         .mode-badge.explore { background: #4CAF50; color: white; }
         .mode-badge.challenge { background: #f44336; color: white; }
+        
+        /* 挑战按钮就绪状态 */
+        .challenge-ready:not(:disabled) {
+            background: linear-gradient(135deg, #f44336, #ff9800) !important;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* 脱先提示覆盖层 */
+        .pass-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 152, 0, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
@@ -57,8 +82,9 @@
             </div>
 
             <!-- 棋盘 -->
-            <div class="joseki-board-wrapper">
+            <div class="joseki-board-wrapper" style="position: relative;">
                 <canvas id="quizBoard" class="joseki-board"></canvas>
+                <div id="passOverlay" class="pass-overlay" style="display: none;">脱先</div>
             </div>
 
             <!-- 指标数据 -->
@@ -77,16 +103,11 @@
                 </div>
             </div>
 
-            <!-- 状态提示 -->
-            <div class="joseki-message info" id="quizStatus">
-                点击选点，探索定式路径
-            </div>
-
             <!-- 功能按钮 -->
             <div class="joseki-controls" id="quizControls">
                 <button class="joseki-btn" id="undoBtn" disabled title="撤销">↩</button>
                 <button class="joseki-btn secondary" id="passBtn" style="display:none" title="脱先">⊘</button>
-                <button class="joseki-btn" id="challengeBtn" disabled title="开始挑战">⚔</button>
+                <button class="joseki-btn challenge-ready" id="challengeBtn" disabled title="开始挑战">⚔</button>
                 <button class="joseki-btn secondary" id="nextBtn" title="下一题">⏭</button>
             </div>
             </div>
@@ -188,7 +209,6 @@
                 loadNextQuiz();
             } catch (e) {
                 console.error('[JosekiQuiz] 加载失败:', e);
-                document.getElementById('quizStatus').textContent = '数据加载失败';
             }
         }
 
@@ -200,7 +220,6 @@
 
             const list = quizData[currentDifficulty];
             if (!list || list.length === 0) {
-                document.getElementById('quizStatus').textContent = '没有题目';
                 return;
             }
 
@@ -230,7 +249,6 @@
             showExploreState();
             updateStats();
             updateProgress();
-            document.getElementById('quizStatus').textContent = '点击选点，探索定式路径';
         }
 
         // ========== 探索模式 ==========
@@ -240,7 +258,6 @@
             if (currentIndex >= targetMoves.length) {
                 // 探索完成
                 board.setBranches([]);
-                document.getElementById('quizStatus').textContent = '探索完成！可以开始挑战';
                 document.getElementById('challengeBtn').disabled = false;
                 return;
             }
@@ -248,14 +265,19 @@
             // 检查当前是否是脱先
             const target = targetMoves[currentIndex];
             if (target.isPass) {
-                // AI自动下脱先，显示提示（不存入 userMoves）
+                // AI自动下脱先，显示 overlay 提示
                 currentIndex++;
                 updateProgress();
                 board.setMoves(userMoves, userMoves.length);
-                document.getElementById('quizStatus').textContent = `⏭ ${target.color === 'black' ? '黑' : '白'}方脱先！`;
                 
-                // 800ms后继续
+                // 显示脱先提示
+                const overlay = document.getElementById('passOverlay');
+                overlay.textContent = `${target.color === 'black' ? '黑' : '白'}方脱先`;
+                overlay.style.display = 'block';
+                
+                // 800ms后隐藏，继续
                 setTimeout(() => {
+                    overlay.style.display = 'none';
                     showExploreState();
                 }, 800);
                 return;
@@ -270,7 +292,6 @@
                 sgf: sgf
             }]);
 
-            document.getElementById('quizStatus').textContent = `点击选点（${target.color === 'black' ? '黑' : '白'}方）`;
             document.getElementById('undoBtn').disabled = currentIndex <= 0;
             document.getElementById('challengeBtn').disabled = currentIndex < targetMoves.length;
         }
@@ -322,15 +343,15 @@
 
             if (isUserTurn) {
                 // 用户回合
-                document.getElementById('quizStatus').textContent = `轮到你下（${userColor === 'black' ? '黑' : '白'}）`;
             } else {
-                // AI回合，自动下正确的一手
-                document.getElementById('quizStatus').textContent = `${target.color === 'black' ? '黑' : '白'}方落子...`;
 
                 setTimeout(() => {
-                    // 如果是脱先，显示提示
+                    // 如果是脱先，显示 overlay 提示
                     if (target.isPass) {
-                        document.getElementById('quizStatus').textContent = `⏭ ${target.color === 'black' ? '黑' : '白'}方脱先！`;
+                        const overlay = document.getElementById('passOverlay');
+                        overlay.textContent = `${target.color === 'black' ? '黑' : '白'}方脱先`;
+                        overlay.style.display = 'block';
+                        setTimeout(() => overlay.style.display = 'none', 600);
                     } else {
                         // 实际落子，存入 userMoves
                         userMoves.push(target);
@@ -379,9 +400,13 @@
             if (!target || target.color !== userColor) return;
 
             if (target.isPass) {
-                // 正确！脱先不存入 userMoves
-                document.getElementById('quizStatus').textContent = '⏭ 脱先！';
-                currentIndex++;  // 只增加 currentIndex，不存入 userMoves
+                // 正确！显示脱先 overlay
+                const overlay = document.getElementById('passOverlay');
+                overlay.textContent = '脱先';
+                overlay.style.display = 'block';
+                setTimeout(() => overlay.style.display = 'none', 600);
+                
+                currentIndex++;
                 updateProgress();
                 
                 setTimeout(() => showChallengeState(), 600);
@@ -527,7 +552,6 @@
             updateStats();
             updateProgress();
             showExploreState();
-            document.getElementById('quizStatus').textContent = '点击选点，探索定式路径';
         }
 
         function exportHistory() {
