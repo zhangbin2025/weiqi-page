@@ -325,7 +325,7 @@
             }
 
             if (coord.x === target.x && coord.y === target.y) {
-                // 正确！
+                // 正确！存入实际落子
                 userMoves.push(target);
                 currentIndex++;
                 updateProgress();
@@ -341,11 +341,9 @@
             if (!target || target.color !== userColor) return;
 
             if (target.isPass) {
-                // 正确！
+                // 正确！脱先不存入 userMoves
                 document.getElementById('quizStatus').textContent = '⏭ 脱先！';
-                
-                userMoves.push(target);
-                currentIndex++;
+                currentIndex++;  // 只增加 currentIndex，不存入 userMoves
                 updateProgress();
                 
                 setTimeout(() => showChallengeState(), 600);
