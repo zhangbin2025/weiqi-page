@@ -352,8 +352,8 @@
 
         function updateControls() {
             document.getElementById('undoBtn').disabled = currentNodePath.length <= 0;
-            // 只有是定式（叶子节点）时才能收藏
-            document.getElementById('favBtn').disabled = !currentNode.leaf;
+            // 只有是定式（freq非0）时才能收藏
+            document.getElementById('favBtn').disabled = !currentNode.freq;
         }
 
         async function undo() {
@@ -432,8 +432,8 @@
         }
 
         function addFavorite() {
-            // 检查是否是定式（叶子节点）
-            if (!currentNode.leaf) return;
+            // 检查是否是定式（freq非0）
+            if (!currentNode.freq) return;
             
             const path = currentMoves.map(m => {
                 if (m.isPass) return 'tt';
