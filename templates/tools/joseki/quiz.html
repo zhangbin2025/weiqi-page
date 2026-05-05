@@ -115,6 +115,7 @@
             <!-- 历史标签 -->
             <div id="historyTab" class="joseki-tab-content" style="display:none;">
                 <div class="joseki-controls" style="justify-content:flex-end; margin-bottom:12px;">
+                    <button class="joseki-btn secondary" id="importHistoryBtn" title="导入">📥</button>
                     <button class="joseki-btn secondary" id="exportHistoryBtn" title="导出">📤</button>
                     <button class="joseki-btn secondary danger" id="clearHistoryBtn" title="清空">🗑</button>
                 </div>
@@ -172,6 +173,19 @@
             <p style="margin-bottom:16px; color:#666;">恭喜你完成了这个定式！</p>
             <div class="joseki-modal-buttons">
                 <button class="joseki-btn" id="nextQuiz">下一题</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入历史弹框 -->
+    <div id="importHistoryModal" class="joseki-modal">
+        <div class="joseki-modal-content">
+            <h3>导入历史</h3>
+            <p style="margin-bottom:16px; color:#666;">粘贴导出的JSON数据</p>
+            <textarea id="importHistoryData" style="width:100%; height:120px; border:2px solid #e0e0e0; border-radius:8px; padding:8px; font-size:12px;"></textarea>
+            <div class="joseki-modal-buttons">
+                <button class="joseki-btn secondary" id="importHistoryCancel" title="取消">✕</button>
+                <button class="joseki-btn" id="importHistoryConfirm" title="导入">✓</button>
             </div>
         </div>
     </div>
@@ -572,6 +586,25 @@
             }
         }
 
+        function importHistory() {
+            const data = document.getElementById('importHistoryData').value;
+            try {
+                const imported = JSON.parse(data);
+                if (Array.isArray(imported)) {
+                    historyList = [...historyList, ...imported];
+                    saveHistory();
+                    renderHistory();
+                    document.getElementById('importHistoryModal').classList.remove('show');
+                    document.getElementById('importHistoryData').value = '';
+                    alert('导入成功！');
+                } else {
+                    alert('导入失败：数据格式错误');
+                }
+            } catch (e) {
+                alert('导入失败：JSON 解析错误');
+            }
+        }
+
         // ========== 标签切换 ==========
         function switchTab(tabName) {
             document.querySelectorAll('.joseki-tab').forEach(t => t.classList.remove('active'));
@@ -728,6 +761,13 @@
         // 历史记录
         document.getElementById('historyPrevPage').addEventListener('click', () => { historyPage--; renderHistory(); });
         document.getElementById('historyNextPage').addEventListener('click', () => { historyPage++; renderHistory(); });
+        document.getElementById('importHistoryBtn').addEventListener('click', () => {
+            document.getElementById('importHistoryModal').classList.add('show');
+        });
+        document.getElementById('importHistoryCancel').addEventListener('click', () => {
+            document.getElementById('importHistoryModal').classList.remove('show');
+        });
+        document.getElementById('importHistoryConfirm').addEventListener('click', importHistory);
         document.getElementById('exportHistoryBtn').addEventListener('click', exportHistory);
         document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
 
