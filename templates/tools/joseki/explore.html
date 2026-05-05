@@ -589,6 +589,7 @@
             // 模拟点击路径上的每一步
             const pathCoords = item.path.split('-');
             for (const coord of pathCoords) {
+                // 检查是否需要加载子树
                 if (currentNode.subtree && !currentNode.children) {
                     await loadSubtree(currentNode);
                 }
@@ -609,6 +610,11 @@
                         });
                     }
                 }
+            }
+            
+            // 到达目标节点后，检查是否需要加载子树（中间节点可能是裁剪点）
+            if (currentNode.subtree && !currentNode.children) {
+                await loadSubtree(currentNode);
             }
             
             // 更新棋盘
