@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>定式挑战 - 围棋定式</title>
     <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
-    <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505b">
+    <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505c">
     <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260504"></script>
     <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260504"></script>
     <style>
@@ -114,14 +114,13 @@
 
             <!-- 历史标签 -->
             <div id="historyTab" class="joseki-tab-content" style="display:none;">
-                <div class="joseki-controls" style="justify-content:flex-end; margin-bottom:12px;">
-                    <button class="joseki-btn secondary" id="importHistoryBtn" title="导入">📥</button>
-                    <button class="joseki-btn secondary" id="exportHistoryBtn" title="导出">📤</button>
-                    <button class="joseki-btn secondary danger" id="clearHistoryBtn" title="清空">🗑</button>
-                </div>
-
-                <div id="historyCount" style="text-align:center; color:#666; margin-bottom:12px;">
-                    已完成: <strong>0</strong> 个定式
+                <div class="joseki-controls fav-toolbar">
+                    <span id="historyCount" class="fav-count">已完成 0 个</span>
+                    <div class="fav-actions">
+                        <button class="joseki-btn secondary" id="importHistoryBtn" title="导入">📥</button>
+                        <button class="joseki-btn secondary" id="exportHistoryBtn" title="导出">📤</button>
+                        <button class="joseki-btn secondary" id="clearHistoryBtn" title="清空">🧹</button>
+                    </div>
                 </div>
 
                 <div id="historyGrid" class="joseki-grid"></div>
@@ -476,7 +475,7 @@
 
         function renderHistory() {
             const count = historyList.length;
-            document.getElementById('historyCount').innerHTML = `已完成: <strong>${count}</strong> 个定式`;
+            document.getElementById('historyCount').textContent = `已完成 ${count} 个`;
 
             if (count === 0) {
                 document.getElementById('historyGrid').innerHTML = '';
