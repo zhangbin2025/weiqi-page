@@ -152,7 +152,7 @@
 .joseki-controls {
     display: flex;
     flex-wrap: nowrap;
-    gap: 12px;
+    gap: 16px;
     justify-content: center;
     align-items: center;
 }
