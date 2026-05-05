@@ -497,7 +497,7 @@
                 `;
 
                 const canvas = div.querySelector('canvas');
-                const moves = JosekiUtils.parseMoves(item.path.split('-'));
+                const moves = JosekiUtils.parseMoves(item.path.split('-')).filter(m => m.x !== undefined && m.y !== undefined);
                 BoardThumbnail.render(canvas, moves);
 
                 // 点击回到探索学习
