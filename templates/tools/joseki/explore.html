@@ -80,8 +80,8 @@
             <!-- 收藏标签 -->
             <div id="favoritesTab" class="joseki-tab-content" style="display:none;">
                 <div class="joseki-controls" style="justify-content:flex-end; margin-bottom:12px;">
-                    <button class="joseki-btn secondary" id="importFavBtn">导入</button>
-                    <button class="joseki-btn secondary" id="exportFavBtn">导出</button>
+                    <button class="joseki-btn secondary" id="importFavBtn" title="导入">📥</button>
+                    <button class="joseki-btn secondary" id="exportFavBtn" title="导出">📤</button>
                 </div>
 
                 <div id="favoritesCount" style="text-align:center; color:#666; margin-bottom:12px;">
@@ -112,8 +112,8 @@
             <p style="margin-bottom:16px; color:#666;">粘贴导出的JSON数据</p>
             <textarea id="importData" style="width:100%; height:120px; border:2px solid #e0e0e0; border-radius:8px; padding:8px; font-size:12px;"></textarea>
             <div class="joseki-modal-buttons">
-                <button class="joseki-btn secondary" id="importCancel">取消</button>
-                <button class="joseki-btn" id="importConfirm">导入</button>
+                <button class="joseki-btn secondary" id="importCancel" title="取消">✕</button>
+                <button class="joseki-btn" id="importConfirm" title="导入">✓</button>
             </div>
         </div>
     </div>
@@ -488,20 +488,23 @@
                 const div = document.createElement('div');
                 div.className = 'joseki-item';
                 div.innerHTML = `
-                    <canvas width="100" height="100"></canvas>
+                    <canvas width="100" height="100" style="cursor: pointer;"></canvas>
                     <div class="item-info">
                         <div class="item-moves">${item.moves}手</div>
                         <div>${JosekiUtils.formatFreq(item.freq)}次</div>
                         <div class="item-actions">
-                            <button class="joseki-btn secondary" onclick="deleteFavorite('${item.path}')">删除</button>
+                            <button class="joseki-btn secondary" onclick="deleteFavorite('${item.path}'); event.stopPropagation();" title="删除">🗑</button>
                         </div>
                     </div>
                 `;
-                
+
                 const canvas = div.querySelector('canvas');
                 const moves = JosekiUtils.parseMoves(item.path.split('-'));
                 BoardThumbnail.render(canvas, moves);
                 
+                // 点击缩略图加载探索
+                div.addEventListener('click', () => loadFavoriteToExplore(item));
+
                 grid.appendChild(div);
             });
 
@@ -559,6 +562,78 @@
             if (tabName === 'favorites') {
                 renderFavorites();
             }
+        }
+
+        // 从收藏加载到探索
+        async function loadFavoriteToExplore(item) {
+            // 切换到探索标签
+            switchTab('explore');
+            
+            // 重置状态
+            currentNodePath = [];
+            currentMoves = [];
+            currentNode = trieRoot;
+            
+            // 模拟点击路径上的每一步
+            const pathCoords = item.path.split('-');
+            for (const coord of pathCoords) {
+                if (currentNode.subtree && !currentNode.children) {
+                    await loadSubtree(currentNode);
+                }
+                
+                if (currentNode.children && currentNode.children[coord]) {
+                    currentNode = currentNode.children[coord];
+                    currentNodePath.push(coord);
+                    
+                    const coordData = JosekiUtils.sgfToCoord(coord);
+                    const nextColor = currentNodePath.length % 2 === 1 ? 'black' : 'white';
+                    currentMoves.push({
+                        x: coordData.x,
+                        y: coordData.y,
+                        isPass: coordData.isPass,
+                        color: nextColor,
+                        num: currentNodePath.length
+                    });
+                }
+            }
+            
+            // 更新棋盘
+            board.setMoves(currentMoves, currentMoves.length);
+            
+            // 获取下一着选点
+            if (currentNode.children) {
+                const branches = [];
+                for (const [c, child] of Object.entries(currentNode.children)) {
+                    if (c === 'coord' || c === 'color' || c === 'freq') continue;
+                    const cd = JosekiUtils.sgfToCoord(c);
+                    if (cd) {
+                        branches.push({
+                            ...cd,
+                            color: child.color,
+                            sgf: c,
+                            freq: child.freq
+                        });
+                    }
+                }
+                board.setBranches(branches);
+                document.getElementById('passBtn').disabled = !currentNode.children['tt'];
+            } else {
+                board.setBranches([]);
+                document.getElementById('passBtn').disabled = true;
+            }
+            
+            // 更新统计
+            if (currentNode.leaf) {
+                updateStats({
+                    moves: currentNode.moves,
+                    freq: currentNode.total_freq || currentNode.freq,
+                    prob: currentNode.prob
+                });
+            } else {
+                updateStats({ moves: currentNodePath.length });
+            }
+            
+            updateControls();
         }
 
         // ========== 事件绑定 ==========
