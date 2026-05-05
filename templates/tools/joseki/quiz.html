@@ -293,9 +293,12 @@
                 document.getElementById('quizStatus').textContent = `${target.color === 'black' ? '黑' : '白'}方落子...`;
 
                 setTimeout(() => {
-                    // 如果是脱先，显示提示（不存入 userMoves）
+                    // 如果是脱先，显示提示
                     if (target.isPass) {
                         document.getElementById('quizStatus').textContent = `⏭ ${target.color === 'black' ? '黑' : '白'}方脱先！`;
+                    } else {
+                        // 实际落子，存入 userMoves
+                        userMoves.push(target);
                     }
                     
                     currentIndex++;
