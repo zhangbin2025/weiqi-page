@@ -15,128 +15,128 @@
             min-height: 100vh;
             color: #333;
         }
+        .mode-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        .mode-badge.explore { background: #4CAF50; color: white; }
+        .mode-badge.challenge { background: #f44336; color: white; }
     </style>
 </head>
 <body>
     <div class="joseki-container">
         <header class="joseki-header">
-            <h1>🏆 定式挑战</h1>
+            <h1>🏆 定式挑战 <span id="modeBadge" class="mode-badge explore">探索</span></h1>
         </header>
 
         <div class="joseki-card">
-            <!-- 标签页 -->
-            <div class="joseki-tabs">
-                <button class="joseki-tab active" data-tab="challenge">挑战</button>
-                <button class="joseki-tab" data-tab="history">历史</button>
+            <!-- 难度选择 -->
+            <div class="joseki-difficulty">
+                <select id="difficultySelect">
+                    <option value="easy">初级 (≤10手)</option>
+                    <option value="medium">中级 (11-20手)</option>
+                    <option value="hard">高级 (>20手)</option>
+                </select>
             </div>
 
-            <!-- 挑战标签 -->
-            <div id="challengeTab" class="joseki-tab-content active">
-                <!-- 难度选择 -->
-                <div class="joseki-difficulty">
-                    <select id="difficultySelect">
-                        <option value="easy">初级 (≤10手)</option>
-                        <option value="medium">中级 (11-20手)</option>
-                        <option value="hard">高级 (>20手)</option>
-                    </select>
-                </div>
+            <!-- 进度条 -->
+            <div class="joseki-progress">
+                <div class="joseki-progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
 
-                <!-- 进度条 -->
-                <div class="joseki-progress">
-                    <div class="joseki-progress-bar" id="progressBar" style="width: 0%"></div>
-                </div>
+            <!-- 棋盘 -->
+            <div class="joseki-board-wrapper">
+                <canvas id="quizBoard" class="joseki-board"></canvas>
+            </div>
 
-                <!-- 棋盘 -->
-                <div class="joseki-board-wrapper">
-                    <canvas id="quizBoard" class="joseki-board"></canvas>
+            <!-- 指标数据 -->
+            <div class="joseki-stats" id="quizStats">
+                <div class="stat">
+                    <span class="stat-value" id="statMoves">0</span>
+                    <span class="stat-label">手数</span>
                 </div>
-
-                <!-- 指标数据 -->
-                <div class="joseki-stats" id="quizStats">
-                    <div class="stat">
-                        <span class="stat-value" id="statMoves">0</span>
-                        <span class="stat-label">手数</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-value" id="statFreq">-</span>
-                        <span class="stat-label">出现次数</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-value" id="statProb">-</span>
-                        <span class="stat-label">出现概率</span>
-                    </div>
+                <div class="stat">
+                    <span class="stat-value" id="statFreq">-</span>
+                    <span class="stat-label">出现次数</span>
                 </div>
-
-                <!-- 状态提示 -->
-                <div class="joseki-message info" id="quizStatus">
-                    点击选点，完成定式路径
-                </div>
-
-                <!-- 功能按钮 -->
-                <div class="joseki-controls" id="quizControls">
-                    <button class="joseki-btn" id="undoBtn" disabled title="撤销">↩</button>
-                    <button class="joseki-btn secondary" id="passBtn" disabled title="脱先">⊘</button>
-                    <button class="joseki-btn secondary" id="skipBtn" title="跳过">⏭</button>
-                    <button class="joseki-btn secondary" id="resetBtn" title="重置">⟳</button>
+                <div class="stat">
+                    <span class="stat-value" id="statProb">-</span>
+                    <span class="stat-label">出现概率</span>
                 </div>
             </div>
 
-            <!-- 历史标签 -->
-            <div id="historyTab" class="joseki-tab-content" style="display:none;">
-                <div class="joseki-controls" style="justify-content:flex-end; margin-bottom:12px;">
-                    <button class="joseki-btn secondary" id="importHistoryBtn" title="导入">📥</button>
-                    <button class="joseki-btn secondary" id="exportHistoryBtn" title="导出">📤</button>
-                    <button class="joseki-btn secondary danger" id="clearHistoryBtn" title="清空">🗑</button>
-                </div>
+            <!-- 状态提示 -->
+            <div class="joseki-message info" id="quizStatus">
+                点击选点，探索定式路径
+            </div>
 
-                <div id="historyCount" style="text-align:center; color:#666; margin-bottom:12px;">
-                    已完成: <strong>0</strong> 个定式
-                </div>
-
-                <div id="historyGrid" class="joseki-grid"></div>
-
-                <div id="historyPagination" class="joseki-pagination" style="display:none;">
-                    <button class="joseki-btn secondary" id="historyPrevPage">◀</button>
-                    <span id="historyPageInfo">1/1</span>
-                    <button class="joseki-btn secondary" id="historyNextPage">▶</button>
-                </div>
-
-                <div id="historyEmpty" class="joseki-empty">
-                    <div class="icon">📭</div>
-                    <p>暂无记录</p>
-                    <p style="font-size:0.85em;">完成定式挑战后会自动记录</p>
-                </div>
+            <!-- 功能按钮 -->
+            <div class="joseki-controls" id="quizControls">
+                <button class="joseki-btn" id="undoBtn" disabled title="撤销">↩</button>
+                <button class="joseki-btn secondary" id="passBtn" disabled title="脱先">⊘</button>
+                <button class="joseki-btn" id="challengeBtn" disabled title="开始挑战">⚔</button>
+                <button class="joseki-btn secondary" id="nextBtn" title="下一题">⏭</button>
             </div>
         </div>
     </div>
 
-    <!-- 导入弹框 -->
-    <div id="importModal" class="joseki-modal">
+    <!-- 选择执黑执白弹框 -->
+    <div id="colorModal" class="joseki-modal">
         <div class="joseki-modal-content">
-            <h3>导入历史</h3>
-            <p style="margin-bottom:16px; color:#666;">粘贴导出的JSON数据</p>
-            <textarea id="importHistoryData" style="width:100%; height:120px; border:2px solid #e0e0e0; border-radius:8px; padding:8px; font-size:12px;"></textarea>
+            <h3>选择执黑或执白</h3>
+            <p style="margin-bottom:16px; color:#666;">挑战模式：你需要记住定式路径，正确完成挑战！</p>
             <div class="joseki-modal-buttons">
-                <button class="joseki-btn secondary" id="importHistoryCancel" title="取消">✕</button>
-                <button class="joseki-btn" id="importHistoryConfirm" title="导入">✓</button>
+                <button class="joseki-btn" id="selectBlack">⚫ 执黑先</button>
+                <button class="joseki-btn" id="selectWhite">⚪ 执白后</button>
+            </div>
+            <button class="joseki-btn secondary" style="margin-top:12px; width:100%;" id="cancelChallenge">取消</button>
+        </div>
+    </div>
+
+    <!-- 挑战失败弹框 -->
+    <div id="failModal" class="joseki-modal">
+        <div class="joseki-modal-content">
+            <h3>❌ 挑战失败</h3>
+            <p style="margin-bottom:16px; color:#666;" id="failMessage">位置错误！</p>
+            <div class="joseki-modal-buttons">
+                <button class="joseki-btn secondary" id="backToExplore">返回探索学习</button>
+                <button class="joseki-btn" id="retryChallenge">重新挑战</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 挑战成功弹框 -->
+    <div id="successModal" class="joseki-modal">
+        <div class="joseki-modal-content">
+            <h3>✅ 挑战成功！</h3>
+            <p style="margin-bottom:16px; color:#666;">恭喜你完成了这个定式！</p>
+            <div class="joseki-modal-buttons">
+                <button class="joseki-btn" id="nextQuiz">下一题</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ========== 数据加载 ==========
+        // ========== 状态变量 ==========
         const DATA_PATH = '{{ base_path }}/assets/data/joseki';
         
         let quizData = { easy: [], medium: [], hard: [] };
         let currentDifficulty = 'easy';
         let currentQuiz = null;
-        let targetMoves = [];      // 目标定式的完整着法
-        let currentIndex = 0;      // 当前走到第几手
-        let userMoves = [];        // 用户点击的着法
-        let history = [];
+        let targetMoves = [];      // 目标定式完整着法
+        let currentIndex = 0;      // 当前走到第几手（从0开始）
+        let userMoves = [];        // 已下的着法
         let board = null;
 
-        // 加载题目数据
+        // 模式：'explore' 或 'challenge'
+        let mode = 'explore';
+        let userColor = null;      // 'black' 或 'white'
+
+        // ========== 数据加载 ==========
         async function loadQuizData() {
             console.log('[JosekiQuiz] 加载题目数据');
             try {
@@ -159,13 +159,15 @@
 
         // 加载下一题
         function loadNextQuiz() {
+            mode = 'explore';
+            updateModeBadge();
+
             const list = quizData[currentDifficulty];
             if (!list || list.length === 0) {
                 document.getElementById('quizStatus').textContent = '没有题目';
                 return;
             }
 
-            // 随机选题
             const idx = Math.floor(Math.random() * list.length);
             currentQuiz = list[idx];
             console.log('[JosekiQuiz] 随机题目:', currentQuiz);
@@ -189,29 +191,30 @@
             currentIndex = 0;
             userMoves = [];
 
-            // 显示第一步选点（黑棋位置）
-            showNextBranch();
+            showExploreState();
             updateStats();
             updateProgress();
-            document.getElementById('quizStatus').textContent = '点击选点完成定式';
+            document.getElementById('quizStatus').textContent = '点击选点，探索定式路径';
         }
 
-        // 显示下一步的选点
-        function showNextBranch() {
+        // ========== 探索模式 ==========
+        function showExploreState() {
+            board.setMoves(userMoves, userMoves.length);
+
             if (currentIndex >= targetMoves.length) {
-                // 已完成
-                challengeSuccess();
+                // 探索完成
+                board.setBranches([]);
+                document.getElementById('quizStatus').textContent = '探索完成！可以开始挑战';
+                document.getElementById('challengeBtn').disabled = false;
+                document.getElementById('passBtn').disabled = true;
                 return;
             }
 
-            // 清空棋盘
-            board.setMoves(userMoves, userMoves.length);
-
-            // 只显示目标位置这一个选点
+            // 显示下一个目标选点
             const target = targetMoves[currentIndex];
             if (target.isPass) {
-                // 脱先，不显示选点
                 board.setBranches([]);
+                document.getElementById('passBtn').disabled = false;
             } else {
                 const sgf = String.fromCharCode(97 + target.x, 97 + target.y);
                 board.setBranches([{
@@ -220,14 +223,149 @@
                     color: target.color,
                     sgf: sgf
                 }]);
+                document.getElementById('passBtn').disabled = true;
             }
 
-            // 更新脱先按钮状态
-            document.getElementById('passBtn').disabled = !target.isPass;
-            updateControls();
+            document.getElementById('undoBtn').disabled = currentIndex <= 0;
+            document.getElementById('challengeBtn').disabled = currentIndex < targetMoves.length;
         }
 
-        // 处理用户点击
+        function handleExploreClick(coord) {
+            const target = targetMoves[currentIndex];
+            if (!target) return;
+
+            if (target.isPass) {
+                // 正确答案是脱先，用户点击棋盘是错
+                return;
+            }
+
+            if (coord.x === target.x && coord.y === target.y) {
+                // 正确！
+                userMoves.push(target);
+                currentIndex++;
+                updateProgress();
+                showExploreState();
+            }
+        }
+
+        function handlePass() {
+            if (mode !== 'explore') return;
+
+            const target = targetMoves[currentIndex];
+            if (target && target.isPass) {
+                userMoves.push(target);
+                currentIndex++;
+                updateProgress();
+                showExploreState();
+            }
+        }
+
+        // ========== 挑战模式 ==========
+        function startChallenge(color) {
+            mode = 'challenge';
+            userColor = color;
+            currentIndex = 0;
+            userMoves = [];
+
+            updateModeBadge();
+            document.getElementById('colorModal').classList.remove('show');
+
+            showChallengeState();
+        }
+
+        function showChallengeState() {
+            board.setMoves(userMoves, userMoves.length);
+            board.setBranches([]);  // 挑战模式没有选点提示
+
+            if (currentIndex >= targetMoves.length) {
+                // 挑战成功
+                challengeSuccess();
+                return;
+            }
+
+            const target = targetMoves[currentIndex];
+            const isUserTurn = (target.color === userColor);
+
+            if (isUserTurn) {
+                // 用户回合
+                document.getElementById('quizStatus').textContent = `轮到你下（${userColor === 'black' ? '黑' : '白'}）`;
+                document.getElementById('passBtn').disabled = !target.isPass;
+            } else {
+                // AI回合，自动下正确的一手
+                document.getElementById('quizStatus').textContent = `${target.color === 'black' ? '黑' : '白'}方落子...`;
+                document.getElementById('passBtn').disabled = true;
+
+                setTimeout(() => {
+                    userMoves.push(target);
+                    currentIndex++;
+                    board.setMoves(userMoves, userMoves.length);
+                    updateProgress();
+                    showChallengeState();
+                }, 500);
+            }
+
+            document.getElementById('undoBtn').disabled = true;  // 挑战模式不支持撤销
+            document.getElementById('challengeBtn').disabled = true;
+        }
+
+        function handleChallengeClick(coord) {
+            const target = targetMoves[currentIndex];
+            if (!target) return;
+
+            // 检查是否轮到用户
+            if (target.color !== userColor) return;
+
+            // 检查是否正确
+            if (target.isPass) {
+                // 正确答案是脱先
+                showChallengeFail('正确答案是脱先！');
+                return;
+            }
+
+            if (coord.x === target.x && coord.y === target.y) {
+                // 正确！
+                userMoves.push(target);
+                currentIndex++;
+                updateProgress();
+                showChallengeState();
+            } else {
+                // 错误！
+                showChallengeFail('位置错误！');
+            }
+        }
+
+        function handleChallengePass() {
+            const target = targetMoves[currentIndex];
+            if (!target || target.color !== userColor) return;
+
+            if (target.isPass) {
+                // 正确！
+                userMoves.push(target);
+                currentIndex++;
+                updateProgress();
+                showChallengeState();
+            } else {
+                // 错误！
+                showChallengeFail('正确答案不是脱先！');
+            }
+        }
+
+        function showChallengeFail(message) {
+            // 显示正确位置
+            const target = targetMoves[currentIndex];
+            if (!target.isPass) {
+                board.setMarks([{ x: target.x, y: target.y, type: 'correct' }]);
+            }
+
+            document.getElementById('failMessage').textContent = message;
+            document.getElementById('failModal').classList.add('show');
+        }
+
+        function challengeSuccess() {
+            document.getElementById('successModal').classList.add('show');
+        }
+
+        // ========== 事件处理 ==========
         function handleBoardClick(e) {
             e.preventDefault();
             const rect = e.target.getBoundingClientRect();
@@ -244,113 +382,34 @@
 
             const canvasX = (clientX - rect.left) * (e.target.width / rect.width);
             const canvasY = (clientY - rect.top) * (e.target.height / rect.height);
-
             const coord = board.canvasToSgf(canvasX, canvasY);
             if (!coord) return;
 
-            // 检查是否点击了正确位置
-            const target = targetMoves[currentIndex];
-            if (!target) return;
-
-            if (target.isPass) {
-                // 正确答案是脱先，用户点击棋盘是错误的
-                showWrong(coord);
-                return;
-            }
-
-            if (coord.x === target.x && coord.y === target.y) {
-                // 正确！
-                userMoves.push(target);
-                currentIndex++;
-                updateProgress();
-                showNextBranch();
+            if (mode === 'explore') {
+                handleExploreClick(coord);
             } else {
-                // 错误
-                showWrong(coord);
+                handleChallengeClick(coord);
             }
         }
 
-        // 处理脱先
-        function handlePass() {
-            const target = targetMoves[currentIndex];
-            if (!target) return;
-
-            if (target.isPass) {
-                // 正确！
-                userMoves.push(target);
-                currentIndex++;
-                updateProgress();
-                showNextBranch();
-            } else {
-                // 错误
-                showWrong(null);
-            }
-        }
-
-        // 显示错误提示
-        function showWrong(clickedCoord) {
-            const target = targetMoves[currentIndex];
-            
-            // 显示错误标记和正确位置
-            const marks = [];
-            if (clickedCoord) {
-                marks.push({ x: clickedCoord.x, y: clickedCoord.y, type: 'wrong' });
-            }
-            if (!target.isPass) {
-                marks.push({ x: target.x, y: target.y, type: 'correct' });
-            }
-            board.setMarks(marks);
-
-            document.getElementById('quizStatus').textContent = target.isPass ? 
-                '正确答案是脱先' : '错误！正确位置已标注';
-
-            // 2秒后清除标记，继续
-            setTimeout(() => {
-                board.setMarks([]);
-                showNextBranch();
-            }, 1500);
-        }
-
-        // 挑战成功
-        function challengeSuccess() {
-            document.getElementById('quizStatus').textContent = '✅ 完成！';
-
-            // 记录历史
-            history.push({
-                path: currentQuiz.path,
-                moves: currentQuiz.moves,
-                freq: currentQuiz.freq,
-                difficulty: currentDifficulty,
-                date: new Date().toISOString()
-            });
-            saveHistory();
-
-            // 1秒后下一题
-            setTimeout(loadNextQuiz, 1000);
-        }
-
-        // 撤销
         function undo() {
-            if (currentIndex <= 0) return;
+            if (mode !== 'explore' || currentIndex <= 0) return;
 
             currentIndex--;
             userMoves.pop();
             updateProgress();
-            showNextBranch();
+            showExploreState();
         }
 
-        // 重置
-        function reset() {
-            currentIndex = 0;
-            userMoves = [];
-            updateProgress();
-            showNextBranch();
-            document.getElementById('quizStatus').textContent = '点击选点完成定式';
-        }
-
-        // 跳过
-        function skip() {
-            loadNextQuiz();
+        function updateModeBadge() {
+            const badge = document.getElementById('modeBadge');
+            if (mode === 'explore') {
+                badge.textContent = '探索';
+                badge.className = 'mode-badge explore';
+            } else {
+                badge.textContent = '挑战';
+                badge.className = 'mode-badge challenge';
+            }
         }
 
         // ========== UI更新 ==========
@@ -363,125 +422,6 @@
             document.getElementById('statMoves').textContent = currentQuiz.moves;
             document.getElementById('statFreq').textContent = JosekiUtils.formatFreq(currentQuiz.freq);
             document.getElementById('statProb').textContent = JosekiUtils.formatProb(currentQuiz.prob);
-        }
-
-        function updateControls() {
-            document.getElementById('undoBtn').disabled = currentIndex <= 0;
-        }
-
-        // ========== 历史记录 ==========
-        function loadHistory() {
-            try {
-                const saved = localStorage.getItem('joseki_quiz_history');
-                history = saved ? JSON.parse(saved) : [];
-            } catch (e) {
-                history = [];
-            }
-            renderHistory();
-        }
-
-        function saveHistory() {
-            localStorage.setItem('joseki_quiz_history', JSON.stringify(history));
-            renderHistory();
-        }
-
-        let historyPage = 0;
-        const HISTORY_PER_PAGE = 12;
-
-        function renderHistory() {
-            const count = history.length;
-            document.getElementById('historyCount').innerHTML = `已完成: <strong>${count}</strong> 个定式`;
-
-            if (count === 0) {
-                document.getElementById('historyGrid').innerHTML = '';
-                document.getElementById('historyEmpty').style.display = 'block';
-                document.getElementById('historyPagination').style.display = 'none';
-                return;
-            }
-
-            document.getElementById('historyEmpty').style.display = 'none';
-
-            const totalPages = Math.ceil(count / HISTORY_PER_PAGE);
-            historyPage = Math.min(historyPage, totalPages - 1);
-
-            const start = historyPage * HISTORY_PER_PAGE;
-            const items = history.slice(start, start + HISTORY_PER_PAGE);
-
-            const grid = document.getElementById('historyGrid');
-            grid.innerHTML = '';
-
-            items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'joseki-item';
-                div.innerHTML = `
-                    <canvas width="100" height="100"></canvas>
-                    <div class="item-info">
-                        <div class="item-moves">${item.moves}手</div>
-                        <div>${JosekiUtils.formatFreq(item.freq)}次</div>
-                    </div>
-                `;
-
-                const canvas = div.querySelector('canvas');
-                const moves = JosekiUtils.parseMoves(item.path.split('-'));
-                BoardThumbnail.render(canvas, moves);
-
-                grid.appendChild(div);
-            });
-
-            if (totalPages > 1) {
-                document.getElementById('historyPagination').style.display = 'flex';
-                document.getElementById('historyPageInfo').textContent = `${historyPage + 1}/${totalPages}`;
-                document.getElementById('historyPrevPage').disabled = historyPage === 0;
-                document.getElementById('historyNextPage').disabled = historyPage >= totalPages - 1;
-            } else {
-                document.getElementById('historyPagination').style.display = 'none';
-            }
-        }
-
-        function exportHistory() {
-            const data = JSON.stringify(history, null, 2);
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `joseki-quiz-history-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function importHistory() {
-            const data = document.getElementById('importHistoryData').value;
-            try {
-                const imported = JSON.parse(data);
-                if (Array.isArray(imported)) {
-                    history = [...history, ...imported];
-                    saveHistory();
-                    document.getElementById('importModal').classList.remove('show');
-                    document.getElementById('importHistoryData').value = '';
-                }
-            } catch (e) {
-                alert('导入失败：数据格式错误');
-            }
-        }
-
-        function clearHistory() {
-            if (confirm('确定清空所有历史记录？')) {
-                history = [];
-                saveHistory();
-            }
-        }
-
-        // ========== 标签切换 ==========
-        function switchTab(tabName) {
-            document.querySelectorAll('.joseki-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-            document.getElementById('challengeTab').style.display = tabName === 'challenge' ? 'block' : 'none';
-            document.getElementById('historyTab').style.display = tabName === 'history' ? 'block' : 'none';
-
-            if (tabName === 'history') {
-                renderHistory();
-            }
         }
 
         // ========== 棋盘初始化 ==========
@@ -508,36 +448,56 @@
         window.addEventListener('resize', initBoard);
 
         // ========== 事件绑定 ==========
-        document.querySelectorAll('.joseki-tab').forEach(tab => {
-            tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-        });
-
         document.getElementById('difficultySelect').addEventListener('change', (e) => {
             currentDifficulty = e.target.value;
             loadNextQuiz();
         });
 
         document.getElementById('undoBtn').addEventListener('click', undo);
-        document.getElementById('passBtn').addEventListener('click', handlePass);
-        document.getElementById('resetBtn').addEventListener('click', reset);
-        document.getElementById('skipBtn').addEventListener('click', skip);
+        document.getElementById('passBtn').addEventListener('click', () => {
+            if (mode === 'explore') {
+                handlePass();
+            } else {
+                handleChallengePass();
+            }
+        });
+        document.getElementById('nextBtn').addEventListener('click', loadNextQuiz);
+        document.getElementById('challengeBtn').addEventListener('click', () => {
+            document.getElementById('colorModal').classList.add('show');
+        });
 
-        document.getElementById('historyPrevPage').addEventListener('click', () => { historyPage--; renderHistory(); });
-        document.getElementById('historyNextPage').addEventListener('click', () => { historyPage++; renderHistory(); });
-        document.getElementById('exportHistoryBtn').addEventListener('click', exportHistory);
-        document.getElementById('importHistoryBtn').addEventListener('click', () => {
-            document.getElementById('importModal').classList.add('show');
+        // 选择颜色
+        document.getElementById('selectBlack').addEventListener('click', () => startChallenge('black'));
+        document.getElementById('selectWhite').addEventListener('click', () => startChallenge('white'));
+        document.getElementById('cancelChallenge').addEventListener('click', () => {
+            document.getElementById('colorModal').classList.remove('show');
         });
-        document.getElementById('importHistoryCancel').addEventListener('click', () => {
-            document.getElementById('importModal').classList.remove('show');
+
+        // 挑战失败
+        document.getElementById('backToExplore').addEventListener('click', () => {
+            document.getElementById('failModal').classList.remove('show');
+            board.setMarks([]);
+            mode = 'explore';
+            currentIndex = 0;
+            userMoves = [];
+            updateModeBadge();
+            showExploreState();
         });
-        document.getElementById('importHistoryConfirm').addEventListener('click', importHistory);
-        document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+        document.getElementById('retryChallenge').addEventListener('click', () => {
+            document.getElementById('failModal').classList.remove('show');
+            board.setMarks([]);
+            startChallenge(userColor);
+        });
+
+        // 挑战成功
+        document.getElementById('nextQuiz').addEventListener('click', () => {
+            document.getElementById('successModal').classList.remove('show');
+            loadNextQuiz();
+        });
 
         // ========== 初始化 ==========
         function init() {
             initBoard();
-            loadHistory();
             loadQuizData();
         }
 
