@@ -549,7 +549,7 @@
                     document.getElementById('historyTab').style.display = 'none';
 
                     // 加载这个定式进行探索学习
-                    loadQuizByPath(item.path, item.moves, item.freq);
+                    loadQuizByPath(item.path, item.moves, item.freq, item.prob);
                 });
 
                 grid.appendChild(div);
@@ -565,7 +565,7 @@
             }
         }
 
-        function loadQuizByPath(path, moves, freq) {
+        function loadQuizByPath(path, moves, freq, prob) {
             // 解析目标着法
             const pathParts = path.split('-');
             targetMoves = [];
@@ -588,7 +588,7 @@
             updateModeBadge();
             document.getElementById('passBtn').style.display = 'none';
 
-            currentQuiz = { path, moves, freq };
+            currentQuiz = { path, moves, freq, prob };
             updateStats();
             updateProgress();
             showExploreState();
