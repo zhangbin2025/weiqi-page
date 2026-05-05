@@ -1,33 +1,36 @@
 #!/usr/bin/env python3
 """
-定式Trie树数据生成脚本 v2.0
-按前缀裁剪，生成索引和子树文件
+构建定式trie索引和前缀子树（测试版）
 
-用法:
-    python3 scripts/generate_joseki_tree.py [--test] [--threshold 1000]
+算法：
+1. 后序遍历 trie 树
+2. 统计每个节点的定式数（有指标数据的节点）
+3. 当定式数 >= 阈值时，裁剪为子树文件
+4. 子树文件内部递归裁剪
 
-输出目录结构:
-    trie-index.json.gz    索引trie
-    trie-{prefix}.json.gz 前缀子树文件
+用法：
+    python3 scripts/build_joseki_trie.py
 """
 
 import sys
 import json
 import gzip
-import argparse
+from collections import defaultdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-from config import SITE_DIR, TEST_SITE_DIR
+# 添加 weiqi-joseki 路径
+WEIQI_JOSEKI_DIR = Path('/root/.openclaw/workspace/weiqi-joseki')
+sys.path.insert(0, str(WEIQI_JOSEKI_DIR))
 
-DEFAULT_THRESHOLD = 1000
+THRESHOLD = 1000  # 裁剪阈值
+OUTPUT_DIR = Path('/tmp/joseki-trie-test')
 
 
 def load_joseki_list():
-    """从数据库加载定式"""
+    """从 weiqi-joseki 数据库加载定式"""
     db_path = Path.home() / '.weiqi-joseki' / 'database.json'
     if not db_path.exists():
-        print(f"数据库不存在: {db_path}")
+        print(f"❌ 数据库不存在: {db_path}")
         return []
     
     print(f"加载数据库: {db_path}")
@@ -49,6 +52,7 @@ def build_trie(joseki_list):
             continue
         
         freq = j.get('frequency', 0)
+        prob = j.get('probability', 0)
         node = root
         
         for i, coord in enumerate(moves):
@@ -58,28 +62,33 @@ def build_trie(joseki_list):
                     'coord': coord,
                     'color': color,
                     'children': {},
-                    'freq': 0
+                    'freq': 0,
+                    'depth': i + 1
                 }
             
             node['children'][coord]['freq'] += freq
             node = node['children'][coord]
         
+        # 标记定式节点
         node['leaf'] = True
         node['moves'] = len(moves)
         node['name'] = j.get('id', '')
         node['total_freq'] = freq
-        node['prob'] = j.get('probability', 0)
+        node['prob'] = prob
     
     root['freq'] = sum(j.get('frequency', 0) for j in joseki_list)
     return root
 
 
 def count_joseki_nodes(node):
-    """统计节点下的定式数"""
+    """统计节点下的定式数（有指标数据的节点）"""
     count = 0
+    
+    # 当前节点是定式（有 leaf 标记或指标数据）
     if node.get('leaf'):
         count += 1
     
+    # 递归统计 children（排除已裁剪的）
     children = node.get('children')
     if children:
         for child in children.values():
@@ -96,15 +105,19 @@ def serialize_trie(node):
         'freq': node.get('freq', 0),
     }
     
+    # 定式指标
     if node.get('leaf'):
         result['leaf'] = True
         result['moves'] = node.get('moves')
+        result['name'] = node.get('name')
         result['total_freq'] = node.get('total_freq')
         result['prob'] = node.get('prob')
     
+    # 裁剪点信息
     if node.get('subtree'):
         result['subtree'] = node['subtree']
     
+    # children
     children = node.get('children')
     if children:
         result['children'] = {
@@ -112,25 +125,32 @@ def serialize_trie(node):
             for coord, child in sorted(children.items())
         }
     elif node.get('subtree'):
+        # 裁剪点，children 为 None
         result['children'] = None
     
     return result
 
 
-stats = {'subtree_files': [], 'difficulty': {'easy': 0, 'medium': 0, 'hard': 0}}
+# 统计变量
+subtree_files = []
 
 
-def prune_trie(node, prefix, threshold, output_dir):
-    """后序遍历裁剪 trie"""
+def prune_trie(node, prefix='', threshold=1000, output_dir=None):
+    """
+    后序遍历裁剪 trie
+    """
     children = node.get('children', {})
     if not children:
         return
     
+    # 1. 递归处理所有 children
     for coord, child in list(children.items()):
         new_prefix = f'{prefix}-{coord}' if prefix else coord
         prune_trie(child, new_prefix, threshold, output_dir)
     
+    # 2. 检查每个 child
     for coord, child in list(children.items()):
+        # 跳过已裁剪的
         if child.get('subtree'):
             continue
         
@@ -140,74 +160,53 @@ def prune_trie(node, prefix, threshold, output_dir):
             new_prefix = f'{prefix}-{coord}' if prefix else coord
             filename = f'trie-{new_prefix}.json.gz'
             
-            export_subtree(child, filename, threshold, output_dir)
+            # 导出子树
+            export_subtree(child, output_dir / filename, threshold)
             
+            # 标记裁剪点
             child['subtree'] = {'file': filename, 'josekiCount': joseki_count}
             child['children'] = None
 
 
-def export_subtree(node, filename, threshold, output_dir):
-    """导出子树文件"""
-    prune_trie(node, '', threshold, output_dir)
-    collect_difficulty(node)
+def export_subtree(node, filepath, threshold=1000):
+    """导出子树文件，内部递归裁剪"""
+    global subtree_files
     
-    filepath = output_dir / filename
+    # 先裁剪子树内部
+    prune_trie(node, prefix='', threshold=threshold, output_dir=filepath.parent)
+    
+    # 序列化并导出
     with gzip.open(filepath, 'wt', encoding='utf-8') as f:
         json.dump(serialize_trie(node), f, ensure_ascii=False, separators=(',', ':'))
     
     file_size = filepath.stat().st_size
     joseki_count = count_joseki_nodes(node)
-    stats['subtree_files'].append({
-        'prefix': filename.replace('trie-', '').replace('.json.gz', ''),
+    subtree_files.append({
+        'prefix': filepath.stem.replace('trie-', ''),
+        'file': filepath.name,
         'size': file_size,
-        'count': joseki_count
+        'joseki_count': joseki_count
     })
-    print(f"  导出: {filename} ({file_size//1024}KB, {joseki_count}定式)")
+    print(f"  导出: {filepath.name} ({file_size//1024}KB, {joseki_count}定式)")
 
 
-def collect_difficulty(node):
-    """收集难度统计"""
-    if node.get('leaf'):
-        moves = node.get('moves', 0)
-        if moves <= 10:
-            stats['difficulty']['easy'] += 1
-        elif moves <= 20:
-            stats['difficulty']['medium'] += 1
-        else:
-            stats['difficulty']['hard'] += 1
-    
-    children = node.get('children')
-    if children:
-        for child in children.values():
-            collect_difficulty(child)
-
-
-def build(output_dir, threshold):
+def build_index_and_subtrees(joseki_list, output_dir, threshold=1000):
     """构建索引和子树"""
-    global stats
-    stats = {'subtree_files': [], 'difficulty': {'easy': 0, 'medium': 0, 'hard': 0}}
+    global subtree_files
+    subtree_files = []
     
     output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # 清理旧文件
-    for f in output_dir.glob('*.gz'):
-        f.unlink()
-    
-    joseki_list = load_joseki_list()
-    if not joseki_list:
-        return False
     
     print("\n构建 trie 树...")
     trie = build_trie(joseki_list)
     
-    total = count_joseki_nodes(trie)
-    print(f"总定式节点: {total}")
+    total_joseki = count_joseki_nodes(trie)
+    print(f"总定式节点: {total_joseki}")
     
     print("\n开始裁剪...")
-    prune_trie(trie, '', threshold, output_dir)
+    prune_trie(trie, prefix='', threshold=threshold, output_dir=output_dir)
     
-    collect_difficulty(trie)
-    
+    # 导出索引
     print("\n导出索引...")
     index_file = output_dir / 'trie-index.json.gz'
     with gzip.open(index_file, 'wt', encoding='utf-8') as f:
@@ -216,52 +215,57 @@ def build(output_dir, threshold):
     index_size = index_file.stat().st_size
     print(f"  索引大小: {index_size//1024}KB")
     
-    # 导出元信息
-    meta = {
-        'version': '2.0',
-        'threshold': threshold,
-        'total': total,
-        'subtrees': len(stats['subtree_files']),
-        'difficulty': stats['difficulty'],
-        'indexSize': index_size
-    }
-    
-    with open(output_dir / 'trie-meta.json', 'w', encoding='utf-8') as f:
-        json.dump(meta, f, ensure_ascii=False, indent=2)
-    
-    # 统计
-    print("\n结果统计:")
-    print(f"  索引: {index_size//1024}KB")
-    print(f"  子树: {len(stats['subtree_files'])}个")
-    
-    if stats['subtree_files']:
-        sizes = [s['size'] for s in stats['subtree_files']]
-        print(f"  子树大小: {min(sizes)//1024}KB - {max(sizes)//1024}KB")
-        print(f"  总存储: {(index_size + sum(sizes))//1024//1024}MB")
-    
-    print(f"  难度: 初{stats['difficulty']['easy']} 中{stats['difficulty']['medium']} 高{stats['difficulty']['hard']}")
-    
-    return True
+    return index_size, subtree_files
 
 
 def main():
-    parser = argparse.ArgumentParser(description='生成定式Trie树数据')
-    parser.add_argument('--test', action='store_true', help='测试模式')
-    parser.add_argument('--threshold', type=int, default=DEFAULT_THRESHOLD)
-    args = parser.parse_args()
+    print("=" * 60)
+    print("🎯 定式 Trie 索引和子树构建测试")
+    print(f"阈值: {THRESHOLD}")
+    print("=" * 60)
     
-    print("=" * 50)
-    print("定式Trie树数据生成 v2.0")
-    print(f"阈值: {args.threshold}")
-    print("=" * 50)
+    # 加载定式
+    joseki_list = load_joseki_list()
+    if not joseki_list:
+        return 1
     
-    base_dir = TEST_SITE_DIR if args.test else SITE_DIR
-    output_dir = base_dir / "assets" / "data" / "joseki"
+    # 构建
+    index_size, subtrees = build_index_and_subtrees(joseki_list, OUTPUT_DIR, THRESHOLD)
     
-    success = build(output_dir, args.threshold)
-    print(f"\n输出目录: {output_dir}")
+    # 统计结果
+    print("\n" + "=" * 60)
+    print("📊 结果统计")
+    print("=" * 60)
     
-    return 0 if success else 1
+    print(f"\n索引文件: trie-index.json.gz ({index_size//1024}KB)")
+    
+    print(f"\n子树文件数: {len(subtrees)}")
+    
+    if subtrees:
+        # 按大小排序
+        sorted_subtrees = sorted(subtrees, key=lambda x: x['size'], reverse=True)
+        
+        print("\nTop 10 大子树:")
+        for item in sorted_subtrees[:10]:
+            print(f"  {item['file']}: {item['size']//1024}KB ({item['joseki_count']}定式)")
+        
+        print("\n最小的5个子树:")
+        for item in sorted_subtrees[-5:]:
+            print(f"  {item['file']}: {item['size']//1024}KB ({item['joseki_count']}定式)")
+        
+        # 大小分布
+        sizes = [s['size'] for s in subtrees]
+        print(f"\n大小分布:")
+        print(f"  最大: {max(sizes)//1024}KB")
+        print(f"  最小: {min(sizes)//1024}KB")
+        print(f"  平均: {sum(sizes)//len(sizes)//1024}KB")
+        
+        # 总存储
+        total_size = index_size + sum(sizes)
+        print(f"\n总存储: {total_size//1024//1024}MB")
+    
+    print(f"\n输出目录: {OUTPUT_DIR}")
+    return 0
 
 
 if __name__ == '__main__':

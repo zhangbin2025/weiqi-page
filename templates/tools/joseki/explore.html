@@ -60,8 +60,6 @@
                     <button class="joseki-btn secondary" id="favBtn" title="收藏">⭐</button>
                     <button class="joseki-btn secondary" id="resetBtn" title="重置">⟳</button>
                 </div>
-
-                <!-- 提示已移除 -->
             </div>
 
             <!-- 收藏标签 -->
@@ -75,9 +73,7 @@
                     已收藏: <strong>0</strong> 条定式
                 </div>
 
-                <div id="favoritesGrid" class="joseki-grid">
-                    <!-- 动态填充 -->
-                </div>
+                <div id="favoritesGrid" class="joseki-grid"></div>
 
                 <div id="favoritesPagination" class="joseki-pagination" style="display:none;">
                     <button class="joseki-btn secondary" id="favPrevPage">◀</button>
@@ -111,126 +107,107 @@
         // ========== 数据加载 ==========
         const DATA_PATH = '{{ base_path }}/assets/data/joseki';
         
-        let trieIndex = null;
-        let currentBucket = null;
-        let currentNodePath = [];
-        let currentMoves = [];
-        let currentIndex = 0;
+        let trieRoot = null;           // 索引 trie 根节点
+        let currentNode = null;        // 当前遍历到的节点
+        let currentNodePath = [];      // 当前路径（着法序列）
+        let currentMoves = [];         // 当前棋盘上的棋子
         let favorites = [];
+        let board = null;
+
+        // 加载并解压 gzip JSON
+        async function loadGzipJson(url) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const compressed = await response.arrayBuffer();
+            const decompressed = pako.ungzip(compressed, { to: 'string' });
+            return JSON.parse(decompressed);
+        }
 
         // 加载索引
         async function loadIndex() {
-            console.log('[JosekiExplore] 开始加载索引:', `${DATA_PATH}/trie-index.json.gz`);
+            console.log('[JosekiExplore] 加载索引...');
             try {
-                const response = await fetch(`${DATA_PATH}/trie-index.json.gz`);
-                console.log('[JosekiExplore] 索引响应状态:', response.status);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const compressed = await response.arrayBuffer();
-                console.log('[JosekiExplore] 索引文件大小:', compressed.byteLength, 'bytes');
-                
-                const decompressed = pako.ungzip(compressed, { to: 'string' });
-                trieIndex = JSON.parse(decompressed);
-                
-                console.log('[JosekiExplore] 索引加载完成');
-                console.log('[JosekiExplore] 首着列表:', Object.keys(trieIndex.firstMoves));
-                console.log('[JosekiExplore] 分桶数:', Object.keys(trieIndex.bucketIndex).length);
-                
-                // 显示首着选点
+                trieRoot = await loadGzipJson(`${DATA_PATH}/trie-index.json.gz`);
+                currentNode = trieRoot;
+                console.log('[JosekiExplore] 索引加载完成，首着数:', Object.keys(trieRoot.children || {}).length);
                 showFirstMoveBranches();
-                
             } catch (e) {
                 console.error('[JosekiExplore] 索引加载失败:', e);
             }
         }
 
-        // 显示首着选点
-        function showFirstMoveBranches() {
-            if (!trieIndex || !trieIndex.firstMoves) {
-                console.log('[JosekiExplore] showFirstMoveBranches: 无索引数据');
-                return;
+        // 加载子树并合并
+        async function loadSubtree(node) {
+            if (!node.subtree || node.children) {
+                return; // 不是裁剪点或已加载
             }
             
-            const firstMoves = Object.keys(trieIndex.firstMoves);
-            console.log('[JosekiExplore] 首着数量:', firstMoves.length);
-            console.log('[JosekiExplore] 首着列表:', firstMoves.slice(0, 10));
-            
-            if (!board) {
-                console.error('[JosekiExplore] board 未初始化！');
-                return;
+            console.log('[JosekiExplore] 加载子树:', node.subtree.file);
+            try {
+                const subtree = await loadGzipJson(`${DATA_PATH}/${node.subtree.file}`);
+                node.children = subtree.children;
+                console.log('[JosekiExplore] 子树加载完成');
+            } catch (e) {
+                console.error('[JosekiExplore] 子树加载失败:', e);
             }
-            
-            const branches = firstMoves.map(sgf => ({
-                ...JosekiUtils.sgfToCoord(sgf),
-                color: 'black',  // 首着都是黑棋
-                sgf: sgf
-            })).filter(b => !b.isPass);
-            
-            console.log('[JosekiExplore] branches 数量:', branches.length);
-            console.log('[JosekiExplore] branches 前5个:', branches.slice(0, 5));
-            console.log('[JosekiExplore] board 状态:', board ? '已初始化' : '未初始化');
-            
-            // 注意顺序：先 setMoves 清空棋盘，再 setBranches 设置选点
-            // 因为 setMoves 会清空 branches
-            board.setMoves([]);  // 清空棋盘
-            console.log('[JosekiExplore] 调用 board.setBranches');
-            board.setBranches(branches);
-            
-            console.log('[JosekiExplore] setBranches 完成，board.branches:', board.branches.length);
-        }
-        
-        // 获取首着对应的二着列表
-        function getSecondMoves(firstMove) {
-            if (!trieIndex || !trieIndex.secondMoves || !trieIndex.secondMoves[firstMove]) {
-                return [];
-            }
-            return trieIndex.secondMoves[firstMove];
         }
 
-        // 加载分桶
-        async function loadBucket(bucketKey) {
-            console.log('[JosekiExplore] 加载分桶:', bucketKey);
-            try {
-                const bucketInfo = trieIndex.bucketIndex[bucketKey];
-                if (!bucketInfo) {
-                    console.error('[JosekiExplore] 分桶不存在:', bucketKey);
-                    return null;
+        // 获取当前节点的选点
+        function getBranches(node) {
+            if (!node.children) return [];
+            
+            const branches = [];
+            for (const [coord, child] of Object.entries(node.children)) {
+                if (coord === 'coord' || coord === 'color' || coord === 'freq') continue;
+                
+                const coordData = JosekiUtils.sgfToCoord(coord);
+                if (coordData) {
+                    branches.push({
+                        ...coordData,
+                        color: child.color,
+                        sgf: coord,
+                        freq: child.freq
+                    });
                 }
-                
-                const url = `${DATA_PATH}/buckets/${bucketInfo.file}`;
-                console.log('[JosekiExplore] 分桶URL:', url);
-                
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const compressed = await response.arrayBuffer();
-                console.log('[JosekiExplore] 分桶文件大小:', compressed.byteLength, 'bytes');
-                
-                const decompressed = pako.ungzip(compressed, { to: 'string' });
-                const data = JSON.parse(decompressed);
-                console.log('[JosekiExplore] 分桶加载完成:', data.prefix, '节点数:', Object.keys(data.nodes).length);
-                
-                return data;
-            } catch (e) {
-                console.error('[JosekiExplore] 分桶加载失败:', bucketKey, e);
-                return null;
             }
+            return branches;
+        }
+
+        // 显示首着选点
+        function showFirstMoveBranches() {
+            if (!trieRoot || !trieRoot.children) {
+                console.log('[JosekiExplore] 无索引数据');
+                return;
+            }
+            
+            const branches = [];
+            for (const [coord, child] of Object.entries(trieRoot.children)) {
+                if (coord === 'coord' || coord === 'color' || coord === 'freq') continue;
+                
+                const coordData = JosekiUtils.sgfToCoord(coord);
+                if (coordData && !coordData.isPass) {
+                    branches.push({
+                        ...coordData,
+                        color: 'black',
+                        sgf: coord,
+                        freq: child.freq
+                    });
+                }
+            }
+            
+            console.log('[JosekiExplore] 首着数量:', branches.length);
+            board.setMoves([]);
+            board.setBranches(branches);
         }
 
         // ========== 棋盘初始化 ==========
-        let board = null;
-        
         function initBoard() {
             const canvas = document.getElementById('exploreBoard');
             const container = canvas.parentElement;
             const displaySize = Math.min(container.clientWidth, 400);
             
-            // 高清屏支持
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
             canvas.width = displaySize * dpr;
             canvas.height = displaySize * dpr;
@@ -246,10 +223,7 @@
             }
         }
         
-        // 窗口大小变化时重新初始化棋盘
-        window.addEventListener('resize', () => {
-            initBoard();
-        });
+        window.addEventListener('resize', initBoard);
 
         function handleBoardClick(e) {
             e.preventDefault();
@@ -269,241 +243,38 @@
             const canvasY = (clientY - rect.top) * (e.target.height / rect.height);
             
             const coord = board.canvasToSgf(canvasX, canvasY);
-            console.log('[JosekiExplore] 点击坐标:', coord);
-            
             if (!coord) return;
             
-            // 检查是否是有效选点
-            if (!board.branches || board.branches.length === 0) {
-                console.log('[JosekiExplore] 没有可选分支');
-                return;
-            }
-            
-            // 检查点击的位置是否在可选分支中
             const validBranch = board.branches.find(b => b.sgf === coord.sgf);
-            if (!validBranch) {
-                console.log('[JosekiExplore] 不是有效选点:', coord.sgf);
-                return;
-            }
+            if (!validBranch) return;
             
             handleMove(coord.sgf);
         }
 
         // ========== 着法处理 ==========
         async function handleMove(coord) {
-            console.log('[JosekiExplore] 处理着法:', coord, '当前路径:', currentNodePath);
+            console.log('[JosekiExplore] 处理着法:', coord, '路径:', currentNodePath);
             
-            if (!trieIndex) {
+            if (!currentNode) return;
+
+            // 检查是否是裁剪点，需要加载子树
+            if (currentNode.subtree && !currentNode.children) {
+                await loadSubtree(currentNode);
+            }
+
+            if (!currentNode.children || !currentNode.children[coord]) {
+                console.log('[JosekiExplore] 无效着法:', coord);
                 return;
             }
 
-            // === 首着选择 ===
-            if (currentNodePath.length === 0) {
-                const firstMoveBuckets = trieIndex.firstMoves[coord];
-                console.log('[JosekiExplore] 首着分桶:', coord, firstMoveBuckets);
-                
-                if (!firstMoveBuckets || firstMoveBuckets.length === 0) {
-                    return;
-                }
-
-                // 从 secondMoves 获取二着选点
-                const secondMovesData = trieIndex.secondMoves[coord] || [];
-                console.log('[JosekiExplore] 二着列表:', secondMovesData.slice(0, 10));
-                
-                // 添加首着
-                const coordData = JosekiUtils.sgfToCoord(coord);
-                currentMoves = [{ 
-                    x: coordData.x, 
-                    y: coordData.y, 
-                    color: 'black', 
-                    num: 1 
-                }];
-                currentIndex = 1;
-                currentNodePath = [coord];
-
-                // 显示二着选点（注意：先 setMoves 再 setBranches，因为 setMoves 会清空 branches）
-                board.setMoves(currentMoves, currentIndex);
-                
-                if (secondMovesData.length > 0) {
-                    const branches = secondMovesData.slice(0, 20).map(sm => {
-                        const smData = JosekiUtils.sgfToCoord(sm.coord);
-                        return {
-                            ...smData,
-                            color: 'white',
-                            sgf: sm.coord,
-                            count: sm.count
-                        };
-                    });
-                    board.setBranches(branches);
-                    document.getElementById('passBtn').disabled = !secondMovesData.some(sm => sm.coord === 'tt');
-                } else {
-                    board.setBranches([]);
-                    document.getElementById('passBtn').disabled = true;
-                }
-                updateStats({ moves: 1 });
-                updateControls();
-
-                return;
-            }
-
-            // === 二着选择 ===
-            if (currentNodePath.length === 1) {
-                const bucketKey = currentNodePath[0] + '-' + coord;
-                console.log('[JosekiExplore] 二着，尝试加载分桶:', bucketKey);
-                
-                // 检查是否有精确匹配的分桶
-                let bucketInfo = trieIndex.bucketIndex[bucketKey];
-                
-                // 如果没有精确匹配，找前缀匹配的分桶（前缀情况）
-                if (!bucketInfo) {
-                    // 找所有以 bucketKey 开头的分桶
-                    const matchingBuckets = Object.keys(trieIndex.bucketIndex).filter(k => k.startsWith(bucketKey + '-') || k === bucketKey);
-                    console.log('[JosekiExplore] 前缀匹配的分桶数:', matchingBuckets.length);
-                    
-                    if (matchingBuckets.length === 0) {
-                        return;
-                    }
-                    
-                    // 从分桶键中提取第三着（分桶键格式：pd-qc-第三着-...）
-                    const thirdMovesSet = {};
-                    for (const bk of matchingBuckets) {
-                        const parts = bk.split('-');
-                        if (parts.length >= 3) {
-                            const thirdMove = parts[2]; // 第三着
-                            if (!thirdMovesSet[thirdMove]) {
-                                thirdMovesSet[thirdMove] = { coord: thirdMove, count: 0 };
-                            }
-                            thirdMovesSet[thirdMove].count += trieIndex.bucketIndex[bk].count || 0;
-                        }
-                    }
-                    
-                    // 添加二着
-                    const coordData = JosekiUtils.sgfToCoord(coord);
-                    currentMoves.push({
-                        x: coordData.x,
-                        y: coordData.y,
-                        isPass: coordData.isPass,
-                        color: 'white',
-                        num: 2
-                    });
-                    currentIndex = 2;
-                    currentNodePath.push(coord);
-                    
-                    // 显示第3着选点
-                    board.setMoves(currentMoves, currentIndex);
-                    
-                    const thirdMoves = Object.values(thirdMovesSet).sort((a, b) => b.count - a.count).slice(0, 30);
-                    const branches = thirdMoves.map(t => {
-                        const tData = JosekiUtils.sgfToCoord(t.coord);
-                        return {
-                            ...tData,
-                            color: 'black',
-                            sgf: t.coord,
-                            isPass: t.coord === 'tt'
-                        };
-                    });
-                    board.setBranches(branches);
-                    document.getElementById('passBtn').disabled = !thirdMovesSet['tt'];
-                    updateStats({ moves: 2 });
-                    updateControls();
-                    
-                    return;
-                }
-                
-                currentBucket = await loadBucket(bucketKey);
-                if (!currentBucket) {
-                    return;
-                }
-                
-                // 添加二着
-                const coordData = JosekiUtils.sgfToCoord(coord);
-                currentMoves.push({
-                    x: coordData.x,
-                    y: coordData.y,
-                    isPass: coordData.isPass,
-                    color: 'white',
-                    num: 2
-                });
-                currentIndex = 2;
-                currentNodePath.push(coord);
-                
-                // 从分桶根节点获取三着选点（先 setMoves 再 setBranches）
-                board.setMoves(currentMoves, currentIndex);
-                
-                const rootNode = currentBucket.nodes['root'];
-                console.log('[JosekiExplore] 分桶根节点children:', rootNode ? rootNode.children : 'null');
-                
-                if (rootNode && rootNode.children && rootNode.children.length > 0) {
-                    const branches = rootNode.children.map(c => {
-                        const cData = JosekiUtils.sgfToCoord(c);
-                        return {
-                            ...cData,
-                            color: 'black',
-                            sgf: c,
-                            isPass: c === 'tt'
-                        };
-                    });
-                    board.setBranches(branches);
-                    document.getElementById('passBtn').disabled = !rootNode.children.includes('tt');
-                    
-                    if (rootNode.leaf) {
-                        updateStats({ moves: rootNode.moves, freq: rootNode.total_freq, prob: rootNode.prob });
-                    } else {
-                        updateStats({ moves: 2 });
-                    }
-                } else {
-                    board.setBranches([]);
-                    document.getElementById('passBtn').disabled = true;
-                    if (rootNode && rootNode.leaf) {
-                        updateStats({ moves: rootNode.moves, freq: rootNode.total_freq, prob: rootNode.prob });
-                    } else {
-                        updateStats({ moves: 2 });
-                    }
-                }
-                updateControls();
-                
-                return;
-            }
-
-            // 后续着法
-            // 前缀深度为2时，分桶键是 首着-二着-第三着
-            const prefixDepth = 2;
-            const bucketKeyDepth = prefixDepth + 1; // 分桶键深度=3
-            
-            // 计算分桶键（需要包含新点击的着法）
-            let bucketKey;
-            if (currentNodePath.length < bucketKeyDepth) {
-                // 第三着：currentNodePath=['pd','qc']，需要加上当前着法
-                bucketKey = [...currentNodePath, coord].join('-');
-            } else {
-                // 第四着及以后：分桶键不变
-                bucketKey = currentNodePath.slice(0, bucketKeyDepth).join('-');
-            }
-            
-            console.log('[JosekiExplore] 后续着法，路径:', currentNodePath, 'coord:', coord, '分桶键:', bucketKey);
-            
-            if (!currentBucket || currentBucket.prefix !== bucketKey) {
-                currentBucket = await loadBucket(bucketKey);
-            }
-
-            if (!currentBucket) {
-                return;
-            }
-
-            // 获取当前节点key
-            const nodeKey = currentNodePath.slice(2).join('-') || 'root';
-            const nodeData = currentBucket.nodes[nodeKey];
-            
-            console.log('[JosekiExplore] 当前节点:', nodeKey, 'children:', nodeData ? nodeData.children : 'null');
-            
-            if (!nodeData || !nodeData.children || !nodeData.children.includes(coord)) {
-                return;
-            }
-
-            // 更新路径和棋盘
+            // 移动到下一节点
+            const nextNode = currentNode.children[coord];
             currentNodePath.push(coord);
-            const nextColor = currentNodePath.length % 2 === 1 ? 'black' : 'white';
+            currentNode = nextNode;
+
+            // 更新棋盘
             const coordData = JosekiUtils.sgfToCoord(coord);
+            const nextColor = currentNodePath.length % 2 === 1 ? 'black' : 'white';
             
             currentMoves.push({
                 x: coordData.x,
@@ -512,42 +283,46 @@
                 color: nextColor,
                 num: currentNodePath.length
             });
-            currentIndex = currentMoves.length;
 
-            // 获取下一个节点的分支（先 setMoves 再 setBranches）
-            board.setMoves(currentMoves, currentIndex);
+            // 检查是否需要加载子树
+            if (currentNode.subtree && !currentNode.children) {
+                await loadSubtree(currentNode);
+            }
+
+            // 更新显示
+            board.setMoves(currentMoves, currentMoves.length);
             
-            const nextNodeKey = currentNodePath.slice(2).join('-');
-            const nextNodeData = currentBucket.nodes[nextNodeKey];
-            
-            console.log('[JosekiExplore] 下一节点:', nextNodeKey, 'data:', nextNodeData);
-            
-            // 只要有 children 就可以继续探索（leaf 只是标记某个定式在这里结束）
-            if (nextNodeData && nextNodeData.children && nextNodeData.children.length > 0) {
-                const branches = nextNodeData.children.map(c => ({
-                    ...JosekiUtils.sgfToCoord(c),
-                    color: currentIndex % 2 === 1 ? 'black' : 'white',
-                    isPass: c === 'tt',
-                    sgf: c
-                }));
+            // 获取下一着选点
+            if (currentNode.children) {
+                const branches = [];
+                for (const [c, child] of Object.entries(currentNode.children)) {
+                    if (c === 'coord' || c === 'color' || c === 'freq') continue;
+                    const cd = JosekiUtils.sgfToCoord(c);
+                    if (cd) {
+                        branches.push({
+                            ...cd,
+                            color: child.color,
+                            sgf: c,
+                            freq: child.freq
+                        });
+                    }
+                }
                 board.setBranches(branches);
-                
-                const hasPass = nextNodeData.children.includes('tt');
-                document.getElementById('passBtn').disabled = !hasPass;
+                document.getElementById('passBtn').disabled = !currentNode.children['tt'];
             } else {
                 board.setBranches([]);
                 document.getElementById('passBtn').disabled = true;
             }
 
             // 更新统计
-            if (nextNodeData && nextNodeData.leaf) {
+            if (currentNode.leaf) {
                 updateStats({
-                    moves: nextNodeData.moves,
-                    freq: nextNodeData.total_freq || nextNodeData.freq,
-                    prob: nextNodeData.prob
+                    moves: currentNode.moves,
+                    freq: currentNode.total_freq || currentNode.freq,
+                    prob: currentNode.prob
                 });
             } else {
-                updateStats({ moves: currentIndex });
+                updateStats({ moves: currentNodePath.length });
             }
 
             updateControls();
@@ -561,104 +336,68 @@
         }
 
         function updateControls() {
-            document.getElementById('undoBtn').disabled = currentIndex <= 0;
-            document.getElementById('favBtn').disabled = currentIndex < 2;
+            document.getElementById('undoBtn').disabled = currentNodePath.length <= 0;
+            document.getElementById('favBtn').disabled = currentNodePath.length < 2;
         }
 
         async function undo() {
-            if (currentIndex <= 0) return;
-            
+            if (currentNodePath.length <= 0) return;
+
             // 移除最后一个棋子
-            currentIndex--;
             currentMoves.pop();
             currentNodePath.pop();
-            
-            // 先设置棋盘状态
-            board.setMoves(currentMoves, currentIndex);
-            
-            // 再恢复选点状态
-            await restoreBranches();
-            
-            updateControls();
-        }
-        
-        async function restoreBranches() {
-            // 根据当前局面恢复分支选点
-            
-            if (currentIndex === 0) {
-                // 回到首着选择
+
+            // 回到上一节点
+            currentNode = trieRoot;
+            for (const coord of currentNodePath) {
+                if (currentNode.subtree && !currentNode.children) {
+                    await loadSubtree(currentNode);
+                }
+                currentNode = currentNode.children[coord];
+            }
+
+            // 更新棋盘
+            board.setMoves(currentMoves, currentMoves.length);
+
+            // 恢复选点
+            if (currentNodePath.length === 0) {
                 showFirstMoveBranches();
                 document.getElementById('passBtn').disabled = true;
                 updateStats({ moves: 0 });
-                return;
-            }
-            
-            if (currentIndex === 1) {
-                // 回到二着选择
-                const firstMove = currentNodePath[0];
-                const secondMovesData = trieIndex.secondMoves[firstMove] || [];
+            } else {
+                if (currentNode.subtree && !currentNode.children) {
+                    await loadSubtree(currentNode);
+                }
                 
-                if (secondMovesData.length > 0) {
-                    const branches = secondMovesData.slice(0, 20).map(sm => {
-                        const smData = JosekiUtils.sgfToCoord(sm.coord);
-                        return {
-                            ...smData,
-                            color: 'white',
-                            sgf: sm.coord,
-                            count: sm.count
-                        };
-                    });
+                if (currentNode.children) {
+                    const branches = [];
+                    for (const [c, child] of Object.entries(currentNode.children)) {
+                        if (c === 'coord' || c === 'color' || c === 'freq') continue;
+                        const cd = JosekiUtils.sgfToCoord(c);
+                        if (cd) {
+                            branches.push({
+                                ...cd,
+                                color: child.color,
+                                sgf: c,
+                                freq: child.freq
+                            });
+                        }
+                    }
                     board.setBranches(branches);
-                    document.getElementById('passBtn').disabled = !secondMovesData.some(sm => sm.coord === 'tt');
+                    document.getElementById('passBtn').disabled = !currentNode.children['tt'];
                 } else {
                     board.setBranches([]);
                     document.getElementById('passBtn').disabled = true;
                 }
-                updateStats({ moves: 1 });
-                return;
-            }
-            
-            // 后续着法：重新加载分桶获取分支
-            const bucketKey = currentNodePath.slice(0, 2).join('-');
-            
-            if (!currentBucket || currentBucket.prefix !== bucketKey) {
-                currentBucket = await loadBucket(bucketKey);
-            }
-            
-            if (!currentBucket) {
-                board.setBranches([]);
-                document.getElementById('passBtn').disabled = true;
-                return;
-            }
-            
-            // 获取当前节点的分支
-            const nodeKey = currentNodePath.slice(2).join('-') || 'root';
-            const nodeData = currentBucket.nodes[nodeKey];
-            
-            if (nodeData && nodeData.children && nodeData.children.length > 0) {
-                const branches = nodeData.children.map(c => ({
-                    ...JosekiUtils.sgfToCoord(c),
-                    color: currentIndex % 2 === 1 ? 'black' : 'white',
-                    isPass: c === 'tt',
-                    sgf: c
-                }));
-                board.setBranches(branches);
-                document.getElementById('passBtn').disabled = !nodeData.children.includes('tt');
-                
-                if (nodeData.leaf) {
-                    updateStats({ moves: nodeData.moves, freq: nodeData.total_freq, prob: nodeData.prob });
+
+                if (currentNode.leaf) {
+                    updateStats({ moves: currentNode.moves, freq: currentNode.total_freq, prob: currentNode.prob });
                 } else {
-                    updateStats({ moves: currentIndex });
-                }
-            } else {
-                board.setBranches([]);
-                document.getElementById('passBtn').disabled = true;
-                if (nodeData && nodeData.leaf) {
-                    updateStats({ moves: nodeData.moves, freq: nodeData.total_freq, prob: nodeData.prob });
-                } else {
-                    updateStats({ moves: currentIndex });
+                    updateStats({ moves: currentNodePath.length });
                 }
             }
+
+            updateControls();
         }
 
         // ========== 收藏功能 ==========
@@ -684,14 +423,13 @@
                 return String.fromCharCode(97 + m.x, 97 + m.y);
             }).join('-');
 
-            if (favorites.some(f => f.path === path)) {
-                return;
-            }
+            if (favorites.some(f => f.path === path)) return;
 
             favorites.push({
                 path: path,
                 moves: currentMoves.length,
-                freq: parseInt(document.getElementById('statFreq').textContent.replace('K', '000')) || 0,
+                freq: currentNode.total_freq || currentNode.freq || 0,
+                prob: currentNode.prob || 0,
                 date: new Date().toISOString().split('T')[0]
             });
 
@@ -810,9 +548,8 @@
         document.getElementById('favBtn').addEventListener('click', addFavorite);
         document.getElementById('resetBtn').addEventListener('click', () => {
             currentMoves = [];
-            currentIndex = 0;
             currentNodePath = [];
-            currentBucket = null;
+            currentNode = trieRoot;
             board.setMoves([]);
             showFirstMoveBranches();
             updateStats({});
