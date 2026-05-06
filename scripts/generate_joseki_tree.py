@@ -40,8 +40,12 @@ def load_joseki_list():
 
 
 def build_trie(joseki_list):
-    """构建完整 trie 树"""
-    root = {'coord': None, 'children': {}, 'freq': 0}
+    """构建完整 trie 树
+    
+    每条定式记录是完整的着法串，带有 freq 和 prob。
+    定式可能是其他定式的前缀，在 trie 中体现为中间节点。
+    """
+    root = {'coord': None, 'children': {}}
 
     for j in joseki_list:
         moves = j['moves']
@@ -49,6 +53,7 @@ def build_trie(joseki_list):
             continue
 
         freq = j.get('frequency', 0)
+        prob = j.get('probability', 0)
         node = root
 
         for i, coord in enumerate(moves):
@@ -57,27 +62,53 @@ def build_trie(joseki_list):
                 node['children'][coord] = {
                     'coord': coord,
                     'color': color,
-                    'children': {},
-                    'freq': 0
+                    'children': {}
                 }
-
-            node['children'][coord]['freq'] += freq
             node = node['children'][coord]
 
-        node['leaf'] = True
+        # 到达定式终点，设置该定式的指标数据
         node['moves'] = len(moves)
         node['name'] = j.get('id', '')
-        node['total_freq'] = freq
-        node['prob'] = j.get('probability', 0)
+        # 如果该节点已经是定式（相同路径的定式），累加 freq
+        node['freq'] = node.get('freq', 0) + freq
+        node['prob'] = node.get('prob', 0) + prob
 
-    root['freq'] = sum(j.get('frequency', 0) for j in joseki_list)
+    # 计算所有节点的热度
+    calc_heat(root)
     return root
 
 
+def calc_heat(node):
+    """计算节点热度（后序遍历）
+    
+    规则：
+    - 定式节点（有 freq）：heat = freq
+    - 非定式节点：heat = sum(孩子节点的 heat)
+    
+    注意：即使当前节点是定式，也要递归计算子节点的 heat（子节点可能是其他定式）
+    """
+    children = node.get('children', {})
+    
+    # 先递归计算所有子节点的 heat
+    for child in children.values():
+        calc_heat(child)
+    
+    # 再计算当前节点的 heat
+    if node.get('freq'):
+        node['heat'] = node['freq']
+    else:
+        heat = 0
+        for child in children.values():
+            heat += child.get('heat', 0)
+        node['heat'] = heat
+    
+    return node['heat']
+
+
 def count_joseki_nodes(node):
-    """统计节点下的定式数"""
+    """统计节点下的定式数（包括中间定式节点）"""
     count = 0
-    if node.get('leaf'):
+    if node.get('freq'):  # 有指标数据 = 是定式
         count += 1
 
     children = node.get('children')
@@ -93,14 +124,14 @@ def serialize_trie(node):
     result = {
         'coord': node.get('coord'),
         'color': node.get('color'),
-        'freq': node.get('freq', 0),
+        'heat': node.get('heat', 0),  # 所有节点都有 heat
     }
 
-    if node.get('leaf'):
-        result['leaf'] = True
+    # 定式节点才有 freq 和 prob（可能是中间定式节点）
+    if node.get('freq'):
         result['moves'] = node.get('moves')
-        result['total_freq'] = node.get('total_freq')
-        result['prob'] = node.get('prob')
+        result['freq'] = node.get('freq', 0)
+        result['prob'] = node.get('prob', 0)
 
     if node.get('subtree'):
         result['subtree'] = node['subtree']
@@ -166,8 +197,8 @@ def export_subtree(node, filename, threshold, output_dir):
 
 
 def collect_difficulty(node):
-    """收集难度统计"""
-    if node.get('leaf'):
+    """收集难度统计（包括中间定式节点）"""
+    if node.get('freq'):  # 有指标数据 = 是定式
         moves = node.get('moves', 0)
         if moves <= 10:
             stats['difficulty']['easy'] += 1
@@ -182,12 +213,15 @@ def collect_difficulty(node):
             collect_difficulty(child)
 
 
-def collect_leaves(node, path='', leaves=None):
-    """收集所有定式叶子节点"""
-    if leaves is None:
-        leaves = {'easy': [], 'medium': [], 'hard': []}
+def collect_joseki_nodes(node, path='', nodes=None):
+    """收集所有定式节点（包括中间定式节点）
     
-    if node.get('leaf'):
+    定式节点：有 freq 和 prob 的节点，可能同时有 children（中间定式节点）
+    """
+    if nodes is None:
+        nodes = {'easy': [], 'medium': [], 'hard': []}
+    
+    if node.get('freq'):  # 该节点是定式
         moves = node.get('moves', 0)
         if moves <= 10:
             difficulty = 'easy'
@@ -196,10 +230,10 @@ def collect_leaves(node, path='', leaves=None):
         else:
             difficulty = 'hard'
         
-        leaves[difficulty].append({
+        nodes[difficulty].append({
             'path': path,
             'moves': moves,
-            'freq': node.get('total_freq', 0),
+            'freq': node.get('freq', 0),
             'prob': node.get('prob', 0)
         })
     
@@ -207,9 +241,9 @@ def collect_leaves(node, path='', leaves=None):
     if children:
         for coord, child in children.items():
             child_path = f'{path}-{coord}' if path else coord
-            collect_leaves(child, child_path, leaves)
+            collect_joseki_nodes(child, child_path, nodes)
     
-    return leaves
+    return nodes
 
 
 
@@ -240,8 +274,8 @@ def build(output_dir, threshold):
 
     # 先收集做题数据（在裁剪前，确保遍历所有节点）
     print("\n收集做题数据...")
-    quiz_leaves = collect_leaves(trie)
-    for difficulty, items in quiz_leaves.items():
+    quiz_nodes = collect_joseki_nodes(trie)
+    for difficulty, items in quiz_nodes.items():
         print(f"  {difficulty}: {len(items)}题")
 
     print("\n开始裁剪...")
@@ -259,7 +293,7 @@ def build(output_dir, threshold):
 
     # 导出做题数据
     print("\n导出做题数据...")
-    for difficulty, items in quiz_leaves.items():
+    for difficulty, items in quiz_nodes.items():
         if not items:
             continue
         
