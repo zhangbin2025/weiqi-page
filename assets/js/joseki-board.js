@@ -255,31 +255,40 @@
             const maxHeat = Math.max(...allHeats, 1);
             const minHeat = Math.min(...allHeats, 0);
             
+            // 如果没有热度数据或只有一个选点，使用固定大小
+            const hasHeatData = allHeats.some(h => h > 0);
+            
             for (const branch of this.branches) {
                 if (branch.isPass) {
                     // 脱先：固定在左下角
                     const cx = padding;  // 左边距处
                     const cy = canvasSize - padding;  // 下边距处
                     
-                    // 计算热度比例（对数尺度）
-                    const heat = branch.heat || 0;
-                    const logMin = Math.log(minHeat + 1);
-                    const logMax = Math.log(maxHeat + 1);
-                    const logHeat = Math.log(heat + 1);
-                    const ratio = logMax > logMin ? (logHeat - logMin) / (logMax - logMin) : 0.5;
-                    
-                    // 和其他选点一样的圆圈大小（多档，整体缩小）
-                    const minRadius = gridSize * 0.12;
-                    const maxRadius = gridSize * 0.30;
-                    const radius = minRadius + ratio * (maxRadius - minRadius);
-                    
-                    const minAlpha = 0.25;
-                    const maxAlpha = 0.65;
-                    const alpha = minAlpha + ratio * (maxAlpha - minAlpha);
-                    
-                    const minLineWidth = 1;
-                    const maxLineWidth = 3;
-                    const lineWidth = minLineWidth + ratio * (maxLineWidth - minLineWidth);
+                    // 根据是否有热度数据决定大小
+                    let radius, alpha, lineWidth;
+                    if (!hasHeatData) {
+                        radius = gridSize * 0.35;
+                        alpha = 0.5;
+                        lineWidth = 2;
+                    } else {
+                        const heat = branch.heat || 0;
+                        const logMin = Math.log(minHeat + 1);
+                        const logMax = Math.log(maxHeat + 1);
+                        const logHeat = Math.log(heat + 1);
+                        const ratio = logMax > logMin ? (logHeat - logMin) / (logMax - logMin) : 0.5;
+                        
+                        const minRadius = gridSize * 0.12;
+                        const maxRadius = gridSize * 0.30;
+                        radius = minRadius + ratio * (maxRadius - minRadius);
+                        
+                        const minAlpha = 0.25;
+                        const maxAlpha = 0.65;
+                        alpha = minAlpha + ratio * (maxAlpha - minAlpha);
+                        
+                        const minLineWidth = 1;
+                        const maxLineWidth = 3;
+                        lineWidth = minLineWidth + ratio * (maxLineWidth - minLineWidth);
+                    }
                     
                     // 和其他选点一样的颜色（黑方橙色，白方蓝色）
                     ctx.beginPath();
@@ -316,23 +325,33 @@
 
                     // 归一化热度到 0-1（对数尺度，让差距更明显）
                     const heat = branch.heat || 0;
-                    const logMin = Math.log(minHeat + 1);
-                    const logMax = Math.log(maxHeat + 1);
-                    const logHeat = Math.log(heat + 1);
-                    const ratio = logMax > logMin ? (logHeat - logMin) / (logMax - logMin) : 0.5;
-
-                    // 根据热度计算圆圈大小（多档，整体缩小）
-                    const minRadius = gridSize * 0.12;
-                    const maxRadius = gridSize * 0.30;
-                    const radius = minRadius + ratio * (maxRadius - minRadius);
                     
-                    const minAlpha = 0.25;
-                    const maxAlpha = 0.65;
-                    const alpha = minAlpha + ratio * (maxAlpha - minAlpha);
-                    
-                    const minLineWidth = 1;
-                    const maxLineWidth = 3;
-                    const lineWidth = minLineWidth + ratio * (maxLineWidth - minLineWidth);
+                    // 根据是否有热度数据决定大小
+                    let radius, alpha, lineWidth;
+                    if (!hasHeatData) {
+                        // 无热度数据：使用固定大小
+                        radius = gridSize * 0.35;
+                        alpha = 0.5;
+                        lineWidth = 2;
+                    } else {
+                        const logMin = Math.log(minHeat + 1);
+                        const logMax = Math.log(maxHeat + 1);
+                        const logHeat = Math.log(heat + 1);
+                        const ratio = logMax > logMin ? (logHeat - logMin) / (logMax - logMin) : 0.5;
+                        
+                        // 根据热度计算圆圈大小（多档，整体缩小）
+                        const minRadius = gridSize * 0.12;
+                        const maxRadius = gridSize * 0.30;
+                        radius = minRadius + ratio * (maxRadius - minRadius);
+                        
+                        const minAlpha = 0.25;
+                        const maxAlpha = 0.65;
+                        alpha = minAlpha + ratio * (maxAlpha - minAlpha);
+                        
+                        const minLineWidth = 1;
+                        const maxLineWidth = 3;
+                        lineWidth = minLineWidth + ratio * (maxLineWidth - minLineWidth);
+                    }
 
                     // 半透明圆形标记
                     ctx.beginPath();
