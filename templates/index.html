@@ -329,6 +329,10 @@
             background: linear-gradient(135deg, #7E57C2 0%, #9575CD 100%);
             box-shadow: 0 4px 12px rgba(126, 87, 194, 0.3);
         }
+        .tool-icon.play {
+            background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
         .tool-name {
             font-size: 0.85em;
             color: #555;
@@ -474,6 +478,10 @@
             <a href="{{ base_path }}/tools/joseki/" class="tool-item" onclick="closeToolsPanel()">
                 <div class="tool-icon joseki">📚</div>
                 <span class="tool-name">定式</span>
+            </a>
+            <a href="{{ base_path }}/tools/play/" class="tool-item" onclick="closeToolsPanel()">
+                <div class="tool-icon play">🎮</div>
+                <span class="tool-name">对弈</span>
             </a>
         </div>
     </div>

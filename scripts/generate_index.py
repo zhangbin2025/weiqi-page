@@ -341,6 +341,95 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到定式工具目录: {joseki_src_dir}")
     
+    # 复制对弈工具目录到站点
+    from config import WEIQI_PLAY_DIR
+    
+    play_src_dir = WEIQI_PLAY_DIR
+    play_dst_dir = tools_dst / "play"
+    
+    if play_src_dir.exists():
+        play_dst_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 复制 index.html 并重命名为 game.html
+        src_index = play_src_dir / "index.html"
+        dst_game = play_dst_dir / "game.html"
+        if src_index.exists():
+            content = src_index.read_text(encoding='utf-8')
+            # 替换绝对路径为相对路径
+            content = content.replace('src="/index.js"', 'src="./index.js"')
+            dst_game.write_text(content, encoding='utf-8')
+            print(f"✅ 复制对弈页面: {dst_game.name}")
+        
+        # 复制 index.js 并替换路径
+        src_js = play_src_dir / "index.js"
+        dst_js = play_dst_dir / "index.js"
+        if src_js.exists():
+            content = src_js.read_text(encoding='utf-8')
+            # 替换所有绝对路径为相对路径
+            # Worker 路径：/assets/worker-xxx.js -> ./assets/worker-xxx.js
+            content = content.replace('"/assets/', '"./assets/')
+            # 模型路径：/models/ -> ../models/（Worker 在 assets/ 子目录，需要上一级）
+            content = content.replace('"/models/', '"../models/')
+            content = content.replace("'/models/", "'../models/")
+            # 同时替换 ./models/ 为 ../models/（因为 Worker 在 assets/ 子目录）
+            content = content.replace('"./models/', '"../models/')
+            content = content.replace("'./models/", "'../models/")
+            # 结束对局后跳转到 index.html（去掉“是否开始新对局”的对话框）
+            content = content.replace(
+                'setTimeout(()=>{confirm("是否开始新对局？")&&C()},500)',
+                "window.location.href='index.html'"
+            )
+            dst_js.write_text(content, encoding='utf-8')
+            print(f"✅ 复制对弈 JS: {dst_js.name}")
+        
+        # 复制 assets 目录（包含 worker.js）
+        assets_src = play_src_dir / "assets"
+        assets_dst = play_dst_dir / "assets"
+        if assets_src.exists():
+            if assets_dst.exists():
+                shutil.rmtree(assets_dst)
+            shutil.copytree(assets_src, assets_dst)
+            print(f"✅ 复制对弈资源: {assets_dst}")
+        
+        # 复制 models 目录
+        models_src = play_src_dir / "models"
+        models_dst = play_dst_dir / "models"
+        if models_src.exists():
+            if models_dst.exists():
+                shutil.rmtree(models_dst)
+            shutil.copytree(models_src, models_dst)
+            print(f"✅ 复制模型文件: {models_dst}")
+        
+        # 复制 tfjs 目录
+        tfjs_src = play_src_dir / "tfjs"
+        tfjs_dst = play_dst_dir / "tfjs"
+        if tfjs_src.exists():
+            if tfjs_dst.exists():
+                shutil.rmtree(tfjs_dst)
+            shutil.copytree(tfjs_src, tfjs_dst)
+            print(f"✅ 复制 TensorFlow.js 文件: {tfjs_dst}")
+        
+        print(f"✅ 复制对弈工具目录完成")
+    else:
+        print(f"⚠️ 警告: 未找到对弈工具目录: {play_src_dir}")
+    
+    # 复制对弈工具模板文件到站点
+    play_templates_src = TEMPLATES_DIR / "tools" / "play"
+    play_templates_dst = tools_dst / "play"
+    
+    if play_templates_src.exists():
+        for src_file in play_templates_src.glob("*.html"):
+            # 跳过 game.html，因为已经从 dist 复制了
+            if src_file.name == "game.html":
+                continue
+            dst_file = play_templates_dst / src_file.name
+            content = src_file.read_text(encoding='utf-8')
+            content = content.replace('{{ base_path }}', base_path)
+            dst_file.write_text(content, encoding='utf-8')
+            print(f"✅ 复制对弈工具页面: {dst_file.name}")
+    else:
+        print(f"⚠️ 警告: 未找到对弈工具模板目录: {play_templates_src}")
+    
     # 复制认证页面到站点
     auth_src = TEMPLATES_DIR / "auth.html"
     auth_dst = base_dir / "auth.html"

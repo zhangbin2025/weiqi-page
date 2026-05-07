@@ -22,6 +22,9 @@ WEIQI_PAGE_DIR = SCRIPT_DIR.parent  # scripts/ 的父目录
 # 工作目录：优先使用环境变量，其次使用相对路径
 WORKSPACE_DIR = Path(os.getenv("WEIQI_WORKSPACE", WEIQI_PAGE_DIR.parent))
 
+# AI 项目目录
+WEIQI_AI_DIR = WORKSPACE_DIR / "weiqi-ai"
+
 # GitHub 用户名 - 必须配置，用于生成站点链接
 # 优先从 .env 文件加载，其次尝试 git config
 GITHUB_USERNAME = os.getenv("GITHUB_USERNAME")
@@ -77,6 +80,9 @@ WEIQI_FOXWQ_SCRIPT = SKILLS_DIR / "weiqi-foxwq/scripts/download_sgf.py"
 
 # 记谱工具路径 - 优先使用环境变量，其次在工作区查找
 WEIQI_RECORDER_PATH = Path(os.getenv("WEIQI_RECORDER_PATH", WORKSPACE_DIR.parent / ".openclaw/workspace/weiqi-recorder/assets/weiqi_recorder.html"))
+
+# 对弈工具路径
+WEIQI_PLAY_DIR = WEIQI_AI_DIR / "weiqi-play" / "dist"
 
 # 数据存储路径 - 使用环境变量或默认家目录
 WEIQI_DB_DIR = Path(os.getenv("WEIQI_DB_DIR", HOME_DIR / ".weiqi-db"))
