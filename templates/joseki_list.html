@@ -395,16 +395,22 @@
                 // 胜率统计
                 let winrateDisplay = '-';
                 let winrateClass = 'neutral';
-                let winrateDetail = null;
+                let winrateAttrs = '';
                 if (joseki.winrate_stats) {
                     const wr = joseki.winrate_stats;
                     const delta = wr.delta || 0;
-                    winrateDetail = wr;
-                    // 显示格式（不显示样本数和图标）
+                    const stddev = wr.stddev || 0;
+                    const samples = wr.samples || 0;
+                    const positive = wr.positive || 0;
+                    const negative = wr.negative || 0;
+                    const neutral = wr.neutral || 0;
+                    // 显示格式
                     winrateDisplay = (delta > 0 ? '+' : '') + (delta * 100).toFixed(2) + '%';
                     // 样式类
                     if (delta > 0.02) winrateClass = 'positive';
                     else if (delta < -0.02) winrateClass = 'negative';
+                    // 单独的 data 属性
+                    winrateAttrs = 'data-delta="' + delta + '" data-stddev="' + stddev + '" data-samples="' + samples + '" data-positive="' + positive + '" data-negative="' + negative + '" data-neutral="' + neutral + '"';
                 }
                 // 准备缩略图数据：moves 可能是数组或 SGF 字符串
                 let movesStr = '';
@@ -416,7 +422,7 @@
                         movesStr = joseki.moves;
                     }
                 }
-                return '<div class="joseki-card-link" data-joseki-id="' + (joseki.id || joseki.path) + '" data-path="' + joseki.path + '" data-winrate="' + (winrateDetail ? JSON.stringify(winrateDetail) : '') + '"><div class="joseki-card ' + visitedClass + '"><div class="joseki-header"><div class="joseki-players"><span class="stone-icon stone-black"></span>' + joseki.black + '<span class="joseki-vs">vs</span><span class="stone-icon stone-white"></span>' + joseki.white + '</div></div><div class="joseki-tags-row"><div class="joseki-meta">' + (joseki.event || '') + '</div></div><div class="joseki-body"><div class="metrics-row"><canvas class="joseki-thumbnail" width="200" height="200" data-moves="' + movesStr + '" data-prefix-len="' + joseki.matched_prefix_len + '"></canvas><div class="metrics-info"><div class="metric-col"><span class="metric-value">' + joseki.matched_prefix_len + '/' + joseki.move_count + '</span><span class="metric-label">匹配/总手数</span></div><div class="metric-col"><span class="metric-value">' + (joseki.frequency || 0) + '</span><span class="metric-label">库出现次数</span></div><div class="metric-col"><span class="metric-value">' + probDisplay + '</span><span class="metric-label">库出现概率</span></div><div class="metric-col"><span class="metric-value winrate-value ' + winrateClass + '" data-winrate-data="' + (winrateDetail ? JSON.stringify(winrateDetail) : '') + '">' + winrateDisplay + '</span><span class="metric-label">胜率变化</span></div></div></div></div><div class="joseki-footer"><div class="joseki-tags">' + tags.join('') + '</div>' + (joseki.game_path ? '<button class="game-btn" data-game-path="' + joseki.game_path + '">📖 棋谱</button>' : '') + '</div></div></div>';
+                return '<div class="joseki-card-link" data-joseki-id="' + (joseki.id || joseki.path) + '" data-path="' + joseki.path + '"><div class="joseki-card ' + visitedClass + '"><div class="joseki-header"><div class="joseki-players"><span class="stone-icon stone-black"></span>' + joseki.black + '<span class="joseki-vs">vs</span><span class="stone-icon stone-white"></span>' + joseki.white + '</div></div><div class="joseki-tags-row"><div class="joseki-meta">' + (joseki.event || '') + '</div></div><div class="joseki-body"><div class="metrics-row"><canvas class="joseki-thumbnail" width="200" height="200" data-moves="' + movesStr + '" data-prefix-len="' + joseki.matched_prefix_len + '"></canvas><div class="metrics-info"><div class="metric-col"><span class="metric-value">' + joseki.matched_prefix_len + '/' + joseki.move_count + '</span><span class="metric-label">匹配/总手数</span></div><div class="metric-col"><span class="metric-value">' + (joseki.frequency || 0) + '</span><span class="metric-label">库出现次数</span></div><div class="metric-col"><span class="metric-value">' + probDisplay + '</span><span class="metric-label">库出现概率</span></div><div class="metric-col"><span class="metric-value winrate-value ' + winrateClass + '" ' + winrateAttrs + '>' + winrateDisplay + '</span><span class="metric-label">胜率变化</span></div></div></div></div><div class="joseki-footer"><div class="joseki-tags">' + tags.join('') + '</div>' + (joseki.game_path ? '<button class="game-btn" data-game-path="' + joseki.game_path + '">📖 棋谱</button>' : '') + '</div></div></div>';
             }).join('');
             restoreScrollPosition();
         }
@@ -487,26 +493,22 @@
             // 查找或创建详情卡片
             let detailCard = el.parentElement.querySelector('.winrate-detail-card');
             if (!detailCard) {
-                // 获取胜率数据
-                let winrateData = null;
-                try {
-                    winrateData = JSON.parse(el.dataset.winrateData || '{}');
-                } catch(ex) {}
+                // 获取胜率数据（从单独的 data 属性）
+                const delta = parseFloat(el.dataset.delta || 0);
+                const stddev = parseFloat(el.dataset.stddev || 0);
+                const samples = parseInt(el.dataset.samples || 0);
                 
-                if (!winrateData || !winrateData.samples) {
+                if (!samples) {
                     return; // 无数据
                 }
+                
+                const positive = parseInt(el.dataset.positive || 0);
+                const negative = parseInt(el.dataset.negative || 0);
+                const neutral = parseInt(el.dataset.neutral || 0);
                 
                 // 创建详情卡片
                 detailCard = document.createElement('div');
                 detailCard.className = 'winrate-detail-card';
-                
-                const delta = winrateData.delta || 0;
-                const stddev = winrateData.stddev || 0;
-                const samples = winrateData.samples || 0;
-                const positive = winrateData.positive || 0;
-                const negative = winrateData.negative || 0;
-                const neutral = winrateData.neutral || 0;
                 
                 // 计算百分比
                 const posPct = samples > 0 ? Math.round(positive / samples * 100) : 0;
