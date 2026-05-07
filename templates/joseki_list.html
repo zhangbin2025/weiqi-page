@@ -540,7 +540,7 @@
                 backdrop = document.createElement('div');
                 backdrop.id = 'winrate-backdrop';
                 backdrop.className = 'winrate-backdrop';
-                backdrop.onclick = closeWinrateSheet;
+                backdrop.addEventListener('click', closeWinrateSheet);
                 document.body.appendChild(backdrop);
                 
                 sheet = document.createElement('div');
@@ -553,7 +553,7 @@
             sheet.innerHTML = 
                 '<div class="winrate-sheet-header">' +
                     '<span class="winrate-title">📈 胜率详情</span>' +
-                    '<button class="winrate-close-btn" onclick="closeWinrateSheet()">✕</button>' +
+                    '<button class="winrate-close-btn" id="winrate-close-btn">✕</button>' +
                 '</div>' +
                 '<div class="winrate-detail-row"><span class="winrate-detail-label">胜率变化</span><span class="winrate-detail-value">' + (delta > 0 ? '+' : '') + (delta * 100).toFixed(2) + '%</span></div>' +
                 '<div class="winrate-detail-row"><span class="winrate-detail-label">标准差</span><span class="winrate-detail-value">' + stddev.toFixed(4) + ' (' + stability + ')</span></div>' +
@@ -573,6 +573,12 @@
             // 显示弹窗
             backdrop.classList.add('active');
             sheet.classList.add('active');
+            
+            // 绑定关闭按钮事件
+            const closeBtn = document.getElementById('winrate-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeWinrateSheet);
+            }
         }
         
         function closeWinrateSheet() {
