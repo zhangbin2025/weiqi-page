@@ -241,7 +241,8 @@ def collect_joseki_nodes(node, path='', nodes=None):
             'path': path,
             'moves': moves,
             'freq': node.get('freq', 0),
-            'prob': node.get('prob', 0)
+            'prob': node.get('prob', 0),
+            'winrate': node.get('winrate')
         })
     
     children = node.get('children')
