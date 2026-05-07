@@ -939,11 +939,8 @@
             backdrop.classList.add('active');
             sheet.classList.add('active');
             
-            // 绑定关闭按钮事件
-            const closeBtn = document.getElementById('winrate-close-btn');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', closeWinrateSheet);
-            }
+            // 每次更新内容后重新绑定关闭按钮事件
+            document.getElementById('winrate-close-btn').addEventListener('click', closeWinrateSheet);
         }
         
         function closeWinrateSheet() {
