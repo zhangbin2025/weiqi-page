@@ -54,6 +54,7 @@ def build_trie(joseki_list):
 
         freq = j.get('frequency', 0)
         prob = j.get('probability', 0)
+        winrate = j.get('winrate_stats')  # 胜率统计
         node = root
 
         for i, coord in enumerate(moves):
@@ -72,6 +73,9 @@ def build_trie(joseki_list):
         # 如果该节点已经是定式（相同路径的定式），累加 freq
         node['freq'] = node.get('freq', 0) + freq
         node['prob'] = node.get('prob', 0) + prob
+        # 胜率统计（只保存第一个，因为累加没有意义）
+        if winrate and 'winrate' not in node:
+            node['winrate'] = winrate
 
     # 计算所有节点的热度
     calc_heat(root)
@@ -132,6 +136,9 @@ def serialize_trie(node):
         result['moves'] = node.get('moves')
         result['freq'] = node.get('freq', 0)
         result['prob'] = node.get('prob', 0)
+        # 胜率统计
+        if node.get('winrate'):
+            result['winrate'] = node['winrate']
 
     if node.get('subtree'):
         result['subtree'] = node['subtree']

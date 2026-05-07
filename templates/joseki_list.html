@@ -52,6 +52,26 @@
         .metric-col { display: flex; flex-direction: column; gap: 2px; }
         .metric-value { font-size: 1.1em; font-weight: 600; color: #667eea; }
         .metric-label { font-size: 0.75em; color: #888; }
+        /* 胜率指标样式 */
+        .winrate-value { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+        .winrate-value:hover { opacity: 0.8; }
+        .winrate-value.positive { color: #2e7d32; }
+        .winrate-value.negative { color: #c62828; }
+        .winrate-value.neutral { color: #666; }
+        .winrate-detail-icon { font-size: 0.85em; opacity: 0.6; }
+        /* 胜率详情卡片 */
+        .winrate-detail-card { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 16px; z-index: 100; display: none; margin-top: 8px; }
+        .winrate-detail-card.active { display: block; }
+        .winrate-detail-header { font-weight: 600; margin-bottom: 12px; color: #333; }
+        .winrate-detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; }
+        .winrate-detail-label { color: #666; }
+        .winrate-detail-value { font-weight: 500; }
+        .winrate-bar { height: 24px; border-radius: 12px; overflow: hidden; background: #f5f5f5; margin: 8px 0; display: flex; }
+        .winrate-bar-positive { background: #4caf50; }
+        .winrate-bar-neutral { background: #bdbdbd; }
+        .winrate-bar-negative { background: #f44336; }
+        .winrate-bar-labels { display: flex; justify-content: space-between; font-size: 0.75em; color: #666; margin-top: 4px; }
+        .winrate-hint { font-size: 0.8em; color: #999; margin-top: 12px; padding-top: 8px; border-top: 1px solid #eee; }
         .joseki-footer { padding: 10px 15px; background: #fafafa; border-top: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
         .joseki-tags { display: flex; gap: 6px; }
         .joseki-meta { font-size: 0.85em; color: #888; }
@@ -370,6 +390,23 @@
                 } else {
                     probDisplay = '0%';
                 }
+                // 胜率统计
+                let winrateDisplay = '-';
+                let winrateClass = 'neutral';
+                let winrateDetail = null;
+                if (joseki.winrate_stats) {
+                    const wr = joseki.winrate_stats;
+                    const delta = wr.delta || 0;
+                    const samples = wr.samples || 0;
+                    winrateDetail = wr;
+                    // 显示格式
+                    winrateDisplay = (delta > 0 ? '+' : '') + (delta * 100).toFixed(2) + '%';
+                    // 样式类
+                    if (delta > 0.02) winrateClass = 'positive';
+                    else if (delta < -0.02) winrateClass = 'negative';
+                    // 添加样本数
+                    winrateDisplay += ' <span class="winrate-detail-icon">🔍</span>(' + samples + ')';
+                }
                 // 准备缩略图数据：moves 可能是数组或 SGF 字符串
                 let movesStr = '';
                 if (joseki.moves) {
@@ -380,13 +417,18 @@
                         movesStr = joseki.moves;
                     }
                 }
-                return '<div class="joseki-card-link" data-joseki-id="' + (joseki.id || joseki.path) + '" data-path="' + joseki.path + '"><div class="joseki-card ' + visitedClass + '"><div class="joseki-header"><div class="joseki-players"><span class="stone-icon stone-black"></span>' + joseki.black + '<span class="joseki-vs">vs</span><span class="stone-icon stone-white"></span>' + joseki.white + '</div></div><div class="joseki-tags-row"><div class="joseki-meta">' + (joseki.event || '') + '</div></div><div class="joseki-body"><div class="metrics-row"><canvas class="joseki-thumbnail" width="200" height="200" data-moves="' + movesStr + '" data-prefix-len="' + joseki.matched_prefix_len + '"></canvas><div class="metrics-info"><div class="metric-col"><span class="metric-value">' + joseki.matched_prefix_len + '/' + joseki.move_count + '</span><span class="metric-label">匹配/总手数</span></div><div class="metric-col"><span class="metric-value">' + (joseki.frequency || 0) + '</span><span class="metric-label">库出现次数</span></div><div class="metric-col"><span class="metric-value">' + probDisplay + '</span><span class="metric-label">库出现概率</span></div></div></div></div><div class="joseki-footer"><div class="joseki-tags">' + tags.join('') + '</div>' + (joseki.game_path ? '<button class="game-btn" data-game-path="' + joseki.game_path + '">📖 棋谱</button>' : '') + '</div></div></div>';
+                return '<div class="joseki-card-link" data-joseki-id="' + (joseki.id || joseki.path) + '" data-path="' + joseki.path + '" data-winrate="' + (winrateDetail ? JSON.stringify(winrateDetail) : '') + '"><div class="joseki-card ' + visitedClass + '"><div class="joseki-header"><div class="joseki-players"><span class="stone-icon stone-black"></span>' + joseki.black + '<span class="joseki-vs">vs</span><span class="stone-icon stone-white"></span>' + joseki.white + '</div></div><div class="joseki-tags-row"><div class="joseki-meta">' + (joseki.event || '') + '</div></div><div class="joseki-body"><div class="metrics-row"><canvas class="joseki-thumbnail" width="200" height="200" data-moves="' + movesStr + '" data-prefix-len="' + joseki.matched_prefix_len + '"></canvas><div class="metrics-info"><div class="metric-col"><span class="metric-value">' + joseki.matched_prefix_len + '/' + joseki.move_count + '</span><span class="metric-label">匹配/总手数</span></div><div class="metric-col"><span class="metric-value">' + (joseki.frequency || 0) + '</span><span class="metric-label">库出现次数</span></div><div class="metric-col"><span class="metric-value">' + probDisplay + '</span><span class="metric-label">库出现概率</span></div><div class="metric-col"><span class="metric-value winrate-value ' + winrateClass + '" onclick="toggleWinrateDetail(event, this)">' + winrateDisplay + '</span><span class="metric-label">胜率变化</span></div></div></div></div><div class="joseki-footer"><div class="joseki-tags">' + tags.join('') + '</div>' + (joseki.game_path ? '<button class="game-btn" data-game-path="' + joseki.game_path + '">📖 棋谱</button>' : '') + '</div></div></div>';
             }).join('');
             restoreScrollPosition();
         }
         
         // 事件委托处理
         function handleJosekiListClick(e) {
+            // 处理胜率详情点击
+            if (e.target.closest('.winrate-value') || e.target.closest('.winrate-detail-card')) {
+                return; // 胜率区域点击不触发跳转
+            }
+            
             // 处理棋谱按钮点击
             const gameBtn = e.target.closest('.game-btn');
             if (gameBtn) {
@@ -421,6 +463,101 @@
             // 跳转
             window.location.href = path;
         }
+        
+        // ========== 胜率详情弹窗 ========== 
+        let activeWinrateCard = null;
+        
+        function toggleWinrateDetail(e, el) {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            // 关闭其他弹窗
+            if (activeWinrateCard && activeWinrateCard !== el) {
+                closeWinrateDetail(activeWinrateCard);
+            }
+            
+            // 查找或创建详情卡片
+            let detailCard = el.parentElement.querySelector('.winrate-detail-card');
+            if (!detailCard) {
+                // 获取胜率数据
+                const linkEl = el.closest('.joseki-card-link');
+                let winrateData = null;
+                try {
+                    winrateData = JSON.parse(linkEl.dataset.winrate || '{}');
+                } catch(ex) {}
+                
+                if (!winrateData || !winrateData.samples) {
+                    return; // 无数据
+                }
+                
+                // 创建详情卡片
+                detailCard = document.createElement('div');
+                detailCard.className = 'winrate-detail-card';
+                
+                const delta = winrateData.delta || 0;
+                const stddev = winrateData.stddev || 0;
+                const samples = winrateData.samples || 0;
+                const positive = winrateData.positive || 0;
+                const negative = winrateData.negative || 0;
+                const neutral = winrateData.neutral || 0;
+                
+                // 计算百分比
+                const posPct = samples > 0 ? Math.round(positive / samples * 100) : 0;
+                const negPct = samples > 0 ? Math.round(negative / samples * 100) : 0;
+                const neuPct = samples > 0 ? Math.round(neutral / samples * 100) : 0;
+                
+                // 稳定性评级
+                let stability = '较稳定';
+                if (stddev < 0.02) stability = '很稳定';
+                else if (stddev < 0.04) stability = '较稳定';
+                else if (stddev < 0.06) stability = '一般';
+                else stability = '不稳定';
+                
+                detailCard.innerHTML = 
+                    '<div class="winrate-detail-header">📈 胜率详情</div>' +
+                    '<div class="winrate-detail-row"><span class="winrate-detail-label">胜率变化</span><span class="winrate-detail-value">' + (delta > 0 ? '+' : '') + (delta * 100).toFixed(2) + '%</span></div>' +
+                    '<div class="winrate-detail-row"><span class="winrate-detail-label">标准差</span><span class="winrate-detail-value">' + stddev.toFixed(4) + ' (' + stability + ') </span></div>' +
+                    '<div class="winrate-detail-row"><span class="winrate-detail-label">样本数</span><span class="winrate-detail-value">' + samples + '</span></div>' +
+                    '<div class="winrate-bar" style="margin-top:8px">' +
+                        '<div class="winrate-bar-positive" style="width:' + posPct + '%"></div>' +
+                        '<div class="winrate-bar-neutral" style="width:' + neuPct + '%"></div>' +
+                        '<div class="winrate-bar-negative" style="width:' + negPct + '%"></div>' +
+                    '</div>' +
+                    '<div class="winrate-bar-labels">' +
+                        '<span>黑有利 ' + positive + ' (' + posPct + '%)</span>' +
+                        '<span>中性 ' + neutral + '</span>' +
+                        '<span>白有利 ' + negative + ' (' + negPct + '%)</span>' +
+                    '</div>' +
+                    '<div class="winrate-hint">💡 delta > 0: 先手有利 | 标准差越小越稳定</div>';
+                
+                el.parentElement.appendChild(detailCard);
+            }
+            
+            // 切换显示
+            if (detailCard.classList.contains('active')) {
+                closeWinrateDetail(el);
+            } else {
+                detailCard.classList.add('active');
+                activeWinrateCard = el;
+            }
+        }
+        
+        function closeWinrateDetail(el) {
+            const detailCard = el.parentElement.querySelector('.winrate-detail-card');
+            if (detailCard) {
+                detailCard.classList.remove('active');
+            }
+            if (activeWinrateCard === el) {
+                activeWinrateCard = null;
+            }
+        }
+        
+        // 点击其他区域关闭弹窗
+        document.addEventListener('click', function(e) {
+            if (activeWinrateCard && !e.target.closest('.winrate-value') && !e.target.closest('.winrate-detail-card')) {
+                closeWinrateDetail(activeWinrateCard);
+            }
+        });
         
         function handleFilterClick(e) {
             const tab = e.target.closest('.filter-tab');
@@ -544,7 +681,7 @@
         window.addEventListener('beforeunload', saveScrollPosition);
         window.addEventListener('pagehide', saveScrollPosition);
     </script>
-    <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260506"></script>
+    <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260506b"></script>
     <script>
         // 在 renderJoseki 后调用缩略图渲染（懒加载）
         const originalRenderJoseki = renderJoseki;
