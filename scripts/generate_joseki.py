@@ -268,6 +268,7 @@ def generate_joseki_for_date(date_str, test_mode=False, sgf_dir=None):
                 "count": frequency,
                 "frequency": frequency,  # 出现次数
                 "probability": joseki.get("probability", 0),  # 出现概率
+                "winrate_stats": joseki.get("winrate_stats"),  # 胜率统计
                 "joseki_id": joseki_id,  # 匹配的定式ID
                 "corner": corner,
                 "black": black_name,
