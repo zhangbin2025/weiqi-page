@@ -24,15 +24,22 @@ DEFAULT_THRESHOLD = 1000
 
 
 def load_joseki_list():
-    """从数据库加载定式"""
+    """从数据库加载定式（支持 gzip 压缩格式）"""
     db_path = Path.home() / '.weiqi-joseki' / 'database.json'
     if not db_path.exists():
         print(f"数据库不存在: {db_path}")
         return []
 
     print(f"加载数据库: {db_path}")
-    with open(db_path) as f:
-        data = json.load(f)
+    
+    # 先尝试按 gzip 格式读取
+    try:
+        with gzip.open(db_path, 'rt', encoding='utf-8') as f:
+            data = json.load(f)
+    except gzip.BadGzipFile:
+        # 不是 gzip 格式，按普通 JSON 读取
+        with open(db_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
 
     joseki_list = data.get('joseki_list', [])
     print(f"定式数量: {len(joseki_list)}")
