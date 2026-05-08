@@ -366,7 +366,8 @@ def generate_index(test_mode=False):
         if src_js.exists():
             content = src_js.read_text(encoding='utf-8')
             # 替换所有绝对路径为相对路径
-            # Worker 路径：/assets/worker-xxx.js -> ./assets/worker-xxx.js
+            # Worker 路径：/assets/worker-xxx.js -> ./assets/worker.js（使用 katago-core 的 worker.js）
+            content = content.replace('"/assets/worker-CXxe1Q_5.js",', '"./assets/worker.js",')
             content = content.replace('"/assets/', '"./assets/')
             # 模型路径：/models/ -> ../models/（Worker 在 assets/ 子目录，需要上一级）
             content = content.replace('"/models/', '"../models/')
@@ -390,6 +391,15 @@ def generate_index(test_mode=False):
                 shutil.rmtree(assets_dst)
             shutil.copytree(assets_src, assets_dst)
             print(f"✅ 复制对弈资源: {assets_dst}")
+        
+        # 额外复制 katago-core 的 worker.js，覆盖 weiqi-play 的 worker.js
+        # 因为 Vite 构建时可能会使用旧的缓存，导致 worker.js 不包含最新修改
+        from config import WEIQI_AI_DIR
+        katago_worker_src = WEIQI_AI_DIR / "katago-core" / "dist" / "assets" / "worker.js"
+        katago_worker_dst = play_dst_dir / "assets" / "worker.js"
+        if katago_worker_src.exists():
+            shutil.copy2(katago_worker_src, katago_worker_dst)
+            print(f"✅ 复制 katago-core worker: {katago_worker_dst}")
         
         # 复制 models 目录
         models_src = play_src_dir / "models"
