@@ -511,6 +511,28 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到云比赛代理 JS: {yunbisai_js_src}")
     
+    # 复制手谈代理 JS 到站点 (assets/js/)
+    shoutan_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "shoutan-proxy.js"
+    shoutan_js_dst = base_dir / "assets" / "js" / "shoutan-proxy.js"
+    
+    if shoutan_js_src.exists():
+        shoutan_js_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(shoutan_js_src, shoutan_js_dst)
+        print(f"✅ 复制手谈代理 JS: {shoutan_js_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到手谈代理 JS: {shoutan_js_src}")
+    
+    # 复制易查分代理 JS 到站点 (assets/js/)
+    yichafen_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "yichafen-proxy.js"
+    yichafen_js_dst = base_dir / "assets" / "js" / "yichafen-proxy.js"
+    
+    if yichafen_js_src.exists():
+        yichafen_js_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(yichafen_js_src, yichafen_js_dst)
+        print(f"✅ 复制易查分代理 JS: {yichafen_js_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到易查分代理 JS: {yichafen_js_src}")
+    
     # 复制定式样式 CSS 到站点 (assets/css/)
     joseki_css_src = WEIQI_PAGE_DIR / "assets" / "css" / "joseki.css"
     joseki_css_dst = base_dir / "assets" / "css" / "joseki.css"
