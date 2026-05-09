@@ -511,6 +511,36 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到云比赛代理 JS: {yunbisai_js_src}")
     
+    # 复制野狐代理 JS 到站点 (assets/js/)
+    foxwq_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "foxwq-proxy.js"
+    foxwq_js_dst = base_dir / "assets" / "js" / "foxwq-proxy.js"
+    
+    if foxwq_js_src.exists():
+        foxwq_js_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(foxwq_js_src, foxwq_js_dst)
+        print(f"✅ 复制野狐代理 JS: {foxwq_js_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到野狐代理 JS: {foxwq_js_src}")
+    
+    # 复制定式分析 JS 到站点 (assets/js/)
+    analysis_js_files = [
+        'sgf-parser.js',
+        'coordinate-converter.js',
+        'corner-extractor.js',
+        'joseki-matcher.js'
+    ]
+    
+    for js_file in analysis_js_files:
+        js_src = WEIQI_PAGE_DIR / "assets" / "js" / js_file
+        js_dst = base_dir / "assets" / "js" / js_file
+        
+        if js_src.exists():
+            js_dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(js_src, js_dst)
+            print(f"✅ 复制定式分析 JS: {js_dst}")
+        else:
+            print(f"⚠️ 警告: 未找到定式分析 JS: {js_src}")
+    
     # 复制手谈代理 JS 到站点 (assets/js/)
     shoutan_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "shoutan-proxy.js"
     shoutan_js_dst = base_dir / "assets" / "js" / "shoutan-proxy.js"
