@@ -12,6 +12,8 @@ class YunbisaiProxy {
         this.debug = options.debug || false;
         // 请求超时（毫秒）
         this.timeout = options.timeout || 30000;
+        // 进度回调函数（用于 UI 更新）
+        this.onProgress = options.onProgress || null;
         // 性能统计
         this.perf = {
             total: 0,
@@ -309,6 +311,7 @@ class YunbisaiProxy {
         }
         
         // 先获取第1轮，得到总轮数
+        this.onProgress && this.onProgress('加载第 1 轮对阵数据...', 10);
         const firstRound = await this.getAgainstPlan(groupId, 1);
         
         if (!firstRound) {
@@ -330,6 +333,10 @@ class YunbisaiProxy {
         
         // 获取所有轮次（包括未完成的）
         for (let bout = 2; bout <= totalRounds; bout++) {
+            // 更新进度：10% - 80% 用于加载轮次数据
+            const progress = 10 + Math.floor((bout - 1) / totalRounds * 70);
+            this.onProgress && this.onProgress(`加载第 ${bout}/${totalRounds} 轮对阵数据...`, progress);
+            
             const roundData = await this.getAgainstPlan(groupId, bout);
             
             if (!roundData) break;
@@ -358,6 +365,9 @@ class YunbisaiProxy {
         if (firstRoundCompleted) {
             completedRounds++;
         }
+        
+        // 计算排名前更新进度
+        this.onProgress && this.onProgress('计算排名数据...', 85);
         
         // 缓存所有轮次的对阵数据（按轮次分组）
         this.matchesCache[groupId] = {
