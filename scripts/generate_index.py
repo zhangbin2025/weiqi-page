@@ -527,7 +527,9 @@ def generate_index(test_mode=False):
         'sgf-parser.js',
         'coordinate-converter.js',
         'corner-extractor.js',
-        'joseki-matcher.js'
+        'joseki-matcher.js',
+        'replay-helper.js',      # 新增：Replay 数据生成辅助模块
+        'opponent-proxy.js'      # 新增：对手分析 Proxy 模块
     ]
     
     for js_file in analysis_js_files:

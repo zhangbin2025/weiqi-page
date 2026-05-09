@@ -4,6 +4,12 @@
  * 参考 Python 版本：weiqi-joseki/src/extraction/component_detector.py
  */
 
+// 检测环境并导入依赖
+if (typeof module !== 'undefined' && typeof require !== 'undefined') {
+    // Node.js 环境：将 CoordinateConverter 添加到全局作用域
+    global.CoordinateConverter = require('./coordinate-converter.js');
+}
+
 class CornerExtractor {
     /**
      * 提取四个角的着法
@@ -105,10 +111,6 @@ class CornerExtractor {
         
         // 收集N路范围内的着法
         const cornerMoves = [];
-        console.log('[DEBUG] _extractCornerMovesLu 开始, cornerKey:', cornerKey, 'luSize:', luSize);
-        console.log('[DEBUG] 范围: colMin=', colMin, 'colMax=', colMax, 'rowMin=', rowMin, 'rowMax=', rowMax);
-        console.log('[DEBUG] moves.length:', moves.length);
-        console.log('[DEBUG] moves type:', typeof moves, Array.isArray(moves));
         
         let loopCount = 0;
         let validCoordCount = 0;
@@ -126,13 +128,10 @@ class CornerExtractor {
                     cornerMoves.push([color, coord, col, row]);
                 }
             } catch (e) {
-                console.log('[DEBUG] 错误:', e.message);
                 continue;
             }
         }
         
-        console.log('[DEBUG] 循环次数:', loopCount, '有效坐标:', validCoordCount, '在范围内:', inRangeCount);
-        console.log('[DEBUG] 收集到的着法数:', cornerMoves.length);
         
         if (cornerMoves.length === 0) {
             return { moves: [], corePositions: new Set(), discardedPositions: new Set() };

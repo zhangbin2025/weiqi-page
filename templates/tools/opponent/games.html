@@ -7,8 +7,9 @@
     <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
     <script>const BASE_PATH = '{{ base_path }}';</script>
     <script>document.write('<script src="{{ base_path }}/assets/js/auth.js?v=' + Date.now() + '"><\/script>');</script>
-    <!-- SGFParser for proxy mode -->
+    <!-- Proxy 模式依赖 -->
     <script src="{{ base_path }}/assets/js/sgf-parser.js"></script>
+    <script src="{{ base_path }}/assets/js/replay-helper.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -125,7 +126,7 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         footer { text-align: center; padding: 15px; color: #999; font-size: 0.8em; }
-        
+
         /* iframe 全屏容器 */
         .replay-overlay {
             position: fixed;
@@ -150,22 +151,22 @@
             </div>
             <button class="icon-btn" onclick="clearVisited()" title="清除访问记录">👁️</button>
         </header>
-        
+
         <div id="content">
             <div class="loading">
                 <div class="spinner"></div>
                 <p>加载中...</p>
             </div>
         </div>
-        
+
         <footer><p>围棋智能助手 &copy; 2026</p></footer>
     </div>
-    
+
     <!-- 棋谱显示容器 -->
     <div id="replayOverlay" class="replay-overlay">
         <iframe id="replayIframe" class="replay-iframe"></iframe>
     </div>
-    
+
     <script>
         let opponentData = null;
         const SCROLL_KEY = 'games_scroll_pos';
@@ -173,27 +174,17 @@
 
         // 加载数据
         async function loadData() {
-            // 检查 sessionStorage 中是否有数据（proxy 模式）
+            // 检查是否为 proxy 模式
             const stored = sessionStorage.getItem('opponent_data');
-            if (stored) {
-                // proxy 模式：数据已通过 sessionStorage 传递，跳过认证
-                try {
-                    opponentData = JSON.parse(stored);
-                    displayGames();
-                    restoreScrollAndHighlights();
-                } catch (e) {
-                    console.error('数据加载失败:', e);
-                }
-                return;
-            }
-            
-            // backend 模式：需要检查认证
-            if (!hasToken()) {
+            const isProxyMode = stored && !hasToken();
+
+            if (!hasToken() && !isProxyMode) {
                 redirectToAuth();
                 return;
             }
 
             try {
+                const stored = sessionStorage.getItem('opponent_data');
                 if (!stored) {
                     location.href = 'index.html';
                     return;
@@ -215,7 +206,7 @@
             }
         }
 
-        // 监听 pageshow 事件，处理 bfcache 恢复
+        // 监听 pageshow 事件,处理 bfcache 恢复
         window.addEventListener('pageshow', function(event) {
             if (opponentData) {
                 restoreScrollAndHighlights();
@@ -269,13 +260,13 @@
                 card.classList.remove('viewed');
             });
         }
-        
+
         // 显示棋谱列表
         function displayGames() {
             const content = document.getElementById('content');
-            
+
             const games = opponentData.games || [];
-            
+
             if (games.length === 0) {
                 content.innerHTML = `
                     <div class="empty-state">
@@ -285,14 +276,14 @@
                 `;
                 return;
             }
-            
+
             let html = '<div class="game-list">';
             const foxwqId = opponentData.foxwqId;
-            
+
             games.forEach((game, index) => {
                 const isBlack = game.black === foxwqId;
                 const isWhite = game.white === foxwqId;
-                
+
                 // 判断胜负
                 const resultText = game.result || '';
                 let resultClass = '';
@@ -301,10 +292,10 @@
                 } else if (resultText.includes('白胜')) {
                     resultClass = isWhite ? 'result-win' : 'result-lose';
                 }
-                
+
                 // 组合日期和时间
                 const dateTime = game.date + (game.time ? ' ' + game.time : '');
-                
+
                 html += `
                     <div class="game-card" data-index="${index}" onclick="saveScrollAndMarkViewed(${index}); viewGameByIndex(${index})">
                         <div class="game-header">
@@ -321,11 +312,11 @@
                     </div>
                 `;
             });
-            
+
             html += '</div>';
             content.innerHTML = html;
         }
-        
+
         // 查看棋谱
         function viewGameByIndex(index) {
             const games = opponentData.games || [];
@@ -336,12 +327,12 @@
             }
             viewGame(game, 'last');
         }
-        
+
         // 检测微信浏览器
         function isWeixinBrowser() {
             return /MicroMessenger/i.test(navigator.userAgent);
         }
-        
+
         // 查看棋谱
         async function viewGame(game, gotoMove) {
             const sgf = game.sgf;
@@ -355,87 +346,13 @@
             const isProxyMode = stored && !hasToken();
             
             if (isProxyMode) {
-                // Proxy 模式：前端解析 SGF
+                // Proxy 模式：使用 ReplayHelper 生成 replay 数据
                 try {
-                    // 使用 SGFParser 解析 SGF
-                    const parser = new SGFParser();
-                    const parsed = parser.parse(sgf);
-                    
-                    if (!parsed || !parsed.tree) {
-                        alert('棋谱解析失败');
-                        return;
-                    }
-                    
-                    // 简化树结构，只保留 color, coord, children, properties(C/N)
-                    const simplifyTree = (node) => {
-                        if (!node) return null;
-                        
-                        const simplified = {
-                            'color': node.color || null,
-                            'coord': node.coord || null
-                        };
-                        
-                        // 保留 C（注释）和 N（标签）属性
-                        if (node.properties) {
-                            const props = node.properties;
-                            const keepProps = {};
-                            if (props.C) keepProps.C = props.C;
-                            if (props.N) keepProps.N = props.N;
-                            if (Object.keys(keepProps).length > 0) {
-                                simplified.properties = keepProps;
-                            }
-                        }
-                        
-                        // 递归处理子节点
-                        if (node.children && node.children.length > 0) {
-                            simplified.children = node.children
-                                .map(child => simplifyTree(child))
-                                .filter(child => child !== null);
-                        }
-                        
-                        return simplified;
-                    };
-                    
-                    const cleanTree = simplifyTree(parsed.tree);
-                    
-                    // 计算最大手数
-                    const countMaxMoves = (node) => {
-                        if (!node) return 0;
-                        let count = node.color ? 1 : 0;
-                        if (node.children && node.children.length > 0) {
-                            count += countMaxMoves(node.children[0]);
-                        }
-                        return count;
-                    };
-                    
-                    const maxMoves = countMaxMoves(cleanTree);
-                    
-                    // 从 SGF 属性中提取信息
-                    const props = parsed.tree.properties || {};
-                    const getProp = (key, defaultVal = '') => {
-                        const val = props[key] || defaultVal;
-                        if (Array.isArray(val) && val.length > 0) {
-                            return String(val[0]);
-                        }
-                        return val ? String(val) : defaultVal;
-                    };
-                    
-                    // 构造 replay 数据格式（参考 replay.py）
-                    const replayData = {
-                        game_name: `${game.black || '黑棋'} vs ${game.white || '白棋'}`,
-                        black: game.black || getProp('PB', '黑棋'),
-                        white: game.white || getProp('PW', '白棋'),
-                        black_rank: getProp('BR', ''),
-                        white_rank: getProp('WR', ''),
-                        board_size: parseInt(getProp('SZ', '19')),
-                        handicap: parseInt(getProp('HA', '0')),
-                        handicap_stones: [],
-                        result: game.result || getProp('RE', ''),
-                        tree: cleanTree,
-                        download_filename: `${game.black || 'game'}.sgf`,
-                        default_move: -1,  // -1 表示最后一手
-                        max_moves: maxMoves
-                    };
+                    const replayData = ReplayHelper.generateReplayData(sgf, {
+                        black: game.black,
+                        white: game.white,
+                        result: game.result
+                    }, -1);  // -1 表示最后一手
                     
                     // 生成唯一 key
                     const localKey = 'replay_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -453,39 +370,38 @@
                 }
                 return;
             }
-            
-            // Backend 模式：调用后端 API
+
             try {
                 const response = await fetchWithAuth('/api/replay', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sgf: sgf })
                 });
-                
+
                 if (!response) return;
-                
+
                 const data = await response.json();
-                
+
                 if (!data.success || !data.data) {
                     alert('生成棋谱数据失败');
                     return;
                 }
-                
+
                 // 生成唯一 key
                 const localKey = 'replay_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                
+
                 // 保存到 localStorage
                 localStorage.setItem(localKey, JSON.stringify(data.data));
-                
+
                 // 跳转到 replay.html
                 const replayUrl = `${BASE_PATH}/replay.html?local=${localKey}`;
                 window.location.href = replayUrl;
-                
+
             } catch (error) {
                 alert('加载失败: ' + error.message);
             }
         }
-        
+
         loadData();
     </script>
 </body>

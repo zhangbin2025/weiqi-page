@@ -15,6 +15,7 @@
     <script src="{{ base_path }}/assets/js/coordinate-converter.js"></script>
     <script src="{{ base_path }}/assets/js/corner-extractor.js"></script>
     <script src="{{ base_path }}/assets/js/joseki-matcher.js"></script>
+    <script src="{{ base_path }}/assets/js/opponent-proxy.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -351,65 +352,6 @@
             color: rgba(255,255,255,0.7);
             font-size: 0.7em;
         }
-        
-        /* 进度条样式 */
-        .progress-container {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .progress-title {
-            font-size: 1em;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: #333;
-        }
-        .progress-bar-bg {
-            height: 24px;
-            background: #f5f5f5;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 12px;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        .progress-text {
-            font-size: 0.85em;
-            color: #666;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .progress-detail {
-            font-size: 0.75em;
-            color: #999;
-        }
-        .progress-spinner {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            animation: spin 1s linear infinite;
-            flex-shrink: 0;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
@@ -460,18 +402,6 @@
 
         <!-- 结果显示 -->
         <div id="statsSection" class="stats-cards">
-            <!-- 进度条（proxy 模式） -->
-            <div id="progressContainer" class="progress-container" style="display: none;">
-                <div class="progress-title">📊 分析进度</div>
-                <div class="progress-bar-bg">
-                    <div id="progressBar" class="progress-bar-fill" style="width: 0%;">0%</div>
-                </div>
-                <div id="progressText" class="progress-text">
-                    <span class="progress-spinner"></span>
-                    <span id="progressMessage">准备中...</span>
-                </div>
-                <div id="progressDetail" class="progress-detail"></div>
-            </div>
             <!-- 统计卡片将通过JS渲染 -->
         </div>
 
@@ -486,39 +416,19 @@
         const RECENT_KEY = 'opponent_recent';
         const MAX_RECENT = 20;
         const CACHE_EXPIRE_DAYS = 7;
-        
-        // 数据源: 'proxy' (前端代理) 或 'backend' (后端 API)
-        const DATA_SOURCE = 'proxy'; // 默认使用代理模式
 
         let currentData = null;
-        
-        // ========== 进度更新函数 ==========
-        function updateProgress(percent, message, detail) {
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const progressMessage = document.getElementById('progressMessage');
-            const progressDetail = document.getElementById('progressDetail');
-            
-            if (progressContainer) {
-                progressContainer.style.display = 'block';
-            }
-            if (progressBar) {
-                progressBar.style.width = percent + '%';
-                progressBar.textContent = Math.round(percent) + '%';
-            }
-            if (progressMessage) {
-                progressMessage.textContent = message || '处理中...';
-            }
-            if (progressDetail) {
-                progressDetail.textContent = detail || '';
-            }
-        }
 
         // ========== 页面加载 ==========
         window.addEventListener('pageshow', function(event) {
-            // Proxy 模式不需要认证，只在 backend 模式下检查认证
-            // 如果用户点击"开始分析"时选择了 backend 模式，会在 analyzeOpponentViaBackend 中检查认证
-            
+            // 代理模式不需要认证
+            if (!hasToken()) {
+                // 没有 token，使用代理模式，不需要跳转认证
+                // 直接渲染历史列表
+                renderHistoryList();
+                return;
+            }
+
             // 加载时渲染历史列表
             renderHistoryList();
 
@@ -732,27 +642,13 @@
                 return;
             }
 
+            // 默认使用代理模式，如果有 token 则使用 Backend 模式
+            const isProxyMode = !hasToken();
+
             queryBtn.disabled = true;
             queryBtn.textContent = '分析中...';
-            statsSection.style.display = 'block';
-            statsSection.classList.add('show');
-
-            // 根据数据源选择不同的实现
-            if (DATA_SOURCE === 'proxy') {
-                // 前端代理模式
-                await analyzeOpponentViaProxy(foxwqId, limit, queryBtn, statsSection);
-            } else {
-                // 后端 API 模式
-                await analyzeOpponentViaBackend(foxwqId, limit, queryBtn, statsSection);
-            }
-        }
-        
-        // 后端 API 模式
-        async function analyzeOpponentViaBackend(foxwqId, limit, queryBtn, statsSection) {
-            if (!hasToken()) {
-                redirectToAuth();
-                return;
-            }
+            statsSection.style.display = 'none';
+            statsSection.classList.remove('show');
 
             statsSection.innerHTML = `
                 <div class="card loading">
@@ -763,6 +659,61 @@
                     </p>
                 </div>
             `;
+            statsSection.style.display = 'block';
+
+            // 代理模式：调用 OpponentProxy.analyze()
+            if (isProxyMode) {
+                try {
+                    // 进度回调函数
+                    const progressCallback = (percent, status, detail) => {
+                        statsSection.innerHTML = `
+                            <div class="card">
+                                <div style="text-align: center; padding: 20px;">
+                                    <div style="font-size: 24px; margin-bottom: 10px;">${percent}%</div>
+                                    <div style="font-size: 16px; color: #666;">${status}</div>
+                                    ${detail ? `<div style="font-size: 14px; color: #999; margin-top: 5px;">${detail}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    };
+                    
+                    const result = await OpponentProxy.analyze(foxwqId, limit, progressCallback);
+                    
+                    currentData = {
+                        foxwqId: foxwqId,
+                        ...result
+                    };
+                    
+                    // 保存到缓存并更新最近列表
+                    if (result.games && result.games.length > 0) {
+                        addToCache(foxwqId, result);
+                    }
+                    
+                    // 存储到 sessionStorage
+                    sessionStorage.setItem('opponent_data', JSON.stringify({
+                        foxwqId: foxwqId,
+                        limit: limit,
+                        ...result
+                    }));
+                    
+                    // 显示统计
+                    displayStats(currentData);
+                    
+                } catch (error) {
+                    statsSection.innerHTML = `
+                        <div class="card">
+                            <div class="error">
+                                <strong>分析失败</strong>
+                                <p>${error.message}</p>
+                            </div>
+                        </div>
+                    `;
+                } finally {
+                    queryBtn.disabled = false;
+                    queryBtn.textContent = '开始分析';
+                }
+                return;
+            }
 
             try {
                 const response = await fetchWithAuth(
@@ -803,223 +754,9 @@
                 // 显示统计
                 displayStats(currentData);
 
+
+
             } catch (error) {
-                statsSection.innerHTML = `
-                    <div class="card">
-                        <div class="error">
-                            <strong>分析失败</strong>
-                            <p>${error.message}</p>
-                        </div>
-                    </div>
-                `;
-            } finally {
-                queryBtn.disabled = false;
-                queryBtn.textContent = '开始分析';
-            }
-        }
-        
-        // 前端代理模式
-        async function analyzeOpponentViaProxy(foxwqId, limit, queryBtn, statsSection) {
-            try {
-                // 步骤1: 初始化代理和匹配器
-                updateProgress(5, '初始化...', '');
-                
-                const foxwqProxy = new FoxwqProxy({
-                    proxyUrl: 'https://api.weiqi.lol'
-                });
-                
-                const josekiMatcher = new JosekiMatcher(BASE_PATH + '/assets/data/joseki');
-                await josekiMatcher.loadIndex();
-                
-                // 步骤2: 查询用户信息
-                updateProgress(10, '查询用户信息...', `对手: ${foxwqId}`);
-                
-                const userInfo = await foxwqProxy.queryUserByName(foxwqId);
-                const uid = userInfo.uid;
-                
-                updateProgress(15, '获取棋谱列表...', `UID: ${uid}`);
-                
-                // 步骤3: 获取棋谱列表
-                const chessList = await foxwqProxy.fetchChessList(uid);
-                
-                if (!chessList || chessList.length === 0) {
-                    statsSection.innerHTML = `
-                        <div class="card">
-                            <p style="text-align:center;padding:20px;">未找到棋谱</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                // 调试：打印第一个棋谱的数据结构
-                console.log('[Proxy] 棋谱列表示例:', chessList[0]);
-                console.log('[Proxy] 棋谱对象字段:', Object.keys(chessList[0] || {}));
-                
-                // 限制棋谱数量
-                const gamesToAnalyze = chessList.slice(0, limit);
-                updateProgress(20, `找到 ${chessList.length} 个棋谱`, `将分析最近 ${gamesToAnalyze.length} 盘`);
-                
-                // 步骤3: 下载并分析每个棋谱
-                const allResults = [];
-                const sgfDataMap = {};  // 存储 SGF 数据，用于后续查看
-                const totalGames = gamesToAnalyze.length;
-                
-                for (let i = 0; i < totalGames; i++) {
-                    const game = gamesToAnalyze[i];
-                    const progress = 20 + (i / totalGames) * 70; // 20%-90%
-                    
-                    updateProgress(
-                        progress,
-                        `分析棋谱 ${i + 1}/${totalGames}`,
-                        `${game.blacknick || game.black || '?'} vs ${game.whitenick || game.white || '?'} - ${game.gameendtime || game.date || '-'}`
-                    );
-                    
-                    try {
-                        // 下载 SGF
-                        const sgfData = await foxwqProxy.fetchSGF(game.chessid);
-                        
-                        if (!sgfData) {
-                            console.warn(`[Proxy] 棋谱 ${game.chessid} 下载失败`);
-                            continue;
-                        }
-                        
-                        // 保存 SGF 数据
-                        sgfDataMap[game.chessid] = sgfData;
-                        
-                        // 解析 SGF
-                        const parser = new SGFParser();
-                        const parsed = parser.parse(sgfData);
-                        
-                        // 提取主分支着法
-                        const moves = parser.extractMainBranch(parsed.tree, 80);
-                        
-                        // 调试：打印解析结果
-                        console.log(`[Proxy] 棋谱 ${game.chessid} 解析结果:`, {
-                            hasParsed: !!parsed,
-                            hasMoves: !!(moves && moves.length > 0),
-                            movesLength: moves ? moves.length : 0,
-                            sgfLength: sgfData ? sgfData.length : 0,
-                            sgfPreview: sgfData ? sgfData.substring(0, 100) : 'empty'
-                        });
-                        
-                        if (!moves || moves.length === 0) {
-                            console.warn(`[Proxy] 棋谱 ${game.chessid} 解析失败`);
-                            continue;
-                        }
-                        
-                        // 提取四个角
-                        const extractor = new CornerExtractor();
-                        const corners = extractor.extractFourCorners(moves);
-                        
-                        // 匹配每个角
-                        for (const cornerKey of ['tl', 'tr', 'bl', 'br']) {
-                            const cornerMoves = corners[cornerKey];
-                            
-                            if (!cornerMoves || cornerMoves.length < 2) {
-                                continue;
-                            }
-                            
-                            // 从元组数组中提取坐标字符串
-                            const coords = cornerMoves.map(([color, coord]) => coord);
-                            
-                            // 转换到右上角
-                            const trMoves = CoordinateConverter.convertToTopRight(coords, cornerKey);
-                            
-                            // 标准化
-                            const normResult = CoordinateConverter.normalizeCornerSequence(trMoves);
-                            const normalized = normResult.normalized;
-                            
-                            // 匹配定式
-                            const result = await josekiMatcher.matchSequence(normalized);
-                            
-                            if (result && result.matchedCount >= 3) {
-                                allResults.push({
-                                    joseki_id: result.josekiId || `local_${Date.now()}`,
-                                    prefix: result.matched.join(' '),
-                                    prefix_len: result.matchedCount,
-                                    total_moves: result.totalCount,
-                                    source_corner: cornerKey,
-                                    frequency: result.freq || 0,
-                                    probability: result.prob || 0,
-                                    winrate_stats: result.winrate || null,
-                                    extracted_moves: sgfData,
-                                    game_info: {
-                                        black: game.blacknick || '黑棋',
-                                        white: game.whitenick || '白棋',
-                                        date: (game.starttime || game.gameendtime || game.date || '-').split(' ')[0],
-                                        event: "",
-                                        result: game.result || ''
-                                    },
-                                    file: game.chessid || game.id
-                                });
-                            }
-                        }
-                        
-                    } catch (error) {
-                        console.error(`[Proxy] 棋谱 ${game.chessid} 分析失败:`, error);
-                    }
-                }
-                
-                // 步骤4: 整理结果
-                updateProgress(95, '整理结果...', `发现 ${allResults.length} 个定式`);
-                
-                // 转换 games 数据格式，确保与 backend 模式完全一致
-                const formattedGames = gamesToAnalyze.map(game => {
-                    // 解析对局结果
-                    const parseResult = (winner, point, reason) => {
-                        if (winner === 0) return "和棋";
-                        const winnerStr = winner === 1 ? "黑胜" : "白胜";
-                        if (reason === 1) return point > 0 ? `${winnerStr}` : winnerStr;
-                        if (reason === 2) return `${winnerStr}`;
-                        if (reason === 3) return `${winnerStr}`;
-                        if (reason === 4) return `${winnerStr}`;
-                        return winnerStr;
-                    };
-                    
-                    return {
-                        black: game.blacknick || '黑棋',
-                        white: game.whitenick || '白棋',
-                        date: (game.starttime || game.gameendtime || game.date || '-').split(' ')[0],
-                        file: game.chessid || game.id,
-                        opponent: game.blacknick === foxwqId ? (game.whitenick || '白棋') : (game.blacknick || '黑棋'),
-                        result: parseResult(game.winner || 0, game.point || 0, game.reason || 0),
-                        sgf: sgfDataMap[game.chessid] || null
-                    };
-                });
-                
-                currentData = {
-                    foxwqId: foxwqId,
-                    games: formattedGames,
-                    joseki: { results: allResults }
-                };
-                
-                // 保存到缓存
-                if (gamesToAnalyze.length > 0) {
-                    addToCache(foxwqId, currentData);
-                }
-                
-                // 存储到 sessionStorage
-                sessionStorage.setItem('opponent_data', JSON.stringify({
-                    foxwqId: foxwqId,
-                    limit: limit,
-                    ...currentData
-                }));
-                
-                // 显示统计
-                displayStats(currentData);
-                
-                updateProgress(100, '完成！', '');
-                
-                // 隐藏进度条
-                setTimeout(() => {
-                    const progressContainer = document.getElementById('progressContainer');
-                    if (progressContainer) {
-                        progressContainer.style.display = 'none';
-                    }
-                }, 1000);
-                
-            } catch (error) {
-                console.error('[Proxy] 分析失败:', error);
                 statsSection.innerHTML = `
                     <div class="card">
                         <div class="error">
