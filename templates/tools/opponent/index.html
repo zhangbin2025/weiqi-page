@@ -516,11 +516,9 @@
 
         // ========== 页面加载 ==========
         window.addEventListener('pageshow', function(event) {
-            if (!hasToken()) {
-                redirectToAuth();
-                return;
-            }
-
+            // Proxy 模式不需要认证，只在 backend 模式下检查认证
+            // 如果用户点击"开始分析"时选择了 backend 模式，会在 analyzeOpponentViaBackend 中检查认证
+            
             // 加载时渲染历史列表
             renderHistoryList();
 
@@ -863,6 +861,7 @@
                 
                 // 步骤3: 下载并分析每个棋谱
                 const allResults = [];
+                const sgfDataMap = {};  // 存储 SGF 数据，用于后续查看
                 const totalGames = gamesToAnalyze.length;
                 
                 for (let i = 0; i < totalGames; i++) {
@@ -883,6 +882,9 @@
                             console.warn(`[Proxy] 棋谱 ${game.chessid} 下载失败`);
                             continue;
                         }
+                        
+                        // 保存 SGF 数据
+                        sgfDataMap[game.chessid] = sgfData;
                         
                         // 解析 SGF
                         const parser = new SGFParser();
@@ -959,9 +961,45 @@
                 // 步骤4: 整理结果
                 updateProgress(95, '整理结果...', `发现 ${allResults.length} 个定式`);
                 
+                // 转换 games 数据格式，确保与 backend 模式一致
+                const formattedGames = gamesToAnalyze.map(game => {
+                    // 格式化段位
+                    const formatDan = (danValue) => {
+                        if (danValue >= 100) return `职业${danValue - 100}段`;
+                        if (danValue >= 24) return `业${danValue - 20}段`;
+                        if (danValue >= 20) return `业${danValue - 20}段`;
+                        if (danValue >= 10) return `${danValue - 10}级`;
+                        return `${danValue}级`;
+                    };
+                    
+                    // 解析对局结果
+                    const parseResult = (winner, point, reason) => {
+                        if (winner === 0) return "和棋";
+                        const winnerStr = winner === 1 ? "黑胜" : "白胜";
+                        if (reason === 1) return point > 0 ? `${winnerStr} ${point}子` : winnerStr;
+                        if (reason === 2) return `${winnerStr} (超时)`;
+                        if (reason === 3) return `${winnerStr} (中盘)`;
+                        if (reason === 4) return `${winnerStr} (认输)`;
+                        return winnerStr;
+                    };
+                    
+                    return {
+                        black: game.blacknick || game.black || '?',
+                        white: game.whitenick || game.white || '?',
+                        blackdan: formatDan(game.blackdan || 0),
+                        whitedan: formatDan(game.whitedan || 0),
+                        date: (game.starttime || game.gameendtime || game.date || '-').split(' ')[0],  // 只显示日期
+                        opponent: game.blacknick === foxwqId ? (game.whitenick || game.white || '?') : (game.blacknick || game.black || '?'),
+                        result: parseResult(game.winner || 0, game.point || 0, game.reason || 0),
+                        movenum: game.movenum || 0,
+                        file: game.chessid || game.id,
+                        sgf: sgfDataMap[game.chessid] || null  // 使用保存的 SGF 数据
+                    };
+                });
+                
                 currentData = {
                     foxwqId: foxwqId,
-                    games: gamesToAnalyze,
+                    games: formattedGames,
                     joseki: { results: allResults }
                 };
                 

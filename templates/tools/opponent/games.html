@@ -7,6 +7,8 @@
     <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
     <script>const BASE_PATH = '{{ base_path }}';</script>
     <script>document.write('<script src="{{ base_path }}/assets/js/auth.js?v=' + Date.now() + '"><\/script>');</script>
+    <!-- SGFParser for proxy mode -->
+    <script src="{{ base_path }}/assets/js/sgf-parser.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -171,13 +173,27 @@
 
         // 加载数据
         async function loadData() {
+            // 检查 sessionStorage 中是否有数据（proxy 模式）
+            const stored = sessionStorage.getItem('opponent_data');
+            if (stored) {
+                // proxy 模式：数据已通过 sessionStorage 传递，跳过认证
+                try {
+                    opponentData = JSON.parse(stored);
+                    displayGames();
+                    restoreScrollAndHighlights();
+                } catch (e) {
+                    console.error('数据加载失败:', e);
+                }
+                return;
+            }
+            
+            // backend 模式：需要检查认证
             if (!hasToken()) {
                 redirectToAuth();
                 return;
             }
 
             try {
-                const stored = sessionStorage.getItem('opponent_data');
                 if (!stored) {
                     location.href = 'index.html';
                     return;
@@ -334,6 +350,111 @@
                 return;
             }
             
+            // 检查是否为 proxy 模式
+            const stored = sessionStorage.getItem('opponent_data');
+            const isProxyMode = stored && !hasToken();
+            
+            if (isProxyMode) {
+                // Proxy 模式：前端解析 SGF
+                try {
+                    // 使用 SGFParser 解析 SGF
+                    const parser = new SGFParser();
+                    const parsed = parser.parse(sgf);
+                    
+                    if (!parsed || !parsed.tree) {
+                        alert('棋谱解析失败');
+                        return;
+                    }
+                    
+                    // 简化树结构，只保留 color, coord, children, properties(C/N)
+                    const simplifyTree = (node) => {
+                        if (!node) return null;
+                        
+                        const simplified = {
+                            'color': node.color || null,
+                            'coord': node.coord || null
+                        };
+                        
+                        // 保留 C（注释）和 N（标签）属性
+                        if (node.properties) {
+                            const props = node.properties;
+                            const keepProps = {};
+                            if (props.C) keepProps.C = props.C;
+                            if (props.N) keepProps.N = props.N;
+                            if (Object.keys(keepProps).length > 0) {
+                                simplified.properties = keepProps;
+                            }
+                        }
+                        
+                        // 递归处理子节点
+                        if (node.children && node.children.length > 0) {
+                            simplified.children = node.children
+                                .map(child => simplifyTree(child))
+                                .filter(child => child !== null);
+                        }
+                        
+                        return simplified;
+                    };
+                    
+                    const cleanTree = simplifyTree(parsed.tree);
+                    
+                    // 计算最大手数
+                    const countMaxMoves = (node) => {
+                        if (!node) return 0;
+                        let count = node.color ? 1 : 0;
+                        if (node.children && node.children.length > 0) {
+                            count += countMaxMoves(node.children[0]);
+                        }
+                        return count;
+                    };
+                    
+                    const maxMoves = countMaxMoves(cleanTree);
+                    
+                    // 从 SGF 属性中提取信息
+                    const props = parsed.tree.properties || {};
+                    const getProp = (key, defaultVal = '') => {
+                        const val = props[key] || defaultVal;
+                        if (Array.isArray(val) && val.length > 0) {
+                            return String(val[0]);
+                        }
+                        return val ? String(val) : defaultVal;
+                    };
+                    
+                    // 构造 replay 数据格式（参考 replay.py）
+                    const replayData = {
+                        game_name: `${game.black || '黑棋'} vs ${game.white || '白棋'}`,
+                        black: game.black || getProp('PB', '黑棋'),
+                        white: game.white || getProp('PW', '白棋'),
+                        black_rank: getProp('BR', ''),
+                        white_rank: getProp('WR', ''),
+                        board_size: parseInt(getProp('SZ', '19')),
+                        handicap: parseInt(getProp('HA', '0')),
+                        handicap_stones: [],
+                        result: game.result || getProp('RE', ''),
+                        tree: cleanTree,
+                        download_filename: `${game.black || 'game'}.sgf`,
+                        default_move: -1,  // -1 表示最后一手
+                        max_moves: maxMoves
+                    };
+                    
+                    // 生成唯一 key
+                    const localKey = 'replay_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    
+                    // 保存到 localStorage
+                    localStorage.setItem(localKey, JSON.stringify(replayData));
+                    
+                    // 跳转到 replay.html
+                    const replayUrl = `${BASE_PATH}/replay.html?local=${localKey}`;
+                    window.location.href = replayUrl;
+                    
+                } catch (error) {
+                    alert('棋谱解析失败: ' + error.message);
+                    console.error(error);
+                }
+                return;
+            }
+            
+            // Backend 模式：调用后端 API
             try {
                 const response = await fetchWithAuth('/api/replay', {
                     method: 'POST',
