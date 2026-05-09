@@ -432,14 +432,18 @@ class YunbisaiProxy {
             const p2Score = parseFloat(match.p2_score) || 0;
             const bout = match.bout || 0;
 
+            // 判断对局是否已完成
+            // 如果双方得分都是 0，认为对局未完成
+            const gameCompleted = (p1Score !== 0 || p2Score !== 0);
+
             // 更新 p1
             if (p1Id && players[p1Id]) {
-                this.updatePlayerStats(players[p1Id], p1Score, p2Id, p2Name, bout);
+                this.updatePlayerStats(players[p1Id], p1Score, p2Id, p2Name, bout, gameCompleted);
             }
 
             // 更新 p2
             if (p2Id && players[p2Id]) {
-                this.updatePlayerStats(players[p2Id], p2Score, p1Id, p1Name, bout);
+                this.updatePlayerStats(players[p2Id], p2Score, p1Id, p1Name, bout, gameCompleted);
             }
         }
 
@@ -531,14 +535,18 @@ class YunbisaiProxy {
     /**
      * 更新选手战绩
      */
-    updatePlayerStats(player, score, opponentId, opponentName, bout) {
+    updatePlayerStats(player, score, opponentId, opponentName, bout, gameCompleted) {
         if (opponentId && opponentName) {
             player.opponents.push(opponentId);
             player.roundOpponents.push({ bout, opponentId, opponentName });
         }
 
         let result;
-        if (score === 2) {
+        
+        // 如果对局未完成，不计入胜负，结果为待定
+        if (!gameCompleted) {
+            result = '待定';
+        } else if (score === 2) {
             player.wins++;
             result = '胜';
         } else if (score === 0) {
