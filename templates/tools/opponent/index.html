@@ -944,9 +944,11 @@
                                     winrate_stats: result.winrate || null,
                                     extracted_moves: sgfData,
                                     game_info: {
-                                        black: game.blacknick || game.black || '?',
-                                        white: game.whitenick || game.white || '?',
-                                        date: game.gameendtime || game.date || '-'
+                                        black: game.blacknick || '黑棋',
+                                        white: game.whitenick || '白棋',
+                                        date: (game.starttime || game.gameendtime || game.date || '-').split(' ')[0],
+                                        event: "",
+                                        result: game.result || ''
                                     },
                                     file: game.chessid || game.id
                                 });
@@ -961,39 +963,27 @@
                 // 步骤4: 整理结果
                 updateProgress(95, '整理结果...', `发现 ${allResults.length} 个定式`);
                 
-                // 转换 games 数据格式，确保与 backend 模式一致
+                // 转换 games 数据格式，确保与 backend 模式完全一致
                 const formattedGames = gamesToAnalyze.map(game => {
-                    // 格式化段位
-                    const formatDan = (danValue) => {
-                        if (danValue >= 100) return `职业${danValue - 100}段`;
-                        if (danValue >= 24) return `业${danValue - 20}段`;
-                        if (danValue >= 20) return `业${danValue - 20}段`;
-                        if (danValue >= 10) return `${danValue - 10}级`;
-                        return `${danValue}级`;
-                    };
-                    
                     // 解析对局结果
                     const parseResult = (winner, point, reason) => {
                         if (winner === 0) return "和棋";
                         const winnerStr = winner === 1 ? "黑胜" : "白胜";
-                        if (reason === 1) return point > 0 ? `${winnerStr} ${point}子` : winnerStr;
-                        if (reason === 2) return `${winnerStr} (超时)`;
-                        if (reason === 3) return `${winnerStr} (中盘)`;
-                        if (reason === 4) return `${winnerStr} (认输)`;
+                        if (reason === 1) return point > 0 ? `${winnerStr}` : winnerStr;
+                        if (reason === 2) return `${winnerStr}`;
+                        if (reason === 3) return `${winnerStr}`;
+                        if (reason === 4) return `${winnerStr}`;
                         return winnerStr;
                     };
                     
                     return {
-                        black: game.blacknick || game.black || '?',
-                        white: game.whitenick || game.white || '?',
-                        blackdan: formatDan(game.blackdan || 0),
-                        whitedan: formatDan(game.whitedan || 0),
-                        date: (game.starttime || game.gameendtime || game.date || '-').split(' ')[0],  // 只显示日期
-                        opponent: game.blacknick === foxwqId ? (game.whitenick || game.white || '?') : (game.blacknick || game.black || '?'),
-                        result: parseResult(game.winner || 0, game.point || 0, game.reason || 0),
-                        movenum: game.movenum || 0,
+                        black: game.blacknick || '黑棋',
+                        white: game.whitenick || '白棋',
+                        date: (game.starttime || game.gameendtime || game.date || '-').split(' ')[0],
                         file: game.chessid || game.id,
-                        sgf: sgfDataMap[game.chessid] || null  // 使用保存的 SGF 数据
+                        opponent: game.blacknick === foxwqId ? (game.whitenick || '白棋') : (game.blacknick || '黑棋'),
+                        result: parseResult(game.winner || 0, game.point || 0, game.reason || 0),
+                        sgf: sgfDataMap[game.chessid] || null
                     };
                 });
                 
