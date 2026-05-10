@@ -357,6 +357,12 @@ def generate_index(test_mode=False):
             content = src_index.read_text(encoding='utf-8')
             # 替换绝对路径为相对路径
             content = content.replace('src="/index.js"', 'src="./index.js"')
+            content = content.replace('src="/main.js"', 'src="./main.js"')
+            content = content.replace('src="/model-manager.js"', 'src="./model-manager.js"')
+            # 替换 modulepreload 标签中的路径
+            content = content.replace('href="/model-manager.js"', 'href="./model-manager.js"')
+            content = content.replace('href="/main.js"', 'href="./main.js"')
+            content = content.replace('href="/index.js"', 'href="./index.js"')
             dst_game.write_text(content, encoding='utf-8')
             print(f"✅ 复制对弈页面: {dst_game.name}")
         
@@ -382,6 +388,68 @@ def generate_index(test_mode=False):
             )
             dst_js.write_text(content, encoding='utf-8')
             print(f"✅ 复制对弈 JS: {dst_js.name}")
+        
+        # 复制 ai-battle.html
+        src_ai_battle = play_src_dir / "ai-battle.html"
+        dst_ai_battle = play_dst_dir / "ai-battle.html"
+        if src_ai_battle.exists():
+            content = src_ai_battle.read_text(encoding='utf-8')
+            # 替换绝对路径为相对路径
+            content = content.replace('src="/src/ai-battle.ts"', 'src="./aiBattle.js"')
+            # Vite 构建后的路径替换
+            content = content.replace('src="/aiBattle.js"', 'src="./aiBattle.js"')
+            content = content.replace('src="/main.js"', 'src="./main.js"')
+            content = content.replace('src="/model-manager.js"', 'src="./model-manager.js"')
+            # 替换 modulepreload 标签中的路径
+            content = content.replace('href="/model-manager.js"', 'href="./model-manager.js"')
+            content = content.replace('href="/main.js"', 'href="./main.js"')
+            content = content.replace('href="/aiBattle.js"', 'href="./aiBattle.js"')
+            dst_ai_battle.write_text(content, encoding='utf-8')
+            print(f"✅ 复制 AI 自对弈页面: {dst_ai_battle.name}")
+        
+        # 复制 aiBattle.js
+        src_ai_battle_js = play_src_dir / "aiBattle.js"
+        dst_ai_battle_js = play_dst_dir / "aiBattle.js"
+        if src_ai_battle_js.exists():
+            content = src_ai_battle_js.read_text(encoding='utf-8')
+            # 替换路径（与 index.js 类似）
+            content = content.replace('"/assets/worker-CXxe1Q_5.js",', '"./assets/worker.js",')
+            content = content.replace('"/assets/', '"./assets/')
+            content = content.replace('"/models/', '"../models/')
+            content = content.replace("'/models/", "'../models/")
+            content = content.replace('"./models/', '"../models/')
+            content = content.replace("'./models/", "'../models/")
+            # 替换模块导入路径
+            content = content.replace('"/main.js"', '"./main.js"')
+            content = content.replace('"/model-manager.js"', '"./model-manager.js"')
+            dst_ai_battle_js.write_text(content, encoding='utf-8')
+            print(f"✅ 复制 AI 自对弈 JS: {dst_ai_battle_js.name}")
+        
+        # 复制 model-manager.js
+        src_model_manager_js = play_src_dir / "model-manager.js"
+        dst_model_manager_js = play_dst_dir / "model-manager.js"
+        if src_model_manager_js.exists():
+            content = src_model_manager_js.read_text(encoding='utf-8')
+            # 替换路径
+            content = content.replace('"/assets/', '"./assets/')
+            dst_model_manager_js.write_text(content, encoding='utf-8')
+            print(f"✅ 复制模型管理器 JS: {dst_model_manager_js.name}")
+        
+        # 复制 main.js（aiBattle.js 可能依赖）
+        src_main_js = play_src_dir / "main.js"
+        dst_main_js = play_dst_dir / "main.js"
+        if src_main_js.exists():
+            content = src_main_js.read_text(encoding='utf-8')
+            # 替换路径
+            content = content.replace('"/assets/worker-CXxe1Q_5.js",', '"./assets/worker.js",')
+            content = content.replace('"/assets/', '"./assets/')
+            content = content.replace('"/models/', '"../models/')
+            content = content.replace("'/models/", "'../models/")
+            content = content.replace('"./models/', '"../models/')
+            content = content.replace("'./models/", "'../models/")
+            content = content.replace('"/model-manager.js"', '"./model-manager.js"')
+            dst_main_js.write_text(content, encoding='utf-8')
+            print(f"✅ 复制主模块 JS: {dst_main_js.name}")
         
         # 复制 assets 目录（包含 worker.js）
         assets_src = play_src_dir / "assets"
