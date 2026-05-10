@@ -377,7 +377,8 @@
             // 缓存数据
             this.trieRoot = null;
             this.quizData = { easy: null, medium: null, hard: null };
-            this.loadedSubtrees = new Set();
+            this.loadedSubtrees = new Set(); // 已加载的子树文件
+            this.subtreeCache = new Map();   // 子树数据缓存（用于预加载后合并）
 
             // 加载状态
             this.isLoading = false;
@@ -487,10 +488,28 @@
 
             const file = node.subtree.file;
             
-            // 已加载过
-            if (this.loadedSubtrees.has(file)) {
-                return node.children ? node : null;
+            // 已加载过且数据已合并
+            if (this.loadedSubtrees.has(file) && node.children) {
+                return node;
             }
+            
+            // 已加载过但数据未合并，从缓存中获取并合并
+            if (this.loadedSubtrees.has(file) && !node.children) {
+                const cachedSubtree = this.subtreeCache.get(file);
+                if (cachedSubtree) {
+                    // 从缓存中合并数据
+                    node.children = cachedSubtree.children;
+                    node.heat = cachedSubtree.heat;
+                    if (cachedSubtree.freq) {
+                        node.freq = cachedSubtree.freq;
+                        node.moves = cachedSubtree.moves;
+                        node.prob = cachedSubtree.prob;
+                    }
+                    return cachedSubtree;
+                }
+            }
+            
+            // 未加载过，需要加载
 
             this.isLoading = true;
             this.manager.start('加载定式分支', 1, !showProgress);
@@ -558,6 +577,7 @@
                     const subtree = await this.loadGzipJson(url);
                     
                     this.loadedSubtrees.add(file);
+                    this.subtreeCache.set(file, subtree);  // 存储到缓存
                     results.push({ file, subtree });
                     
                     completed++;

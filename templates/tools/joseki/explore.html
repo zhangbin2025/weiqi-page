@@ -7,8 +7,8 @@
     <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
     <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505c">
     <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260506"></script>
-    <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260510b"></script>
-    <script src="{{ base_path }}/assets/js/joseki-loader.js?v=20260510a"></script>
+    <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260510c"></script>
+    <script src="{{ base_path }}/assets/js/joseki-loader.js?v=20260510d"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -188,14 +188,122 @@
         let board = null;
 
         // 加载索引
-        async function loadIndex() {
+        async function loadIndex(initialMoves = null) {
             try {
                 trieRoot = await loader.loadIndex();
                 currentNode = trieRoot;
-                showFirstMoveBranches();
+                
+                // 如果有初始着法串，按照着法串加载局面
+                if (initialMoves && initialMoves.length > 0) {
+                    await loadFromMoves(initialMoves);
+                } else {
+                    showFirstMoveBranches();
+                }
             } catch (e) {
                 console.error('[JosekiExplore] 索引加载失败:', e);
             }
+        }
+        
+        // 根据着法串加载局面
+        async function loadFromMoves(moves) {
+            if (!trieRoot || !moves || moves.length === 0) return;
+            
+            // 有 moves 参数时显示进度
+            const showProgress = moves.length > 0;
+            if (showProgress) {
+                loader.manager.start('加载定式局面', moves.length);
+            }
+            
+            currentNode = trieRoot;
+            currentNodePath = [];
+            currentMoves = [];
+            
+            for (const coord of moves) {
+                // 检查是否需要加载子树
+                if (currentNode.subtree && !currentNode.children) {
+                    await loader.loadSubtree(currentNode, { showProgress: false });
+                }
+                
+                // 检查当前节点是否有该着法
+                if (!currentNode.children || !currentNode.children[coord]) {
+                    console.warn('[JosekiExplore] 着法不存在:', coord);
+                    break;  // 着法不存在，停止加载
+                }
+                
+                // 移动到下一节点
+                const nextNode = currentNode.children[coord];
+                currentNodePath.push(coord);
+                currentNode = nextNode;
+                
+                // 更新棋盘状态
+                const coordData = JosekiUtils.sgfToCoord(coord);
+                const nextColor = currentNodePath.length % 2 === 1 ? 'black' : 'white';
+                
+                if (!coordData.isPass) {
+                    currentMoves.push({
+                        x: coordData.x,
+                        y: coordData.y,
+                        isPass: coordData.isPass,
+                        color: nextColor,
+                        num: currentNodePath.length
+                    });
+                }
+                
+                // 更新进度
+                if (showProgress) {
+                    loader.manager.completeTask();
+                }
+            }
+            
+            // 检查最后一个节点是否需要加载子树
+            if (currentNode.subtree && !currentNode.children) {
+                await loader.loadSubtree(currentNode, { showProgress: false });
+            }
+            
+            // 隐藏进度
+            if (showProgress) {
+                loader.manager.finish();
+            }
+            
+            // 更新显示
+            board.setMoves(currentMoves, currentMoves.length);
+            
+            // 获取下一着选点
+            if (currentNode.children) {
+                const branches = [];
+                for (const [c, child] of Object.entries(currentNode.children)) {
+                    if (c === 'coord' || c === 'color' || c === 'freq' || c === 'heat') continue;
+                    const cd = JosekiUtils.sgfToCoord(c);
+                    if (cd) {
+                        branches.push({
+                            ...cd,
+                            color: child.color,
+                            sgf: c,
+                            heat: child.heat
+                        });
+                    }
+                }
+                board.setBranches(branches);
+                
+                // 预加载 top N 子树
+                prefetchTopSubtrees(branches, 3);
+            } else {
+                board.setBranches([]);
+            }
+            
+            // 更新统计
+            if (currentNode.freq) {
+                updateStats({
+                    moves: currentNode.moves,
+                    freq: currentNode.freq,
+                    prob: currentNode.prob,
+                    winrate: currentNode.winrate
+                });
+            } else {
+                updateStats({ moves: currentNodePath.length });
+            }
+            
+            updateControls();
         }
 
         // 加载子树并合并
@@ -889,10 +997,24 @@
         document.getElementById('importConfirm').addEventListener('click', importFavorites);
 
         // ========== 初始化 ==========
+        // 解析 URL 参数，获取初始着法串
+        function getInitialMoves() {
+            const params = new URLSearchParams(window.location.search);
+            const movesParam = params.get('moves');
+            if (!movesParam) return null;
+            
+            // 解析着法串，格式: "pd-qd-nc-qc"（SGF 格式，用 "-" 分隔）
+            const moves = movesParam.split('-').filter(m => m.length === 2);
+            return moves.length > 0 ? moves : null;
+        }
+        
         function init() {
             initBoard();
             loadFavorites();
-            loadIndex();
+            
+            // 获取初始着法串
+            const initialMoves = getInitialMoves();
+            loadIndex(initialMoves);
         }
 
         // 加载 pako（gzip解压）
