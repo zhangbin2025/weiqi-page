@@ -438,15 +438,33 @@
                 }
                 // 准备缩略图数据：moves 可能是数组或 SGF 字符串
                 let movesStr = '';
+                let exploreMoves = '';  // 定式探索着法串
                 if (joseki.moves) {
+                    let movesArray;
                     if (Array.isArray(joseki.moves)) {
                         movesStr = joseki.moves.join(' ');
+                        movesArray = joseki.moves;
                     } else if (typeof joseki.moves === 'string') {
-                        // SGF 格式，直接传递给缩略图解析
                         movesStr = joseki.moves;
+                        movesArray = joseki.moves.split(/\s+/);
+                    }
+                    // 提取前 matched_prefix_len 个着法，生成定式探索参数
+                    if (movesArray && joseki.matched_prefix_len > 0) {
+                        const prefixMoves = movesArray.slice(0, joseki.matched_prefix_len);
+                        exploreMoves = prefixMoves.join('-');
                     }
                 }
-                return '<div class="joseki-card-link" data-joseki-id="' + (joseki.id || joseki.path) + '" data-path="' + joseki.path + '"><div class="joseki-card ' + visitedClass + '"><div class="joseki-header"><div class="joseki-players"><span class="stone-icon stone-black"></span>' + joseki.black + '<span class="joseki-vs">vs</span><span class="stone-icon stone-white"></span>' + joseki.white + '</div></div><div class="joseki-tags-row"><div class="joseki-meta">' + (joseki.event || '') + '</div></div><div class="joseki-body"><div class="metrics-row"><canvas class="joseki-thumbnail" width="200" height="200" data-moves="' + movesStr + '" data-prefix-len="' + joseki.matched_prefix_len + '"></canvas><div class="metrics-info"><div class="metric-col"><span class="metric-value">' + joseki.matched_prefix_len + '/' + joseki.move_count + '</span><span class="metric-label">匹配/总手数</span></div><div class="metric-col"><span class="metric-value">' + (joseki.frequency || 0) + '</span><span class="metric-label">库出现次数</span></div><div class="metric-col"><span class="metric-value">' + probDisplay + '</span><span class="metric-label">库出现概率</span></div><div class="metric-col"><span class="metric-value winrate-value ' + winrateClass + '" ' + winrateAttrs + '>' + winrateDisplay + '</span><span class="metric-label">胜率变化</span></div></div></div></div><div class="joseki-footer"><div class="joseki-tags">' + tags.join('') + '</div>' + (joseki.game_path ? '<button class="game-btn" data-game-path="' + joseki.game_path + '">📖 棋谱</button>' : '') + '</div></div></div>';
+                // 生成底部按钮
+                let footerBtns = '';
+                if (exploreMoves) {
+                    footerBtns += '<button class="game-btn explore-btn" data-moves="' + exploreMoves + '">🔍 探索</button>';
+                }
+                if (joseki.game_path) {
+                    footerBtns += '<button class="game-btn" data-game-path="' + joseki.game_path + '">📖 棋谱</button>';
+                }
+                // 按钮容器，靠右显示
+                const footerBtnsHtml = footerBtns ? '<div style="display:flex;gap:6px;">' + footerBtns + '</div>' : '';
+                return '<div class="joseki-card-link" data-joseki-id="' + (joseki.id || joseki.path) + '" data-path="' + joseki.path + '"><div class="joseki-card ' + visitedClass + '"><div class="joseki-header"><div class="joseki-players"><span class="stone-icon stone-black"></span>' + joseki.black + '<span class="joseki-vs">vs</span><span class="stone-icon stone-white"></span>' + joseki.white + '</div></div><div class="joseki-tags-row"><div class="joseki-meta">' + (joseki.event || '') + '</div></div><div class="joseki-body"><div class="metrics-row"><canvas class="joseki-thumbnail" width="200" height="200" data-moves="' + movesStr + '" data-prefix-len="' + joseki.matched_prefix_len + '"></canvas><div class="metrics-info"><div class="metric-col"><span class="metric-value">' + joseki.matched_prefix_len + '/' + joseki.move_count + '</span><span class="metric-label">匹配/总手数</span></div><div class="metric-col"><span class="metric-value">' + (joseki.frequency || 0) + '</span><span class="metric-label">库出现次数</span></div><div class="metric-col"><span class="metric-value">' + probDisplay + '</span><span class="metric-label">库出现概率</span></div><div class="metric-col"><span class="metric-value winrate-value ' + winrateClass + '" ' + winrateAttrs + '>' + winrateDisplay + '</span><span class="metric-label">胜率变化</span></div></div></div></div><div class="joseki-footer"><div class="joseki-tags">' + tags.join('') + '</div>' + footerBtnsHtml + '</div></div></div>';
             }).join('');
             restoreScrollPosition();
         }
@@ -471,6 +489,16 @@
             const gameBtn = e.target.closest('.game-btn');
             if (gameBtn) {
                 e.stopPropagation();
+                
+                // 处理探索按钮
+                const movesParam = gameBtn.dataset.moves;
+                if (movesParam) {
+                    saveScrollPosition();
+                    window.location.href = '{{ base_path }}/tools/joseki/explore.html?moves=' + movesParam;
+                    return;
+                }
+                
+                // 处理棋谱按钮
                 const gamePath = gameBtn.dataset.gamePath;
                 if (gamePath) {
                     saveScrollPosition();
