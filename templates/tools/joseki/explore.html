@@ -7,7 +7,8 @@
     <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
     <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505c">
     <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260506"></script>
-    <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260506d"></script>
+    <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260510"></script>
+    <script src="{{ base_path }}/assets/js/joseki-loader.js?v=20260510a"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -176,6 +177,9 @@
         // ========== 数据加载 ==========
         const DATA_PATH = '{{ base_path }}/assets/data/joseki';
 
+        // 定式加载器实例
+        const loader = new JosekiLoader(DATA_PATH);
+
         let trieRoot = null;           // 索引 trie 根节点
         let currentNode = null;        // 当前遍历到的节点
         let currentNodePath = [];      // 当前路径(着法序列)
@@ -183,21 +187,10 @@
         let favorites = [];
         let board = null;
 
-        // 加载并解压 gzip JSON
-        async function loadGzipJson(url) {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            const compressed = await response.arrayBuffer();
-            const decompressed = pako.ungzip(compressed, { to: 'string' });
-            return JSON.parse(decompressed);
-        }
-
         // 加载索引
         async function loadIndex() {
             try {
-                trieRoot = await loadGzipJson(`${DATA_PATH}/trie-index.json.gz`);
+                trieRoot = await loader.loadIndex();
                 currentNode = trieRoot;
                 showFirstMoveBranches();
             } catch (e) {
@@ -212,17 +205,56 @@
             }
 
             try {
-                const subtree = await loadGzipJson(`${DATA_PATH}/${node.subtree.file}`);
-                // 合并子树根节点的所有字段
-                node.children = subtree.children;
-                node.heat = subtree.heat;  // 热度
-                if (subtree.freq) {
-                    node.freq = subtree.freq;
-                    node.moves = subtree.moves;
-                    node.prob = subtree.prob;
-                }
+                await loader.loadSubtree(node);
             } catch (e) {
                 console.error('[JosekiExplore] 子树加载失败:', e);
+            }
+        }
+
+        // 预加载 top N 子树（后台静默加载）
+        function prefetchTopSubtrees(branches, topN = 3) {
+            if (!currentNode || !currentNode.children || !branches || branches.length === 0) return;
+            
+            // 收集需要预加载的子树文件
+            const filesToLoad = [];
+            const nodeMap = {};  // 文件到节点的映射
+            
+            for (const branch of branches) {
+                const child = currentNode.children[branch.sgf];
+                if (!child) continue;
+                
+                // 检查是否需要加载子树（有 subtree 字段但没有 children）
+                if (child.subtree && !child.children && child.subtree.file) {
+                    const file = child.subtree.file;
+                    filesToLoad.push(file);
+                    nodeMap[file] = child;  // 记录文件对应的节点
+                    
+                    if (filesToLoad.length >= topN) break;
+                }
+            }
+            
+            // 如果有需要预加载的文件，后台静默加载
+            if (filesToLoad.length > 0) {
+                // 使用静默模式预加载，不显示进度
+                loader.loadSubtrees(filesToLoad, { showProgress: false }).then(results => {
+                    // 预加载完成后，将子树数据合并到对应的节点
+                    if (results && results.length > 0) {
+                        for (const { file, subtree } of results) {
+                            const node = nodeMap[file];
+                            if (node && subtree) {
+                                node.children = subtree.children;
+                                node.heat = subtree.heat;
+                                if (subtree.freq) {
+                                    node.freq = subtree.freq;
+                                    node.moves = subtree.moves;
+                                    node.prob = subtree.prob;
+                                }
+                            }
+                        }
+                    }
+                }).catch(e => {
+                    console.warn('[JosekiExplore] 预加载失败:', e);
+                });
             }
         }
 
@@ -277,6 +309,10 @@
 
             // 首次显示脱先提示
             checkPassHint();
+            
+            // 预加载首页 top N 子树
+            currentNode = trieRoot;  // 确保 currentNode 已设置
+            prefetchTopSubtrees(branches, 3);
         }
 
         // 检查并显示脱先提示(首次)
@@ -405,7 +441,12 @@
 
             // 检查是否需要加载子树
             if (currentNode.subtree && !currentNode.children) {
+                // 显示加载图标
+                if (!coordData.isPass) {
+                    board.setLoadingMark(coordData.x, coordData.y, nextColor);
+                }
                 await loadSubtree(currentNode);
+                board.clearLoadingMark();
             }
 
             // 更新显示
@@ -428,6 +469,9 @@
                 }
                 board.setBranches(branches);
                 checkPassHint();
+                
+                // 预加载 top N 子树（按热度排序）
+                prefetchTopSubtrees(branches, 3);
             } else {
                 board.setBranches([]);
 

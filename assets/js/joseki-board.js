@@ -118,6 +118,9 @@
             this.branches = []; // 可选分支
             this.marks = [];   // 标记（正确/错误）
             this._passMark = null; // 脱先标记的位置和大小
+            this._loadingMark = null; // 加载标记 {x, y, color}
+            this._loadingAngle = 0; // 加载图标旋转角度
+            this._loadingAnimationId = null; // 动画 ID
 
             this.startX = BOARD_SIZE - DISPLAY_SIZE; // 6
             this.startY = 0;
@@ -150,6 +153,36 @@
         setMarks(marks) {
             // marks: [{x, y, type: 'correct'|'wrong'}, ...]
             this.marks = marks || [];
+            this.render();
+        }
+
+        setLoadingMark(x, y, color) {
+            // 设置加载标记，开始旋转动画
+            this._loadingMark = { x, y, color };
+            this._loadingAngle = 0;
+            
+            // 启动旋转动画
+            if (!this._loadingAnimationId) {
+                const animate = () => {
+                    if (!this._loadingMark) {
+                        this._loadingAnimationId = null;
+                        return;
+                    }
+                    this._loadingAngle = (this._loadingAngle + 15) % 360;
+                    this.render();
+                    this._loadingAnimationId = requestAnimationFrame(animate);
+                };
+                this._loadingAnimationId = requestAnimationFrame(animate);
+            }
+        }
+
+        clearLoadingMark() {
+            // 清除加载标记，停止动画
+            this._loadingMark = null;
+            if (this._loadingAnimationId) {
+                cancelAnimationFrame(this._loadingAnimationId);
+                this._loadingAnimationId = null;
+            }
             this.render();
         }
 
@@ -372,6 +405,39 @@
                 }
             }
             ctx.restore();
+
+            // 加载标记（旋转的加载图标）
+            if (this._loadingMark) {
+                const mark = this._loadingMark;
+                if (mark.x >= this.startX && mark.x < BOARD_SIZE && mark.y >= this.startY && mark.y < this.startY + DISPLAY_SIZE) {
+                    const localX = mark.x - this.startX;
+                    const localY = mark.y - this.startY;
+                    const cx = padding + localX * gridSize;
+                    const cy = padding + localY * gridSize;
+                    const radius = gridSize * 0.35;
+
+                    // 绘制旋转的加载图标
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(this._loadingAngle * Math.PI / 180);
+                    
+                    // 绘制加载圆弧
+                    ctx.beginPath();
+                    ctx.arc(0, 0, radius, 0, Math.PI * 1.5);
+                    ctx.strokeStyle = mark.color === 'black' ? '#FF9800' : '#2196F3';
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    
+                    // 绘制加载圆点
+                    ctx.beginPath();
+                    ctx.arc(0, -radius, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = mark.color === 'black' ? '#FF9800' : '#2196F3';
+                    ctx.fill();
+                    
+                    ctx.restore();
+                }
+            }
 
             // 正确/错误标记
             for (const mark of this.marks) {

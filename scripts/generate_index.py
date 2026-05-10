@@ -500,6 +500,17 @@ def generate_index(test_mode=False):
     else:
         print(f"⚠️ 警告: 未找到定式棋盘 JS: {joseki_js_src}")
     
+    # 复制定式加载器 JS 到站点 (assets/js/)
+    joseki_loader_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "joseki-loader.js"
+    joseki_loader_js_dst = base_dir / "assets" / "js" / "joseki-loader.js"
+    
+    if joseki_loader_js_src.exists():
+        joseki_loader_js_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(joseki_loader_js_src, joseki_loader_js_dst)
+        print(f"✅ 复制定式加载器 JS: {joseki_loader_js_dst}")
+    else:
+        print(f"⚠️ 警告: 未找到定式加载器 JS: {joseki_loader_js_src}")
+    
     # 复制云比赛代理 JS 到站点 (assets/js/)
     yunbisai_js_src = WEIQI_PAGE_DIR / "assets" / "js" / "yunbisai-proxy.js"
     yunbisai_js_dst = base_dir / "assets" / "js" / "yunbisai-proxy.js"
