@@ -8,7 +8,7 @@ from pathlib import Path
 from jinja2 import Template
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs, WEIQI_PAGE_DIR
+from config import SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs, WEIQI_PAGE_DIR, WEIQI_PLAY_DIR, WEIQI_SELF_PLAY_DIR
 
 
 def normalize_event_name(event):
@@ -350,9 +350,9 @@ def generate_index(test_mode=False):
     if play_src_dir.exists():
         play_dst_dir.mkdir(parents=True, exist_ok=True)
         
-        # 复制 index.html 并重命名为 game.html
+        # 复制 index.html 并重命名为 hm.html (Human vs Machine)
         src_index = play_src_dir / "index.html"
-        dst_game = play_dst_dir / "game.html"
+        dst_game = play_dst_dir / "hm.html"
         if src_index.exists():
             content = src_index.read_text(encoding='utf-8')
             # 替换绝对路径为相对路径
@@ -490,6 +490,50 @@ def generate_index(test_mode=False):
         print(f"✅ 复制对弈工具目录完成")
     else:
         print(f"⚠️ 警告: 未找到对弈工具目录: {play_src_dir}")
+    
+    # ========== 复制 AI 自对弈工具到 tools/play 目录 ==========
+    # 与 weiqi-play 共享同一目录，共享公共资源
+    self_play_src_dir = WEIQI_SELF_PLAY_DIR
+    # 使用 play_dst_dir 而不是 self-play 子目录
+    
+    if self_play_src_dir.exists():
+        print(f"\n📦 处理 AI 自对弈工具目录: {self_play_src_dir}")
+        
+        # 复制 index.html 并重命名为 mm.html (Machine vs Machine)
+        src_index = self_play_src_dir / "index.html"
+        dst_mm = play_dst_dir / "mm.html"
+        if src_index.exists():
+            content = src_index.read_text(encoding='utf-8')
+            # 替换路径
+            content = content.replace('src="/index.js"', 'src="./mm.js"')
+            content = content.replace('href="/index.js"', 'href="./mm.js"')
+            content = content.replace('href="/assets/', 'href="./assets/')
+            dst_mm.write_text(content, encoding='utf-8')
+            print(f"✅ 复制 AI 自对弈页面: {dst_mm.name}")
+        
+        # 复制 index.js（注意：weiqi-self-play 的 index.js 与 weiqi-play 的不同）
+        # 为了避免冲突，重命名为 mm.js
+        src_js = self_play_src_dir / "index.js"
+        dst_js = play_dst_dir / "mm.js"
+        if src_js.exists():
+            content = src_js.read_text(encoding='utf-8')
+            # 替换路径
+            content = content.replace('"/assets/worker-CXxe1Q_5.js",', '"./assets/worker.js",')
+            content = content.replace('"/assets/', '"./assets/')
+            # mm.html 在 play 目录下，模型路径是 ./models/ 而不是 ../models/
+            content = content.replace('"/models/', '"./models/')
+            content = content.replace("'/models/", "'./models/")
+            # 替换 index.js 引用为 mm.js
+            content = content.replace('"./index.js"', '"./mm.js"')
+            dst_js.write_text(content, encoding='utf-8')
+            print(f"✅ 复制 AI 自对弈 JS: {dst_js.name}")
+        
+        # 注意：assets 目录已经由 weiqi-play 复制，这里不需要重复复制
+        # worker.js 和 models 目录也是共享的
+        
+        print(f"✅ 复制 AI 自对弈工具完成")
+    else:
+        print(f"⚠️ 警告: 未找到 AI 自对弈工具目录: {self_play_src_dir}")
     
     # 复制对弈工具模板文件到站点
     play_templates_src = TEMPLATES_DIR / "tools" / "play"
