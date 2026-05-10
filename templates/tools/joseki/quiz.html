@@ -7,7 +7,7 @@
     <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
     <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505c">
     <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260506"></script>
-    <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260506d"></script>
+    <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260510b"></script>
     <script src="{{ base_path }}/assets/js/joseki-loader.js?v=20260510"></script>
     <style>
         body {
@@ -399,6 +399,10 @@
                 // 正确！
                 userMoves.push(target);
                 currentIndex++;
+                
+                // 播放落子声效
+                playJosekiSound('place');
+                
                 updateProgress();
                 showExploreState();
             }
@@ -442,9 +446,15 @@
                         overlay.textContent = `${target.color === 'black' ? '黑' : '白'}方脱先`;
                         overlay.style.display = 'block';
                         setTimeout(() => overlay.style.display = 'none', 600);
+                        
+                        // 播放脱先声效
+                        playJosekiSound('pass');
                     } else {
                         // 实际落子，存入 userMoves
                         userMoves.push(target);
+                        
+                        // 播放落子声效
+                        playJosekiSound('place');
                     }
                     
                     currentIndex++;
@@ -477,6 +487,10 @@
                 // 正确！存入实际落子
                 userMoves.push(target);
                 currentIndex++;
+                
+                // 播放落子声效
+                playJosekiSound('place');
+                
                 updateProgress();
                 showChallengeState();
             } else {
@@ -495,6 +509,9 @@
                 overlay.textContent = '脱先';
                 overlay.style.display = 'block';
                 setTimeout(() => overlay.style.display = 'none', 600);
+                
+                // 播放脱先声效
+                playJosekiSound('pass');
                 
                 currentIndex++;
                 updateProgress();
@@ -742,6 +759,9 @@
 
         function undo() {
             if (mode !== 'explore' || currentIndex <= 0) return;
+            
+            // 播放撤销声效
+            playJosekiSound('undo');
 
             // 撤销一步
             currentIndex--;

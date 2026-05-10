@@ -7,7 +7,7 @@
     <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
     <link rel="stylesheet" href="{{ base_path }}/assets/css/joseki.css?v=20260505c">
     <script src="{{ base_path }}/assets/js/board-thumbnail.js?v=20260506"></script>
-    <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260510"></script>
+    <script src="{{ base_path }}/assets/js/joseki-board.js?v=20260510b"></script>
     <script src="{{ base_path }}/assets/js/joseki-loader.js?v=20260510a"></script>
     <style>
         body {
@@ -429,6 +429,8 @@
                 overlay.textContent = `${nextColor === 'black' ? '黑' : '白'}方脱先`;
                 overlay.style.display = 'block';
                 setTimeout(() => overlay.style.display = 'none', 800);
+                // 播放脱先声效
+                playJosekiSound('pass');
             }
 
             currentMoves.push({
@@ -438,6 +440,11 @@
                 color: nextColor,
                 num: currentNodePath.length
             });
+            
+            // 播放落子声效（非脱先）
+            if (!coordData.isPass) {
+                playJosekiSound('place');
+            }
 
             // 检查是否需要加载子树
             if (currentNode.subtree && !currentNode.children) {
@@ -520,6 +527,9 @@
 
         async function undo() {
             if (currentNodePath.length <= 0) return;
+            
+            // 播放撤销声效
+            playJosekiSound('undo');
 
             // 移除最后一个棋子
             currentMoves.pop();
