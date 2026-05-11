@@ -402,14 +402,13 @@
         
         // ========== 隐藏/显示标签栏 ==========
         function hideTabs() {
-            document.getElementById('tabsSection').style.display = 'none';
+            // 只隐藏标签内容面板，标签栏保留
             document.getElementById('onlinePanel').style.display = 'none';
             document.getElementById('uploadPanel').style.display = 'none';
             document.getElementById('historyPanel').style.display = 'none';
         }
         
         function showTabs() {
-            document.getElementById('tabsSection').style.display = 'flex';
             // 显示当前激活的面板
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.style.display = '';
