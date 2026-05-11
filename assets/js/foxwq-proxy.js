@@ -279,11 +279,24 @@ class FoxwqProxy {
             const linkUrl = linkMatch[1];
             const matchIndex = linkMatch.index;
             
+            if (this.debug) {
+                console.log(`[FoxwqProxy] 匹配到链接:`, linkUrl, 'at index:', matchIndex);
+            }
+            
             // 从链接位置向前找 <tr>，向后找 </tr>
             const beforeLink = html.lastIndexOf('<tr', matchIndex);
             const afterLink = html.indexOf('</tr>', matchIndex);
             
-            if (beforeLink === -1 || afterLink === -1) continue;
+            if (this.debug) {
+                console.log(`[FoxwqProxy] beforeLink: ${beforeLink}, afterLink: ${afterLink}`);
+            }
+            
+            if (beforeLink === -1 || afterLink === -1) {
+                if (this.debug) {
+                    console.log(`[FoxwqProxy] 跳过: 找不到 <tr> 标签`);
+                }
+                continue;
+            }
             
             const rowHtml = html.substring(beforeLink, afterLink + 5);
             
