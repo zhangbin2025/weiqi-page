@@ -826,8 +826,16 @@
             currentResults = record.results || [];
             currentGames = record.games || [];
             
-            // 切换到线上棋谱标签并显示统计
-            switchTab('online');
+            // 根据来源切换到对应的标签
+            const tabName = record.source === 'upload' ? 'upload' : 'online';
+            
+            // 更新标签激活状态
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+            
+            // 显示统计卡片（会自动隐藏标签内容面板）
             displayStats();
         }
         
