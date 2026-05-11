@@ -268,6 +268,13 @@ class FoxwqProxy {
         const linkRegex = /<a[^>]*href="(\/qipu\/newlist\/id\/\d+\.html)"[^>]*>/gi;
         let linkMatch;
         
+        if (this.debug) {
+            // 测试正则表达式
+            const testMatches = html.match(/href="\/qipu\/newlist\/id\/\d+\.html"/g);
+            console.log(`[FoxwqProxy] 直接匹配 href 数量:`, testMatches ? testMatches.length : 0);
+            console.log(`[FoxwqProxy] 测试第一个匹配:`, testMatches ? testMatches[0] : '无');
+        }
+        
         while ((linkMatch = linkRegex.exec(html)) !== null) {
             const linkUrl = linkMatch[1];
             const matchIndex = linkMatch.index;
