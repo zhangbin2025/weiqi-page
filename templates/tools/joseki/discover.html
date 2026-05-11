@@ -721,7 +721,6 @@
     </div>
 
     <script>
-    <script>
         // ========== 全局变量 ==========
         const HISTORY_KEY = 'discover_history';
         const CURRENT_KEY = 'discover_current';
@@ -1138,7 +1137,7 @@
                 // 探索着法串参数
                 let exploreMoves = '';
                 if (prefix && prefixLen > 0) {
-                    const movesArray = prefix.trim().split(/\\s+/);
+                    const movesArray = prefix.trim().split(/\s+/);
                     const prefixMoves = movesArray.slice(0, prefixLen);
                     exploreMoves = prefixMoves.join('-');
                 }
@@ -1427,7 +1426,7 @@
             if (!item) return;
             
             const prefix = item.prefix || '';
-            const movesArray = prefix.trim().split(/\\s+/);
+            const movesArray = prefix.trim().split(/\s+/);
             
             // 格式化着法显示
             let movesDisplay = '';
