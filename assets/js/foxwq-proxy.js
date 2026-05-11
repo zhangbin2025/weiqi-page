@@ -254,33 +254,38 @@ class FoxwqProxy {
         
         const html = await this.fetchHtml(LIST_URL);
         
+        // 调试：打印 HTML 长度和部分内容
+        if (this.debug) {
+            console.log(`[FoxwqProxy] HTML 长度: ${html.length}`);
+            console.log(`[FoxwqProxy] HTML 前 500 字符:`, html.substring(0, 500));
+        }
+        
         // 解析 HTML 提取棋谱链接
         const links = [];
         
-        // 使用正则匹配棋谱链接和日期
-        // 链接格式: /qipu/newlist/id/123456.html
-        // 日期在最后一个 <td> 中
-        const rowPattern = /<tr[^>]*>.*?<\/tr>/gs;
-        const linkPattern = /<a[^>]*href="(\/qipu\/newlist\/id\/\d+\.html)"[^>]*>/i;
-        const titlePattern = /<h4[^>]*>(.*?)<\/h4>/i;
-        const datePattern = /<td[^>]*>(\d{4}-\d{2}-\d{2})[^<]*<\/td>\s*<\/tr>/i;
+        // 方法1：使用类似 Python 的单正则匹配
+        // 匹配包含 /qipu/newlist/id/ 链接的行
+        const linkRegex = /<a[^>]*href="(\/qipu\/newlist\/id\/\d+\.html)"[^>]*>/gi;
+        let linkMatch;
         
-        let rowMatch;
-        const rowRegex = new RegExp(rowPattern.source, 'gs');
-        
-        while ((rowMatch = rowRegex.exec(html)) !== null) {
-            const rowHtml = rowMatch[0];
+        while ((linkMatch = linkRegex.exec(html)) !== null) {
+            const linkUrl = linkMatch[1];
+            const matchIndex = linkMatch.index;
             
-            // 提取链接
-            const linkMatch = rowHtml.match(linkPattern);
-            if (!linkMatch) continue;
+            // 从链接位置向前找 <tr>，向后找 </tr>
+            const beforeLink = html.lastIndexOf('<tr', matchIndex);
+            const afterLink = html.indexOf('</tr>', matchIndex);
             
-            // 提取标题
-            const titleMatch = rowHtml.match(titlePattern);
+            if (beforeLink === -1 || afterLink === -1) continue;
+            
+            const rowHtml = html.substring(beforeLink, afterLink + 5);
+            
+            // 提取标题（在 <h4> 标签内）
+            const titleMatch = rowHtml.match(/<h4[^>]*>(.*?)<\/h4>/i);
             const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '未知';
             
-            // 提取日期
-            const dateMatch = rowHtml.match(datePattern);
+            // 提取日期（查找 YYYY-MM-DD 格式）
+            const dateMatch = rowHtml.match(/(\d{4}-\d{2}-\d{2})/);
             const qipuDate = dateMatch ? dateMatch[1] : '';
             
             // 日期过滤
@@ -288,13 +293,17 @@ class FoxwqProxy {
             
             links.push({
                 title: title,
-                url: `https://www.foxwq.com${linkMatch[1]}`,
+                url: `https://www.foxwq.com${linkUrl}`,
                 date: qipuDate
             });
+            
+            if (this.debug) {
+                console.log(`[FoxwqProxy] 找到棋谱: ${title} - ${qipuDate}`);
+            }
         }
         
         if (this.debug) {
-            console.log(`[FoxwqProxy] 找到 ${links.length} 个公开棋谱`);
+            console.log(`[FoxwqProxy] 共找到 ${links.length} 个公开棋谱`);
         }
         
         return links;
