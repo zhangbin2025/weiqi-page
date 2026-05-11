@@ -273,7 +273,7 @@
         </header>
 
         <!-- 标签切换 -->
-        <div class="tabs">
+        <div id="tabsSection" class="tabs">
             <div class="tab active" data-tab="online" onclick="switchTab('online')">
                 <span>🌐</span>
                 <span>线上棋谱</span>
@@ -302,10 +302,6 @@
                     <select id="dateSelect">
                         <option value="0">今天</option>
                         <option value="1" selected>昨天</option>
-                        <option value="2">前天</option>
-                        <option value="3">3天前</option>
-                        <option value="7">7天前</option>
-                        <option value="30">30天前</option>
                         <option value="">全部</option>
                     </select>
                 </div>
@@ -404,8 +400,30 @@
             renderHistoryList();
         });
         
+        // ========== 隐藏/显示标签栏 ==========
+        function hideTabs() {
+            document.getElementById('tabsSection').style.display = 'none';
+            document.getElementById('onlinePanel').style.display = 'none';
+            document.getElementById('uploadPanel').style.display = 'none';
+            document.getElementById('historyPanel').style.display = 'none';
+        }
+        
+        function showTabs() {
+            document.getElementById('tabsSection').style.display = 'flex';
+            // 显示当前激活的面板
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = '';
+            });
+        }
+        
         // ========== 标签切换 ==========
         function switchTab(tabName) {
+            // 显示标签栏（如果之前被隐藏了）
+            showTabs();
+            
+            // 隐藏统计卡片
+            document.getElementById('statsSection').classList.remove('show');
+            
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -666,6 +684,9 @@
         
         // ========== 统计卡片显示 ==========
         function displayStats() {
+            // 隐藏标签栏
+            hideTabs();
+            
             const statsSection = document.getElementById('statsSection');
             
             // 计算定式统计
