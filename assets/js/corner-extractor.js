@@ -209,6 +209,21 @@ class CornerExtractor {
         const result = [];
         let lastColor = null;
         
+        // 先添加预置子作为初始着法
+        // 预置子通常是黑子，需要插入白方的 pass 保持交替
+        for (const stone of handicapStones) {
+            // 转换为 SGF 坐标
+            const coord = String.fromCharCode(97 + stone.x) + String.fromCharCode(97 + stone.y);
+            
+            // 如果上一个是黑子，插入白方的 pass
+            if (lastColor === 'B') {
+                result.push(['W', 'tt']);
+            }
+            
+            result.push([stone.color, coord]);
+            lastColor = stone.color;
+        }
+        
         for (const [color, coord, col, row] of cornerMoves) {
             const posKey = `${col},${row}`;
             if (corePositions.has(posKey)) {
@@ -305,6 +320,20 @@ class CornerExtractor {
         // 构建结果（检测脱先）
         const result = [];
         let lastColor = null;
+        
+        // 先添加预置子作为初始着法
+        for (const stone of handicapStones) {
+            // 转换为 SGF 坐标
+            const coord = String.fromCharCode(97 + stone.x) + String.fromCharCode(97 + stone.y);
+            
+            // 如果上一个是黑子，插入白方的 pass
+            if (lastColor === 'B') {
+                result.push(['W', 'tt']);
+            }
+            
+            result.push([stone.color, coord]);
+            lastColor = stone.color;
+        }
         
         for (const [color, col, row, coord] of cornerMovesList) {
             const posKey = `${col},${row}`;
