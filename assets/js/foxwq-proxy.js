@@ -198,6 +198,152 @@ class FoxwqProxy {
             avgTime: this.perf.requests > 0 ? this.perf.total / this.perf.requests : 0
         };
     }
+
+    /**
+     * 获取 HTML 页面内容（通过代理）
+     * @param {string} url - 页面 URL
+     * @returns {Promise<string>} HTML 内容
+     */
+    async fetchHtml(url) {
+        const proxyFullUrl = `${this.proxyUrl}/?url=${encodeURIComponent(url)}`;
+        
+        const startTime = performance.now();
+        this.perf.requests++;
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+            
+            const response = await fetch(proxyFullUrl, {
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const html = await response.text();
+            const elapsed = performance.now() - startTime;
+            this.perf.total += elapsed;
+            
+            if (this.debug) {
+                console.log(`[FoxwqProxy] fetchHtml ${url} - ${elapsed.toFixed(0)}ms`);
+            }
+            
+            return html;
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error('请求超时');
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * 获取野狐公开棋谱列表
+     * @param {string|null} date - 日期过滤，格式 'YYYY-MM-DD'，null 表示所有
+     * @returns {Promise<Array>} 棋谱列表
+     */
+    async fetchPublicQipuList(date = null) {
+        const LIST_URL = 'https://www.foxwq.com/qipu.html';
+        
+        const html = await this.fetchHtml(LIST_URL);
+        
+        // 解析 HTML 提取棋谱链接
+        const links = [];
+        
+        // 使用正则匹配棋谱链接和日期
+        // 链接格式: /qipu/newlist/id/123456.html
+        // 日期在最后一个 <td> 中
+        const rowPattern = /<tr[^>]*>.*?<\/tr>/gs;
+        const linkPattern = /<a[^>]*href="(\/qipu\/newlist\/id\/\d+\.html)"[^>]*>/i;
+        const titlePattern = /<h4[^>]*>(.*?)<\/h4>/i;
+        const datePattern = /<td[^>]*>(\d{4}-\d{2}-\d{2})[^<]*<\/td>\s*<\/tr>/i;
+        
+        let rowMatch;
+        const rowRegex = new RegExp(rowPattern.source, 'gs');
+        
+        while ((rowMatch = rowRegex.exec(html)) !== null) {
+            const rowHtml = rowMatch[0];
+            
+            // 提取链接
+            const linkMatch = rowHtml.match(linkPattern);
+            if (!linkMatch) continue;
+            
+            // 提取标题
+            const titleMatch = rowHtml.match(titlePattern);
+            const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '未知';
+            
+            // 提取日期
+            const dateMatch = rowHtml.match(datePattern);
+            const qipuDate = dateMatch ? dateMatch[1] : '';
+            
+            // 日期过滤
+            if (date && qipuDate !== date) continue;
+            
+            links.push({
+                title: title,
+                url: `https://www.foxwq.com${linkMatch[1]}`,
+                date: qipuDate
+            });
+        }
+        
+        if (this.debug) {
+            console.log(`[FoxwqProxy] 找到 ${links.length} 个公开棋谱`);
+        }
+        
+        return links;
+    }
+
+    /**
+     * 下载公开棋谱的 SGF
+     * @param {string} url - 棋谱详情页 URL
+     * @returns {Promise<Object>} { sgf, title, date }
+     */
+    async fetchPublicQipuSgf(url) {
+        const html = await this.fetchHtml(url);
+        
+        // 提取 SGF 内容（以 (;GM[1]FF[4] 开头）
+        const sgfStart = html.indexOf('(;GM[1]FF[4]');
+        if (sgfStart === -1) {
+            throw new Error('无法提取 SGF 内容');
+        }
+        
+        // 从 SGF 开始位置查找第一个 HTML 标签的位置
+        const sgfRemainder = html.substring(sgfStart);
+        const htmlTagMatch = sgfRemainder.match(/<\/?[a-zA-Z][^>]*>/);
+        
+        let sgf;
+        if (htmlTagMatch) {
+            // 截取 SGF 内容（从开头到第一个 HTML 标签之前）
+            sgf = sgfRemainder.substring(0, htmlTagMatch.index);
+        } else {
+            // 备选：使用正则匹配
+            const sgfMatch = html.match(/\(;GM\[1\]FF\[4\][\s\S]*?\)\s*\)\s*\)/);
+            sgf = sgfMatch ? sgfMatch[0] : '';
+        }
+        
+        // 去除末尾空白
+        sgf = sgf.trim();
+        
+        if (!sgf) {
+            throw new Error('SGF 内容为空');
+        }
+        
+        // 提取标题和日期（从页面中）
+        const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
+        const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '未知';
+        
+        const dateMatch = html.match(/(\d{4}-\d{2}-\d{2})/);
+        const date = dateMatch ? dateMatch[1] : '';
+        
+        return { sgf, title, date };
+    }
 }
 
 // 导出（如果支持模块）

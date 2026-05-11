@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>定式发现 - 围棋智能助手</title>
+    <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favicon/favicon.ico?v=20260502">
+    <script>const BASE_PATH = '{{ base_path }}';</script>
+    <!-- 依赖 -->
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+    <script src="{{ base_path }}/assets/js/sgf-parser.js"></script>
+    <script src="{{ base_path }}/assets/js/coordinate-converter.js"></script>
+    <script src="{{ base_path }}/assets/js/corner-extractor.js"></script>
+    <script src="{{ base_path }}/assets/js/joseki-matcher.js"></script>
+    <script src="{{ base_path }}/assets/js/foxwq-proxy.js"></script>
+    <script src="{{ base_path }}/assets/js/board-thumbnail.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 12px;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { font-size: 1.3em; margin: 0; }
+        .header-actions { display: flex; gap: 10px; }
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .icon-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        /* 输入面板 */
+        .input-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .input-tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 1px solid #eee;
+        }
+        .input-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            color: #666;
+            font-size: 0.95em;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        .input-tab:hover { color: #333; }
+        .input-tab.active {
+            color: #667eea;
+            background: white;
+            border-bottom-color: #667eea;
+            font-weight: 500;
+        }
+        .input-content {
+            display: none;
+            padding: 16px;
+        }
+        .input-content.active { display: block; }
+        
+        /* 日期选择 */
+        .date-options {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .date-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: #666;
+            transition: all 0.2s;
+        }
+        .date-btn:hover { border-color: #ccc; }
+        .date-btn.active {
+            border-color: #667eea;
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        /* 按钮 */
+        .primary-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .primary-btn:hover { opacity: 0.9; }
+        .primary-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* 文件选择 */
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .file-input {
+            display: none;
+        }
+        .file-label {
+            display: block;
+            padding: 16px;
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.2s;
+        }
+        .file-label:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        .file-name {
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #333;
+        }
+        
+        /* 进度条 */
+        .progress-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 16px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .progress-section.active { display: block; }
+        .progress-bar-bg {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .progress-text {
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+        }
+        
+        /* 历史记录 */
+        .history-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .history-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-title {
+            font-weight: 600;
+            color: #333;
+        }
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f5f5f5;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .history-item:hover { background: #f8f9fa; }
+        .history-item:last-child { border-bottom: none; }
+        .history-item-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-time {
+            font-size: 0.9em;
+            color: #333;
+        }
+        .history-meta {
+            font-size: 0.8em;
+            color: #888;
+        }
+        .history-empty {
+            padding: 24px;
+            text-align: center;
+            color: #999;
+            font-size: 0.9em;
+        }
+        
+        /* 结果展示 */
+        .result-section {
+            display: none;
+        }
+        .result-section.active { display: block; }
+        
+        /* 标签过滤器 */
+        .filter-tabs {
+            display: flex;
+            gap: 3px;
+            margin-bottom: 12px;
+            padding-bottom: 4px;
+            flex-wrap: nowrap;
+        }
+        .filter-tab {
+            flex: 1;
+            min-width: 0;
+            padding: 5px 4px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            background: white;
+            color: #666;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            white-space: nowrap;
+        }
+        .filter-tab:hover { background: #f8f9fa; border-color: #ccc; }
+        .filter-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .filter-tab .count {
+            font-size: 0.8em;
+            padding: 1px 4px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 8px;
+            margin-left: 1px;
+        }
+        .filter-tab.active .count { background: rgba(255,255,255,0.3); }
+        
+        /* 定式卡片 */
+        .joseki-list {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .joseki-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .joseki-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .joseki-card.hidden { display: none; }
+        .joseki-card.viewed { opacity: 0.6; }
+        .joseki-header {
+            padding: 12px 15px 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+        .joseki-vs { color: #999; font-weight: normal; font-size: 0.9em; }
+        .joseki-tags-row {
+            padding: 0 15px 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .tag { padding: 3px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 500; }
+        .tag-hot { background: #ffebee; color: #c62828; }
+        .tag-hit { background: #e8f5e9; color: #2e7d32; }
+        .tag-complex { background: #e3f2fd; color: #1565c0; }
+        .joseki-body { padding: 12px 15px; }
+        .metrics-row { display: flex; gap: 24px; align-items: flex-start; }
+        .joseki-thumbnail {
+            width: 200px;
+            height: 200px;
+            flex-shrink: 0;
+            border-radius: 8px;
+            background: #DCB35C;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .metrics-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-start;
+            justify-content: flex-start;
+            max-height: 200px;
+        }
+        .metric-col {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            position: relative;
+        }
+        .metric-value { font-size: 1em; font-weight: 600; color: #667eea; }
+        .metric-label { font-size: 0.7em; color: #888; }
+        
+        /* 胜率指标样式 */
+        .winrate-value {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .winrate-value:hover { opacity: 0.8; }
+        .winrate-value.positive { color: #2e7d32; }
+        .winrate-value.negative { color: #c62828; }
+        .winrate-value.neutral { color: #666; }
+        
+        /* 胜率详情弹窗 */
+        .winrate-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 999;
+        }
+        .winrate-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        .winrate-sheet {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 16px 20px 24px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            max-width: 480px;
+            margin: 0 auto;
+            pointer-events: none;
+        }
+        .winrate-sheet.active {
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .winrate-sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        @media (min-width: 768px) {
+            .winrate-sheet {
+                left: 50%;
+                right: auto;
+                top: 50%;
+                bottom: auto;
+                transform: translate(-50%, -40%) scale(0.9);
+                opacity: 0;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            .winrate-sheet.active {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+        .winrate-title { font-size: 1.1em; font-weight: 600; color: #333; }
+        .winrate-close-btn {
+            width: 32px; height: 32px;
+            border: none;
+            background: #f5f5f5;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1em;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .winrate-close-btn:hover { background: #e0e0e0; }
+        .winrate-detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        .winrate-detail-label { color: #666; }
+        .winrate-detail-value { font-weight: 500; }
+        .winrate-bar {
+            height: 24px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f5f5f5;
+            margin: 12px 0;
+            display: flex;
+        }
+        .winrate-bar-positive { background: #4caf50; }
+        .winrate-bar-neutral { background: #bdbdbd; }
+        .winrate-bar-negative { background: #f44336; }
+        .winrate-bar-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 4px;
+        }
+        .winrate-hint {
+            font-size: 0.85em;
+            color: #999;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+        
+        .joseki-footer {
+            padding: 10px 15px;
+            background: #fafafa;
+            border-top: 1px solid #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .joseki-tags { display: flex; gap: 6px; }
+        .joseki-meta { font-size: 0.85em; color: #888; }
+        .joseki-btn {
+            padding: 5px 12px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 0.85em;
+            white-space: nowrap;
+            flex-shrink: 0;
+            cursor: pointer;
+            border: none;
+        }
+        .joseki-btn:hover { background: #c8e6c9; }
+        
+        /* iframe 全屏容器 */
+        .replay-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: white;
+            z-index: 10000;
+            display: none;
+        }
+        .replay-overlay.active { display: block; }
+        .replay-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        /* 弹窗样式 */
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+        .modal-backdrop.active { opacity: 1; visibility: visible; }
+        .modal-sheet {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 16px 20px 24px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            max-width: 480px;
+            margin: 0 auto;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-sheet.active { transform: translateY(0); }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .modal-title { font-size: 1.1em; font-weight: 600; color: #333; }
+        .modal-close-btn {
+            width: 32px; height: 32px;
+            border: none;
+            background: #f5f5f5;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1em;
+            color: #666;
+        }
+        .modal-close-btn:hover { background: #e0e0e0; }
+        .moves-display {
+            font-family: monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: break-all;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        footer {
+            text-align: center;
+            padding: 15px;
+            color: #999;
+            font-size: 0.8em;
+        }
+        
+        /* 石子图标 */
+        .stone-icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: inline-block;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .stone-black {
+            background: radial-gradient(circle at 30% 30%, #666, #000);
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        .stone-white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border: 1px solid #ccc;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 定式发现</h1>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="clearHistory()" title="清除历史">🗑️</button>
+            </div>
+        </header>
+
+        <!-- 输入面板 -->
+        <div class="input-card">
+            <div class="input-tabs">
+                <div class="input-tab active" data-tab="online" onclick="switchInputTab('online')">🌐 线上棋谱</div>
+                <div class="input-tab" data-tab="upload" onclick="switchInputTab('upload')">📁 导入棋谱</div>
+            </div>
+            
+            <!-- 线上棋谱 -->
+            <div id="onlinePanel" class="input-content active">
+                <div class="date-options">
+                    <button class="date-btn active" data-date="today" onclick="selectDate('today')">今天</button>
+                    <button class="date-btn" data-date="yesterday" onclick="selectDate('yesterday')">昨天</button>
+                    <button class="date-btn" data-date="all" onclick="selectDate('all')">所有</button>
+                </div>
+                <button class="primary-btn" id="analyzeOnlineBtn" onclick="startOnlineAnalysis()">开始分析</button>
+            </div>
+            
+            <!-- 导入棋谱 -->
+            <div id="uploadPanel" class="input-content">
+                <div class="file-input-wrapper">
+                    <input type="file" id="sgfFileInput" class="file-input" accept=".sgf" onchange="handleFileSelect(event)">
+                    <label for="sgfFileInput" class="file-label">
+                        📄 点击选择 SGF 文件
+                        <div id="fileName" class="file-name"></div>
+                    </label>
+                </div>
+                <button class="primary-btn" id="analyzeUploadBtn" onclick="startUploadAnalysis()" disabled>开始分析</button>
+            </div>
+        </div>
+
+        <!-- 进度显示 -->
+        <div id="progressSection" class="progress-section">
+            <div class="progress-bar-bg">
+                <div id="progressBar" class="progress-bar-fill"></div>
+            </div>
+            <div id="progressText" class="progress-text">准备中...</div>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="history-section">
+            <div class="history-header">
+                <span class="history-title">📋 历史记录</span>
+            </div>
+            <div id="historyList" class="history-list">
+                <div class="history-empty">暂无历史记录</div>
+            </div>
+        </div>
+
+        <!-- 结果展示 -->
+        <div id="resultSection" class="result-section">
+            <div class="filter-tabs">
+                <div class="filter-tab active" data-filter="hot" onclick="setFilter('hot')">🔥 热门<span class="count" id="countHot">0</span></div>
+                <div class="filter-tab" data-filter="hit" onclick="setFilter('hit')">🎯 命中<span class="count" id="countHit">0</span></div>
+                <div class="filter-tab" data-filter="complex" onclick="setFilter('complex')">🧩 复杂<span class="count" id="countComplex">0</span></div>
+                <div class="filter-tab" data-filter="all" onclick="setFilter('all')">📋 全部<span class="count" id="countAll">0</span></div>
+            </div>
+            <div id="josekiList" class="joseki-list"></div>
+        </div>
+
+        <footer><p>围棋智能助手 &copy; 2026</p></footer>
+    </div>
+
+    <!-- 棋谱显示容器 -->
+    <div id="replayOverlay" class="replay-overlay">
+        <iframe id="replayIframe" class="replay-iframe"></iframe>
+    </div>
+
+    <!-- 定式详情弹窗 -->
+    <div id="modalBackdrop" class="modal-backdrop" onclick="closeModal()"></div>
+    <div id="modalSheet" class="modal-sheet">
+        <div class="modal-header">
+            <div class="modal-title" id="modalTitle">定式着法</div>
+            <button class="modal-close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="moves-display" id="modalContent"></div>
+    </div>
+
+    <!-- 胜率详情弹窗 -->
+    <div id="winrateBackdrop" class="winrate-backdrop" onclick="closeWinrateSheet()"></div>
+    <div id="winrateSheet" class="winrate-sheet">
+        <div class="winrate-sheet-header">
+            <div class="winrate-title">胜率变化详情</div>
+            <button class="winrate-close-btn" onclick="closeWinrateSheet()">✕</button>
+        </div>
+        <div id="winrateContent"></div>
+    </div>
+
+    <script>
+    <script>
+        // ========== 全局变量 ==========
+        const HISTORY_KEY = 'discover_history';
+        const CURRENT_KEY = 'discover_current';
+        const VIEWED_KEY = 'discover_viewed';
+        
+        let foxwqProxy = null;
+        let sgfParser = null;
+        let cornerExtractor = null;
+        let josekiMatcher = null;
+        
+        let currentDate = 'today';  // 当前选择的日期
+        let currentResults = [];    // 当前分析结果
+        let currentGames = [];      // 当前分析的棋谱列表
+        let currentFilter = 'all';  // 当前过滤器
+        let currentHistoryId = null; // 当前查看的历史记录ID
+        
+        // ========== 工具函数 ==========
+        function formatDate(date) {
+            const d = new Date(date);
+            return d.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        function getDateStr(offset) {
+            const d = new Date();
+            d.setDate(d.getDate() - offset);
+            return d.toISOString().split('T')[0];
+        }
+        
+        function generateId() {
+            return new Date().toISOString().replace(/[-:T]/g, '').split('.')[0];
+        }
+        
+        // ========== 初始化 ==========
+        window.addEventListener('pageshow', function(event) {
+            // 初始化代理和解析器
+            foxwqProxy = new FoxwqProxy({ debug: true });
+            sgfParser = new SGFParser();
+            cornerExtractor = new CornerExtractor();
+            josekiMatcher = new JosekiMatcher(BASE_PATH + '/assets/data/joseki');
+            
+            // 渲染历史列表
+            renderHistoryList();
+            
+            // 恢复当前分析结果
+            restoreCurrentResult();
+        });
+        
+        // ========== 输入面板切换 ==========
+        function switchInputTab(tabName) {
+            // 切换标签样式
+            document.querySelectorAll('.input-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.input-tab[data-tab="${tabName}"]`).classList.add('active');
+            
+            // 切换内容面板
+            document.querySelectorAll('.input-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Panel').classList.add('active');
+        }
+        
+        // ========== 日期选择 ==========
+        function selectDate(date) {
+            currentDate = date;
+            document.querySelectorAll('.date-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.date-btn[data-date="${date}"]`).classList.add('active');
+        }
+        
+        // ========== 文件选择处理 ==========
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('analyzeUploadBtn').disabled = false;
+            } else {
+                document.getElementById('fileName').textContent = '';
+                document.getElementById('analyzeUploadBtn').disabled = true;
+            }
+        }
+        
+        // ========== 进度显示 ==========
+        function showProgress(show = true) {
+            const section = document.getElementById('progressSection');
+            if (show) {
+                section.classList.add('active');
+            } else {
+                section.classList.remove('active');
+            }
+        }
+        
+        function updateProgress(percent, text) {
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+        
+        // ========== 线上棋谱分析 ==========
+        async function startOnlineAnalysis() {
+            const btn = document.getElementById('analyzeOnlineBtn');
+            btn.disabled = true;
+            btn.textContent = '分析中...';
+            
+            showProgress(true);
+            updateProgress(0, '正在获取棋谱列表...');
+            
+            try {
+                // 确定日期过滤
+                let dateFilter = null;
+                if (currentDate === 'today') {
+                    dateFilter = getDateStr(0);
+                } else if (currentDate === 'yesterday') {
+                    dateFilter = getDateStr(1);
+                }
+                
+                // 获取公开棋谱列表
+                const qipuList = await foxwqProxy.fetchPublicQipuList(dateFilter);
+                
+                if (qipuList.length === 0) {
+                    updateProgress(100, '未找到棋谱');
+                    setTimeout(() => showProgress(false), 1500);
+                    btn.disabled = false;
+                    btn.textContent = '开始分析';
+                    return;
+                }
+                
+                updateProgress(5, `找到 ${qipuList.length} 个棋谱，开始分析...`);
+                
+                // 加载定式库索引
+                await josekiMatcher.loadIndex();
+                
+                // 分析每个棋谱
+                currentResults = [];
+                currentGames = [];
+                const total = qipuList.length;
+                
+                for (let i = 0; i < total; i++) {
+                    const qipu = qipuList[i];
+                    const percent = 5 + (i / total) * 90;
+                    
+                    updateProgress(percent, `分析棋谱 ${i + 1}/${total}: ${qipu.title.substring(0, 20)}...`);
+                    
+                    try {
+                        // 下载 SGF
+                        const { sgf, title, date } = await foxwqProxy.fetchPublicQipuSgf(qipu.url);
+                        
+                        // 分析棋谱
+                        const results = await analyzeSgf(sgf, title, date);
+                        
+                        currentResults.push(...results);
+                        currentGames.push({
+                            title: title,
+                            date: date,
+                            sgf: sgf
+                        });
+                        
+                    } catch (error) {
+                        console.error(`分析棋谱失败: ${qipu.title}`, error);
+                    }
+                }
+                
+                // 按 prefix_len 排序
+                currentResults.sort((a, b) => b.prefix_len - a.prefix_len);
+                
+                updateProgress(100, `分析完成，发现 ${currentResults.length} 个定式`);
+                
+                // 保存到历史记录
+                saveToHistory('foxwq', currentDate);
+                
+                // 显示结果
+                setTimeout(() => {
+                    showProgress(false);
+                    displayResults();
+                }, 1000);
+                
+            } catch (error) {
+                console.error('线上棋谱分析失败:', error);
+                updateProgress(100, '分析失败: ' + error.message);
+                setTimeout(() => showProgress(false), 2000);
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '开始分析';
+        }
+        
+        // ========== 导入棋谱分析 ==========
+        async function startUploadAnalysis() {
+            const fileInput = document.getElementById('sgfFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('请选择 SGF 文件');
+                return;
+            }
+            
+            const btn = document.getElementById('analyzeUploadBtn');
+            btn.disabled = true;
+            btn.textContent = '分析中...';
+            
+            showProgress(true);
+            updateProgress(0, '正在读取文件...');
+            
+            try {
+                // 读取文件内容
+                const sgfContent = await readFileAsText(file);
+                
+                updateProgress(30, '正在分析棋谱...');
+                
+                // 加载定式库索引
+                await josekiMatcher.loadIndex();
+                
+                // 分析棋谱
+                const fileName = file.name.replace(/\.sgf$/i, '');
+                currentResults = await analyzeSgf(sgfContent, fileName, '');
+                currentGames = [{
+                    title: fileName,
+                    date: '',
+                    sgf: sgfContent
+                }];
+                
+                // 按 prefix_len 排序
+                currentResults.sort((a, b) => b.prefix_len - a.prefix_len);
+                
+                updateProgress(100, `分析完成，发现 ${currentResults.length} 个定式`);
+                
+                // 保存到历史记录
+                saveToHistory('upload', fileName);
+                
+                // 显示结果
+                setTimeout(() => {
+                    showProgress(false);
+                    displayResults();
+                }, 1000);
+                
+            } catch (error) {
+                console.error('导入棋谱分析失败:', error);
+                updateProgress(100, '分析失败: ' + error.message);
+                setTimeout(() => showProgress(false), 2000);
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '开始分析';
+        }
+        
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(new Error('文件读取失败'));
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+        
+        // ========== 定式匹配逻辑 ==========
+        async function analyzeSgf(sgfContent, title, date) {
+            const results = [];
+            
+            try {
+                // 解析 SGF
+                const parsed = sgfParser.parse(sgfContent);
+                
+                // 检查棋盘大小
+                if (parsed.game_info.board_size !== 19) {
+                    console.log(`跳过非19路棋谱: ${parsed.game_info.board_size}路`);
+                    return results;
+                }
+                
+                // 提取主分支着法
+                const moves = sgfParser.extractMainBranch(parsed.tree, 80);
+                
+                if (!moves || moves.length === 0) {
+                    console.warn('棋谱没有着法');
+                    return results;
+                }
+                
+                // 提取四个角
+                const corners = cornerExtractor.extractFourCorners(moves);
+                
+                // 匹配每个角
+                for (const cornerKey of ['tl', 'tr', 'bl', 'br']) {
+                    const cornerMoves = corners[cornerKey];
+                    
+                    if (!cornerMoves || cornerMoves.length < 4) {
+                        continue;
+                    }
+                    
+                    // 从元组数组中提取坐标字符串
+                    const coords = cornerMoves.map(([color, coord]) => coord);
+                    
+                    // 转换到右上角
+                    const trMoves = CoordinateConverter.convertToTopRight(coords, cornerKey);
+                    
+                    // 标准化
+                    const normResult = CoordinateConverter.normalizeCornerSequence(trMoves);
+                    const normalized = normResult.normalized;
+                    
+                    // 匹配定式
+                    const result = await josekiMatcher.matchSequence(normalized);
+                    
+                    // 只记录有效的定式（freq > 0 且 4 手及以上）
+                    if (result && result.freq > 0 && result.matchedCount >= 4) {
+                        // 生成定式树 SGF
+                        const treeSgf = await josekiMatcher.exportTree(
+                            result.matched,
+                            normalized,
+                            5
+                        );
+                        
+                        results.push({
+                            joseki_id: result.josekiId || `local_${Date.now()}`,
+                            prefix: result.matched.join(' '),
+                            prefix_len: result.matchedCount,
+                            total_moves: result.totalCount,
+                            source_corner: cornerKey,
+                            frequency: result.freq || 0,
+                            probability: result.prob || 0,
+                            winrate_stats: result.winrate_stats || null,
+                            extracted_moves: treeSgf,
+                            game_info: {
+                                black: parsed.game_info.black || '黑棋',
+                                white: parsed.game_info.white || '白棋',
+                                date: date || parsed.game_info.date || '',
+                                event: '',
+                                result: ''
+                            },
+                            file: title
+                        });
+                    }
+                }
+                
+            } catch (error) {
+                console.error('分析 SGF 失败:', error);
+            }
+            
+            return results;
+        }
+        
+        // ========== 结果展示 ==========
+        function displayResults() {
+            // 显示结果区域
+            document.getElementById('resultSection').classList.add('active');
+            
+            // 渲染定式列表
+            renderJosekiList();
+            
+            // 更新计数
+            updateFilterCounts();
+            
+            // 设置默认过滤器
+            setFilter('all');
+            
+            // 绘制缩略图
+            setTimeout(() => {
+                BoardThumbnail.renderAll('.joseki-thumbnail');
+            }, 100);
+            
+            // 滚动到结果区域
+            document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function renderJosekiList() {
+            const list = document.getElementById('josekiList');
+            
+            if (currentResults.length === 0) {
+                list.innerHTML = '<div class="empty-state">未发现定式</div>';
+                return;
+            }
+            
+            // 获取已查看记录
+            const viewedKey = VIEWED_KEY + '_' + currentHistoryId;
+            let viewed = [];
+            try {
+                viewed = JSON.parse(localStorage.getItem(viewedKey) || '[]');
+            } catch (e) {}
+            
+            list.innerHTML = currentResults.map((item, index) => {
+                const gameInfo = item.game_info || {};
+                const prefix = item.prefix || '';
+                const prefixLen = item.prefix_len || 0;
+                const frequency = item.frequency || 0;
+                const probability = item.probability || 0;
+                const totalMoves = item.total_moves || 0;
+                
+                // 胜率统计
+                let winrateDisplay = '-';
+                let winrateClass = 'neutral';
+                let winrateAttrs = '';
+                if (item.winrate_stats) {
+                    const wr = item.winrate_stats;
+                    const delta = wr.delta || 0;
+                    winrateDisplay = (delta > 0 ? '+' : '') + (delta * 100).toFixed(2) + '%';
+                    if (delta > 0.02) winrateClass = 'positive';
+                    else if (delta < -0.02) winrateClass = 'negative';
+                    winrateAttrs = `data-delta="${delta}" data-stddev="${wr.stddev || 0}" data-samples="${wr.samples || 0}" data-positive="${wr.positive || 0}" data-negative="${wr.negative || 0}" data-neutral="${wr.neutral || 0}"`;
+                }
+                
+                // 标签
+                const tags = getJosekiTags(item);
+                let tagsHtml = '';
+                if (tags.includes('hot')) tagsHtml += '<span class="tag tag-hot">🔥 热门</span>';
+                if (tags.includes('hit')) tagsHtml += '<span class="tag tag-hit">🎯 命中</span>';
+                if (tags.includes('complex')) tagsHtml += '<span class="tag tag-complex">🧩 复杂</span>';
+                
+                // 数据属性用于过滤
+                const dataTags = tags.join(' ');
+                
+                // 探索着法串参数
+                let exploreMoves = '';
+                if (prefix && prefixLen > 0) {
+                    const movesArray = prefix.trim().split(/\\s+/);
+                    const prefixMoves = movesArray.slice(0, prefixLen);
+                    exploreMoves = prefixMoves.join('-');
+                }
+                
+                // 已查看状态
+                const viewedClass = viewed.includes(index) ? 'viewed' : '';
+                
+                return `
+                    <div class="joseki-card ${viewedClass}" data-index="${index}" data-tags="${dataTags}" onclick="saveScrollAndMarkViewed(${index}); viewJosekiMoves(${index})">
+                        <div class="joseki-header">
+                            <span><span class="stone-icon stone-black"></span>${gameInfo.black || '?'}</span>
+                            <span class="joseki-vs">vs</span>
+                            <span><span class="stone-icon stone-white"></span>${gameInfo.white || '?'}</span>
+                        </div>
+                        <div class="joseki-tags-row">
+                            <div class="joseki-meta">${gameInfo.date || '-'}</div>
+                        </div>
+                        <div class="joseki-body">
+                            <div class="metrics-row">
+                                <canvas class="joseki-thumbnail" width="200" height="200" data-moves="${prefix}" data-prefix-len="${prefixLen}"></canvas>
+                                <div class="metrics-info">
+                                    <div class="metric-col"><span class="metric-value">${prefixLen}/${totalMoves}</span><span class="metric-label">匹配/总手数</span></div>
+                                    <div class="metric-col"><span class="metric-value">${frequency}</span><span class="metric-label">库出现次数</span></div>
+                                    <div class="metric-col"><span class="metric-value">${(probability * 100).toFixed(2)}%</span><span class="metric-label">库出现概率</span></div>
+                                    <div class="metric-col"><span class="metric-value winrate-value ${winrateClass}" ${winrateAttrs} onclick="event.stopPropagation(); toggleWinrateDetail(event, this)">${winrateDisplay}</span><span class="metric-label">胜率变化</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="joseki-footer">
+                            <div class="joseki-tags">${tagsHtml}</div>
+                            <div style="display:flex;gap:6px;">
+                                ${exploreMoves ? '<button class="joseki-btn" style="background:#e3f2fd;color:#1565c0;" onclick="event.stopPropagation(); goToExplore(\'' + exploreMoves + '\')">🔍 探索</button>' : ''}
+                                <button class="joseki-btn" onclick="event.stopPropagation(); saveScrollAndMarkViewed(${index}); viewJosekiGame(${index})">📖 棋谱</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function getJosekiTags(item) {
+            const tags = [];
+            if (item.frequency >= 100) tags.push('hot');
+            if (item.prefix_len >= 15) tags.push('hit');
+            if (item.total_moves >= 30) tags.push('complex');
+            return tags;
+        }
+        
+        function updateFilterCounts() {
+            const counts = { hot: 0, hit: 0, complex: 0, all: currentResults.length };
+            
+            currentResults.forEach(item => {
+                const tags = getJosekiTags(item);
+                if (tags.includes('hot')) counts.hot++;
+                if (tags.includes('hit')) counts.hit++;
+                if (tags.includes('complex')) counts.complex++;
+            });
+            
+            document.getElementById('countHot').textContent = counts.hot;
+            document.getElementById('countHit').textContent = counts.hit;
+            document.getElementById('countComplex').textContent = counts.complex;
+            document.getElementById('countAll').textContent = counts.all;
+        }
+        
+        // ========== 过滤功能 ==========
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            // 更新标签样式
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.filter-tab[data-filter="${filter}"]`).classList.add('active');
+            
+            // 过滤卡片
+            document.querySelectorAll('.joseki-card').forEach(card => {
+                const tags = card.dataset.tags || '';
+                if (filter === 'all' || tags.includes(filter)) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+        
+        // ========== 历史记录管理 ==========
+        function saveToHistory(source, meta) {
+            const id = generateId();
+            const record = {
+                id: id,
+                createdAt: new Date().toISOString(),
+                source: source,
+                meta: meta,
+                totalGames: currentGames.length,
+                josekiCount: currentResults.length,
+                results: currentResults,
+                games: currentGames
+            };
+            
+            // 保存到历史列表
+            let history = getHistoryList();
+            history.unshift(record);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            
+            // 设置当前历史 ID
+            currentHistoryId = id;
+            
+            // 保存当前结果到 sessionStorage
+            sessionStorage.setItem(CURRENT_KEY, JSON.stringify({
+                id: id,
+                results: currentResults,
+                games: currentGames
+            }));
+            
+            // 更新历史列表显示
+            renderHistoryList();
+        }
+        
+        function getHistoryList() {
+            try {
+                return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+        
+        function renderHistoryList() {
+            const listContainer = document.getElementById('historyList');
+            const history = getHistoryList();
+            
+            if (history.length === 0) {
+                listContainer.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+                return;
+            }
+            
+            listContainer.innerHTML = history.map(record => {
+                const sourceIcon = record.source === 'foxwq' ? '🌐' : '📁';
+                const sourceText = record.source === 'foxwq' ? '线上棋谱' : '导入棋谱';
+                const metaText = record.meta || '';
+                
+                return `
+                    <div class="history-item" onclick="loadHistoryResult('${record.id}')">
+                        <div class="history-item-info">
+                            <span class="history-time">${formatDate(record.createdAt)}</span>
+                            <span class="history-meta">${sourceIcon} ${sourceText} ${metaText} · ${record.josekiCount} 个定式</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function loadHistoryResult(id) {
+            const history = getHistoryList();
+            const record = history.find(r => r.id === id);
+            
+            if (!record) {
+                alert('历史记录不存在');
+                return;
+            }
+            
+            currentHistoryId = id;
+            currentResults = record.results || [];
+            currentGames = record.games || [];
+            
+            // 保存到 sessionStorage
+            sessionStorage.setItem(CURRENT_KEY, JSON.stringify({
+                id: id,
+                results: currentResults,
+                games: currentGames
+            }));
+            
+            // 显示结果
+            displayResults();
+        }
+        
+        function clearHistory() {
+            if (!confirm('确定要清除所有历史记录吗？')) {
+                return;
+            }
+            
+            localStorage.removeItem(HISTORY_KEY);
+            sessionStorage.removeItem(CURRENT_KEY);
+            
+            // 清除所有查看记录
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith(VIEWED_KEY)) {
+                    localStorage.removeItem(key);
+                }
+            });
+            
+            currentHistoryId = null;
+            currentResults = [];
+            currentGames = [];
+            
+            renderHistoryList();
+            
+            // 隐藏结果区域
+            document.getElementById('resultSection').classList.remove('active');
+        }
+        
+        function restoreCurrentResult() {
+            try {
+                const stored = sessionStorage.getItem(CURRENT_KEY);
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    currentHistoryId = data.id;
+                    currentResults = data.results || [];
+                    currentGames = data.games || [];
+                    
+                    if (currentResults.length > 0) {
+                        displayResults();
+                    }
+                }
+            } catch (e) {
+                console.error('恢复当前结果失败:', e);
+            }
+        }
+        
+        // ========== 弹窗控制 ==========
+        function closeModal() {
+            document.getElementById('modalBackdrop').classList.remove('active');
+            document.getElementById('modalSheet').classList.remove('active');
+        }
+        
+        function closeWinrateSheet() {
+            document.getElementById('winrateBackdrop').classList.remove('active');
+            document.getElementById('winrateSheet').classList.remove('active');
+        }
+        
+        function toggleWinrateDetail(event, el) {
+            event.stopPropagation();
+            
+            const delta = parseFloat(el.dataset.delta || 0);
+            const stddev = parseFloat(el.dataset.stddev || 0);
+            const samples = parseInt(el.dataset.samples || 0);
+            const positive = parseInt(el.dataset.positive || 0);
+            const negative = parseInt(el.dataset.negative || 0);
+            const neutral = parseInt(el.dataset.neutral || 0);
+            
+            const total = positive + negative + neutral;
+            
+            let barHtml = '';
+            if (total > 0) {
+                const posPct = (positive / total * 100).toFixed(1);
+                const neuPct = (neutral / total * 100).toFixed(1);
+                const negPct = (negative / total * 100).toFixed(1);
+                
+                barHtml = `
+                    <div class="winrate-bar">
+                        <div class="winrate-bar-positive" style="width: ${posPct}%"></div>
+                        <div class="winrate-bar-neutral" style="width: ${neuPct}%"></div>
+                        <div class="winrate-bar-negative" style="width: ${negPct}%"></div>
+                    </div>
+                    <div class="winrate-bar-labels">
+                        <span>胜率上升 ${positive} (${posPct}%)</span>
+                        <span>持平 ${neutral} (${neuPct}%)</span>
+                        <span>胜率下降 ${negative} (${negPct}%)</span>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('winrateContent').innerHTML = `
+                <div class="winrate-detail-row">
+                    <span class="winrate-detail-label">胜率变化</span>
+                    <span class="winrate-detail-value">${(delta > 0 ? '+' : '') + (delta * 100).toFixed(2)}%</span>
+                </div>
+                <div class="winrate-detail-row">
+                    <span class="winrate-detail-label">标准差</span>
+                    <span class="winrate-detail-value">${(stddev * 100).toFixed(2)}%</span>
+                </div>
+                <div class="winrate-detail-row">
+                    <span class="winrate-detail-label">样本数</span>
+                    <span class="winrate-detail-value">${samples}</span>
+                </div>
+                ${barHtml}
+                <div class="winrate-hint">💡 点击任意位置关闭</div>
+            `;
+            
+            document.getElementById('winrateBackdrop').classList.add('active');
+            document.getElementById('winrateSheet').classList.add('active');
+        }
+        
+        // ========== 棋谱查看 ==========
+        function viewJosekiMoves(index) {
+            const item = currentResults[index];
+            if (!item) return;
+            
+            const prefix = item.prefix || '';
+            const movesArray = prefix.trim().split(/\\s+/);
+            
+            // 格式化着法显示
+            let movesDisplay = '';
+            movesArray.forEach((coord, i) => {
+                const color = i % 2 === 0 ? '●' : '○';
+                movesDisplay += `${color} ${coord}  `;
+                if ((i + 1) % 5 === 0) movesDisplay += '\\n';
+            });
+            
+            document.getElementById('modalTitle').textContent = '定式着法';
+            document.getElementById('modalContent').textContent = movesDisplay.trim();
+            
+            document.getElementById('modalBackdrop').classList.add('active');
+            document.getElementById('modalSheet').classList.add('active');
+        }
+        
+        function viewJosekiGame(index) {
+            const item = currentResults[index];
+            if (!item) return;
+            
+            // 查找对应的棋谱
+            const gameInfo = item.game_info || {};
+            const sgf = currentGames.find(g => 
+                g.title === item.file || 
+                (g.sgf && g.sgf.includes(gameInfo.black || '') && g.sgf.includes(gameInfo.white || ''))
+            );
+            
+            if (!sgf || !sgf.sgf) {
+                alert('棋谱数据不可用');
+                return;
+            }
+            
+            // 使用 iframe 显示棋谱
+            const overlay = document.getElementById('replayOverlay');
+            const iframe = document.getElementById('replayIframe');
+            
+            // 构建 replay URL（使用 data URL 或 postMessage）
+            const replayUrl = BASE_PATH + '/replay.html';
+            
+            iframe.src = replayUrl;
+            overlay.classList.add('active');
+            
+            // 发送 SGF 到 iframe
+            iframe.onload = function() {
+                iframe.contentWindow.postMessage({
+                    type: 'loadSGF',
+                    sgf: sgf.sgf,
+                    prefixLen: item.prefix_len
+                }, '*');
+            };
+            
+            // 添加关闭事件
+            overlay.onclick = function(e) {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                    iframe.src = '';
+                }
+            };
+        }
+        
+        function goToExplore(movesParam) {
+            if (!movesParam) return;
+            window.location.href = BASE_PATH + '/tools/joseki/explore.html?moves=' + movesParam;
+        }
+        
+        // ========== 滚动位置保存 ==========
+        function saveScrollAndMarkViewed(index) {
+            // 标记为已查看
+            const viewedKey = VIEWED_KEY + '_' + currentHistoryId;
+            let viewed = [];
+            try {
+                viewed = JSON.parse(localStorage.getItem(viewedKey) || '[]');
+            } catch (e) {}
+            
+            if (!viewed.includes(index)) {
+                viewed.push(index);
+                localStorage.setItem(viewedKey, JSON.stringify(viewed));
+            }
+            
+            // 更新卡片样式
+            const card = document.querySelector(`.joseki-card[data-index="${index}"]`);
+            if (card) {
+                card.classList.add('viewed');
+            }
+        }
+        
+        // 关闭弹窗的点击事件
+        document.getElementById('replayOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+                document.getElementById('replayIframe').src = '';
+            }
+        });
+    </script>
+</body>
+</html>
