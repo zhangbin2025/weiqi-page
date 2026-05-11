@@ -448,9 +448,12 @@ class SGFParser {
         
         while (node.children && node.children.length > 0) {
             node = node.children[0];
-            const coord = node.coord || 'tt';
-            moves.push([node.color, coord]);
-            if (moves.length >= firstN) break;
+            // 跳过没有着法属性的节点（如预置子节点 AB[]/AW[]）
+            if (node.color !== null) {
+                const coord = node.coord || 'tt';
+                moves.push([node.color, coord]);
+                if (moves.length >= firstN) break;
+            }
         }
         
         return moves;
