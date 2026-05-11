@@ -389,6 +389,8 @@ class SGFParser {
         
         // 让子位置
         const handicapStones = [];
+        
+        // 解析 AB[] (添加黑子)
         const abProp = props['AB'] || [];
         const abList = Array.isArray(abProp) ? abProp : [abProp];
         for (const coord of abList) {
@@ -396,7 +398,20 @@ class SGFParser {
                 const x = coord.charCodeAt(0) - 97;
                 const y = coord.charCodeAt(1) - 97;
                 if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
-                    handicapStones.push({ x, y });
+                    handicapStones.push({ x, y, color: 'B' });
+                }
+            }
+        }
+        
+        // 解析 AW[] (添加白子)
+        const awProp = props['AW'] || [];
+        const awList = Array.isArray(awProp) ? awProp : [awProp];
+        for (const coord of awList) {
+            if (coord && coord.length >= 2) {
+                const x = coord.charCodeAt(0) - 97;
+                const y = coord.charCodeAt(1) - 97;
+                if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
+                    handicapStones.push({ x, y, color: 'W' });
                 }
             }
         }

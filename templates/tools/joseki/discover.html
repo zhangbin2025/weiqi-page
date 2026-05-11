@@ -631,7 +631,10 @@
                     return results;
                 }
                 
-                const corners = cornerExtractor.extractFourCorners(moves);
+                // 获取预置子信息
+                const handicapStones = parsed.game_info?.handicap_stones || [];
+                
+                const corners = cornerExtractor.extractFourCorners(moves, 80, handicapStones);
                 
                 for (const cornerKey of ['tl', 'tr', 'bl', 'br']) {
                     const cornerMoves = corners[cornerKey];
