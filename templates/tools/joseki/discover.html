@@ -1433,7 +1433,7 @@
             movesArray.forEach((coord, i) => {
                 const color = i % 2 === 0 ? '●' : '○';
                 movesDisplay += `${color} ${coord}  `;
-                if ((i + 1) % 5 === 0) movesDisplay += '\\n';
+                if ((i + 1) % 5 === 0) movesDisplay += '\n';
             });
             
             document.getElementById('modalTitle').textContent = '定式着法';
