@@ -687,36 +687,7 @@
                 if (prefixLen >= 12) complexCount++;
             });
             
-            // 棋谱统计
-            let firstDate = null;
-            let lastDate = null;
-            
-            currentGames.forEach(game => {
-                if (game.date) {
-                    if (!firstDate || firstDate > game.date) firstDate = game.date;
-                    if (!lastDate || lastDate < game.date) lastDate = game.date;
-                }
-            });
-            
             statsSection.innerHTML = `
-                <div class="stats-card" onclick="viewGames()">
-                    <h3>📋 棋谱统计</h3>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-value">${currentGames.length}</div>
-                            <div class="stat-label">分析棋谱数</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" style="font-size:1em">${firstDate || '-'}</div>
-                            <div class="stat-label">最早日期</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" style="font-size:1em">${lastDate || '-'}</div>
-                            <div class="stat-label">最新日期</div>
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="stats-card" onclick="viewJoseki()">
                     <h3>📚 定式发现</h3>
                     <div class="stats-grid">
@@ -744,29 +715,6 @@
         }
         
         // ========== 导航 ==========
-        function viewGames() {
-            // 保存数据到 sessionStorage，供对手分析页面使用
-            const data = {
-                foxwq_id: '定式发现',
-                games: currentGames.map(g => ({
-                    black: '黑棋',
-                    white: '白棋',
-                    date: g.date || '',
-                    file: g.title,
-                    opponent: '',
-                    result: '',
-                    sgf: g.sgf
-                })),
-                joseki: {
-                    count: currentResults.length,
-                    results: currentResults
-                }
-            };
-            
-            sessionStorage.setItem('opponent_data', JSON.stringify(data));
-            location.href = BASE_PATH + '/tools/opponent/games.html';
-        }
-        
         function viewJoseki() {
             // 保存数据到 sessionStorage，供对手分析页面使用
             const data = {
