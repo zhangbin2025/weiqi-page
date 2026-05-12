@@ -8,7 +8,7 @@ from pathlib import Path
 from jinja2 import Template
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs, WEIQI_PAGE_DIR, WEIQI_PLAY_DIR, WEIQI_SELF_PLAY_DIR
+from config import SITE_DIR, TEST_SITE_DIR, TEMPLATES_DIR, ensure_dirs, WEIQI_PAGE_DIR, WEIQI_PLAY_DIR, WEIQI_SELF_PLAY_DIR, WEIQI_HUMAN_PLAY_DIR
 
 
 def normalize_event_name(event):
@@ -534,6 +534,32 @@ def generate_index(test_mode=False):
         print(f"✅ 复制 AI 自对弈工具完成")
     else:
         print(f"⚠️ 警告: 未找到 AI 自对弈工具目录: {self_play_src_dir}")
+    
+    # ========== 复制真人对弈工具到 tools/play 目录 ==========
+    # 与 weiqi-play 共享同一目录，共享公共资源
+    human_play_src_dir = WEIQI_HUMAN_PLAY_DIR
+    
+    if human_play_src_dir.exists():
+        print(f"\n📦 处理真人对弈工具目录: {human_play_src_dir}")
+        
+        # 复制 hh.html
+        src_hh = human_play_src_dir / "hh.html"
+        dst_hh = play_dst_dir / "hh.html"
+        if src_hh.exists():
+            shutil.copy2(src_hh, dst_hh)
+            print(f"✅ 复制真人对弈页面: {dst_hh.name}")
+        
+        # 复制 hh.js
+        src_hh_js = human_play_src_dir / "hh.js"
+        dst_hh_js = play_dst_dir / "hh.js"
+        if src_hh_js.exists():
+            shutil.copy2(src_hh_js, dst_hh_js)
+            print(f"✅ 复制真人对弈 JS: {dst_hh_js.name}")
+        
+        # 注意：assets 目录已经由 weiqi-play 复制，这里不需要重复复制
+        print(f"✅ 复制真人对弈工具完成")
+    else:
+        print(f"⚠️ 警告: 未找到真人对弈工具目录: {human_play_src_dir}")
     
     # 复制对弈工具模板文件到站点
     play_templates_src = TEMPLATES_DIR / "tools" / "play"

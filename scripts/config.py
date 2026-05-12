@@ -87,6 +87,9 @@ WEIQI_PLAY_DIR = WEIQI_AI_DIR / "weiqi-play" / "dist"
 # AI 自对弈工具路径
 WEIQI_SELF_PLAY_DIR = WEIQI_AI_DIR / "weiqi-self-play" / "dist"
 
+# 真人对弈工具路径
+WEIQI_HUMAN_PLAY_DIR = WEIQI_AI_DIR / "weiqi-human-play"
+
 # 数据存储路径 - 使用环境变量或默认家目录
 WEIQI_DB_DIR = Path(os.getenv("WEIQI_DB_DIR", HOME_DIR / ".weiqi-db"))
 WEIQI_JOSEKI_DB_DIR = Path(os.getenv("WEIQI_JOSEKI_DB_DIR", HOME_DIR / ".weiqi-joseki"))
