@@ -27,14 +27,24 @@
         header {
             padding: 12px 10px 8px;
             color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        }
+
+        .header-top {
+            text-align: center;
+            margin-bottom: 8px;
         }
 
         h1 {
             font-size: 1.8em;
+            margin-bottom: 4px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header-bottom {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0 4px;
         }
 
         .history-btn {
@@ -56,11 +66,12 @@
         }
 
         .main-content {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-evenly;
-            padding: 8px 0;
+            gap: 16px;
+            margin-top: 12px;
+            flex: 1;
+            justify-content: flex-start;
         }
 
         .nav-btn {
@@ -77,8 +88,6 @@
             transition: transform 0.3s, box-shadow 0.3s;
             text-decoration: none;
             color: #333;
-            flex: 1;
-            margin: 6px 0;
         }
 
         .nav-btn:hover {
@@ -114,16 +123,21 @@
             padding: 8px;
             color: rgba(255,255,255,0.7);
             font-size: 0.7em;
+            margin-top: auto;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🎮 围棋对弈</h1>
-            <a href="history.html" class="history-btn" title="历史对局">
-                <span>📋</span>
-            </a>
+            <div class="header-top">
+                <h1>🎮 围棋对弈</h1>
+            </div>
+            <div class="header-bottom">
+                <a href="history.html" class="history-btn" title="历史对局">
+                    <span>📋</span>
+                </a>
+            </div>
         </header>
 
         <div class="main-content">
